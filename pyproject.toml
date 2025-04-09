@@ -5,7 +5,7 @@ description = "More broke than a broker"
 authors = [
     {name = "RenChu Wang",email = "patrick1031wang@gmail.com"}
 ]
-license = {text = "MIT"}
+license = {text = "GPL"}
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -20,4 +20,3 @@ build-backend = "poetry.core.masonry.api"
 autoflake = "^2.3.1"
 black = "^25.1.0"
 isort = "^6.0.1"
-

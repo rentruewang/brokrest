@@ -1,0 +1,36 @@
+name: Publish
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  pypi-publish:
+    name: ⬆️ Upload release to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: 🔔 Check out
+        uses: actions/checkout@v3
+
+      - name: 🏗️ python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: ⬇️ Python Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.4
+          installer-parallel: true
+
+      - name: ⬇️ Python Dependencies
+        run: poetry install --sync
+
+      - name: 🪶 Build with poetry
+        run: poetry build
+
+      - name: 📰 Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,14 +1,19 @@
 [project]
 name = "brokest"
-version = "0.0.1"
+version = "0.0.0"
 description = "More broke than a broker"
 authors = [
     {name = "RenChu Wang",email = "patrick1031wang@gmail.com"}
 ]
 license = {text = "GPL"}
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<4.0"
 dependencies = [
+    "freqtrade (>=2025.3,<2026.0)",
+    "numpy",
+    "pandas (>=2.2.3,<3.0.0)",
+    "scipy (>=1.15.2,<2.0.0)",
+    "torch (>=2.6.0,<3.0.0)"
 ]
 
 

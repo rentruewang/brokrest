@@ -25,7 +25,14 @@ build-backend = "poetry.core.masonry.api"
 autoflake = "^2.3.1"
 black = "^25.1.0"
 isort = "^6.0.1"
+pre-commit = "^4.2.0"
 
 [tool.poetry.group.build.dependencies]
 build = "^1.2.2.post1"
 cython = "^3.0.12"
+
+[tool.poetry.group.tests.dependencies]
+pytest = "^8.3.5"
+pytest-cov = "^6.1.1"
+pytest-xdist = "^3.6.1"
+pytest-sugar = "^1.0.0"

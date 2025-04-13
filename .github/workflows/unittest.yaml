@@ -21,7 +21,7 @@ jobs:
             powershell
 
       - name: ⬇️ Python Pip
-        run: pip install -e '.[extras]'
+        run: pip install -e '.[dev]'
 
       - name: 🏃 pytest
         run: pytest -xv

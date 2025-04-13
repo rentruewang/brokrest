@@ -15,23 +15,25 @@ jobs:
       - name: 🔔 Check out
         uses: actions/checkout@v3
 
-      - name: 🐍 Install conda
-        uses: mamba-org/setup-micromamba@v2
+      - name: 🏗️ python
+        uses: actions/setup-python@v4
         with:
-          environment-file: env.yaml
-          cache-environment: true
-          post-cleanup: all
-          create-args: >-
-            python=3.12
-          init-shell: >-
-            bash
-            powershell
+          python-version: "3.12"
 
-      - name: ⬇️ Python Pip
-        run: pip install -e '.[dev]'
+      - name: ⬇️ Python Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.1.2
+          installer-parallel: true
 
-      - name: 🪶 Build
-        run: python -m build
+      - name: ⬇️ TA-Lib
+        run: git clone https://github.com/TA-Lib/ta-lib && cd ta-lib && sudo ./install
+
+      - name: ⬇️ Python Dependencies
+        run: poetry install
+
+      - name: 🪶 Build with poetry
+        run: poetry build
 
       - name: 📰 Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

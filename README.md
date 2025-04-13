@@ -9,24 +9,36 @@ More broke than a broker.
 First, clone the project
 
 ```bash
-git clone https://github.com/rentrueawng/brokest
+git clone https://github.com/rentrueawng/brokest --recurse-submodules
+
+# Go into the project root.
+cd brokest
 ```
 
 ### Installation
 
-The dependencies of the package is a little tricky to set up,
-so we're using `conda`.
+First, install TA-Lib
+```bash
+# Get the TA-Lib library
+git clone https://github.com/TA-Lib/ta-lib
+cd ta-lib
+
+# Install the library.
+sudo ./install
+```
+
+You might need to enter your password.
+
+Then, install the build tool poetry
 
 ```bash
-PYTHON_VERSION_YOU_LIKE=3.12 # I personally like to use newer python.
-conda env create -f env.yaml python=${PYTHON_VERSION_YOU_LIKE}
+pipx install poetry
+
+# Or using pip
+pip install poetry.
 ```
 
 Then, install the packages from PyPI, in editable mode.
 ```bash
-# Just the runtime dependencies
-pip install -e .
-
-# Development dependencies
-pip install -e '.[dev]'
+poetry install
 ```

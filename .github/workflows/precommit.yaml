@@ -8,29 +8,31 @@ jobs:
       - name: 🔔 Check out
         uses: actions/checkout@v3
 
-      - name: 🐍 Install conda
-        uses: mamba-org/setup-micromamba@v2
+      - name: 🏗️ python
+        uses: actions/setup-python@v4
         with:
-          environment-file: env.yaml
-          cache-environment: true
-          post-cleanup: all
-          create-args: >-
-            python=3.12
-          init-shell: >-
-            bash
-            powershell
+          python-version: "3.12"
 
-      - name: ⬇️ Python Pip
-        run: pip install -e '.[dev]'
+      - name: ⬇️ Python Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.1.2
+          installer-parallel: true
+
+      - name: ⬇️ TA-Lib
+        run: git clone https://github.com/TA-Lib/ta-lib && cd ta-lib && sudo ./install
+
+      - name: ⬇️ Python Dependencies
+        run: poetry install
 
       - name: 🏃 autoflake
-        run: pre-commit run --all-files autoflake
+        run: poetry run pre-commit run --all-files autoflake
 
       - name: 🏃 isort
-        run: pre-commit run --all-files isort
+        run: poetry run pre-commit run --all-files isort
 
       - name: 🏃 black
-        run: pre-commit run --all-files black
+        run: poetry run pre-commit run --all-files black
 
   type:
     name: 👨‍⚕️ Type Checking
@@ -44,11 +46,20 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: ⬇️ Python Pip
-        run: pip install -e '.[dev]'
+      - name: ⬇️ Python Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 2.1.2
+          installer-parallel: true
+
+      - name: ⬇️ TA-Lib
+        run: git clone https://github.com/TA-Lib/ta-lib && cd ta-lib && sudo ./install
+
+      - name: ⬇️ Python Dependencies
+        run: poetry install
 
       - name: 📦 Install type stubs
-        run: mypy . --install-types --non-interactive
+        run: poetry run mypy . --install-types --non-interactive
 
       - name: 🏃 mypy
-        run: pre-commit run --all-files black
+        run: poetry run pre-commit run --all-files black

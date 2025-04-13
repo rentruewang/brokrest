@@ -35,10 +35,13 @@ Then, install the build tool poetry
 pipx install poetry
 
 # Or using pip
-pip install poetry.
+pip install poetry
 ```
 
 Then, install the packages from PyPI, in editable mode.
 ```bash
+# Go back to `brokest`.
+cd ../
+
 poetry install
 ```

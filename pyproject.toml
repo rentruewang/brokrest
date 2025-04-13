@@ -5,34 +5,38 @@ description = "More broke than a broker"
 authors = [
     {name = "RenChu Wang",email = "patrick1031wang@gmail.com"}
 ]
-license = {text = "GPL"}
+license = "GPL-3.0"
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
 dependencies = [
-    "freqtrade (>=2025.3,<2026.0)",
+    "freqtrade>=2025.3",
     "numpy",
-    "pandas (>=2.2.3,<3.0.0)",
-    "scipy (>=1.15.2,<2.0.0)",
-    "torch (>=2.6.0,<3.0.0)"
+    "pandas>=2.2.3,<3.0.0",
+    "scipy>=1.15.2,<2.0.0",
+    "torch>=2.5.0,<3.0.0"
 ]
 
-
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "wheel", "build"]
+build-backend = "setuptools.build_meta"
 
-[tool.poetry.group.dev.dependencies]
-autoflake = "^2.3.1"
-black = "^25.1.0"
-isort = "^6.0.1"
-pre-commit = "^4.2.0"
-
-[tool.poetry.group.build.dependencies]
-build = "^1.2.2.post1"
-cython = "^3.0.12"
-
-[tool.poetry.group.tests.dependencies]
-pytest = "^8.3.5"
-pytest-cov = "^6.1.1"
-pytest-xdist = "^3.6.1"
-pytest-sugar = "^1.0.0"
+[project.optional-dependencies]
+dev = [
+    "autoflake>=2.3.1",
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "pre-commit>=4.2.0",
+]
+build = [
+    "build>=1.2.2.post1",
+    "cython>=3.0.12",
+]
+pytest = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-xdist>=3.6.1",
+    "pytest-sugar>=1.0.0",
+]
+extras = [
+    "brokest[dev, build, pytest]"
+]

@@ -8,28 +8,29 @@ jobs:
       - name: 🔔 Check out
         uses: actions/checkout@v3
 
-      - name: 🏗️ python
-        uses: actions/setup-python@v4
+      - name: 🐍 Install conda
+        uses: mamba-org/setup-micromamba@v2
         with:
-          python-version: "3.12"
+          environment-file: env.yaml
+          cache-environment: true
+          post-cleanup: all
+          create-args: >-
+            python=3.12
+          init-shell: >-
+            bash
+            powershell
 
-      - name: ⬇️ Python Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 2.1.2
-          installer-parallel: true
-
-      - name: ⬇️ Python Dependencies
-        run: poetry install --sync
+      - name: ⬇️ Python Pip
+        run: pip install -e '.[extras]'
 
       - name: 🏃 autoflake
-        run: poetry run pre-commit run --all-files autoflake
+        run: pre-commit run --all-files autoflake
 
       - name: 🏃 isort
-        run: poetry run pre-commit run --all-files isort
+        run: pre-commit run --all-files isort
 
       - name: 🏃 black
-        run: poetry run pre-commit run --all-files black
+        run: pre-commit run --all-files black
 
   type:
     name: 👨‍⚕️ Type Checking
@@ -43,17 +44,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: ⬇️ Python Poetry
-        uses: snok/install-poetry@v1
-        with:
-          version: 2.1.2
-          installer-parallel: true
-
-      - name: ⬇️ Python Dependencies
-        run: poetry install --sync
+      - name: ⬇️ Python Pip
+        run: pip install -e '.[extras]'
 
       - name: 📦 Install type stubs
-        run: poetry run mypy . --install-types --non-interactive
+        run: mypy . --install-types --non-interactive
 
       - name: 🏃 mypy
-        run: poetry run pre-commit run --all-files black
+        run: pre-commit run --all-files black

@@ -1,7 +1,7 @@
 [project]
-name = "brokest"
+name = "brokrest"
 version = "0.0.0"
-description = "More broke than a broker"
+description = "Brokers can rest now."
 authors = [
     {name = "RenChu Wang",email = "patrick1031wang@gmail.com"}
 ]

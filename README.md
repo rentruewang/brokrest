@@ -1,6 +1,6 @@
-# Brokest
+# Brokrest
 
-More broke than a broker.
+Brokers can rest now.
 
 ## Development
 
@@ -9,10 +9,10 @@ More broke than a broker.
 First, clone the project
 
 ```bash
-git clone https://github.com/rentrueawng/brokest --recurse-submodules
+git clone https://github.com/rentrueawng/brokrest --recurse-submodules
 
 # Go into the project root.
-cd brokest
+cd brokrest
 ```
 
 ### Installation
@@ -40,7 +40,7 @@ pip install poetry
 
 Then, install the packages from PyPI, in editable mode.
 ```bash
-# Go back to `brokest`.
+# Go back to `brokrest`.
 cd ../
 
 poetry install

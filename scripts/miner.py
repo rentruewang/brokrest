@@ -1,3 +1,5 @@
+# Copyright (c) The BrokRest Authors - All Rights Reserved
+
 import glob
 import logging
 import re

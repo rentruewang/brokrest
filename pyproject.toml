@@ -1,46 +1,45 @@
 [project]
 name = "brokrest"
-version = "0.0.0"
 description = "Brokers can rest now."
 authors = [
-    {name = "RenChu Wang",email = "patrick1031wang@gmail.com"}
+    {name = "RenChu Wang", email = "patrick1031wang@gmail.com"}
 ]
-license = {text = "GPL"}
-readme = "README.md"
 requires-python = ">=3.12,<4.0"
-dependencies = [
-    "freqtrade (>=2025.3,<2026.0)",
-    "numpy",
-    "pandas (>=2.2.3,<3.0.0)",
-    "scipy (>=1.15.2,<2.0.0)",
-    "torch (>=2.6.0,<3.0.0)",
-    "sympy (>=1.12.0)",
-    "alive-progress (>=3.2.0,<4.0.0)",
-    "lark (>=1.2.2,<2.0.0)",
-    "parse (>=1.20.2,<2.0.0)",
-]
-
+readme = "README.md"
+license = {text = "GPL"}
+dynamic = ["version"]
+dependencies = ["freqtrade>=2025.4", "numpy>=1.26.4", "pandas>=2.2.3", "scipy>=1.15.3", "torch>=2.7.0", "sympy>=1.14.0", "alive-progress>=3.2.0", "lark>=1.2.2", "parse>=1.20.2"]
 
 [build-system]
-requires = ["poetry-core>=2.0.0,<3.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools", "wheel", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
-[tool.poetry.group.pre-commit.dependencies]
-autoflake = "^2.3.1"
-black = "^25.1.0"
-isort = "^6.0.1"
-mypy = "^1.15.0"
-pre-commit = "^4.2.0"
+[tool.setuptools_scm]
 
-[tool.poetry.group.build.dependencies]
-build = "^1.2.2.post1"
-cython = "^3.0.12"
-
-[tool.poetry.group.tests.dependencies]
-pytest-cov = "^6.1.1"
-pytest-xdist = "^3.6.1"
-pytest-sugar = "^1.0.0"
-pytest = "^8.3.5"
-
-[tool.poetry.group.cli.dependencies]
-fire = "^0.7.0"
+[dependency-groups]
+tests = [
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "pytest-xdist>=3.7.0",
+    "pytest-sugar>=1.0.0",
+]
+checks = [
+    "autoflake>=2.3.1",
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "mypy>=1.16.0",
+    "pre-commit>=4.2.0",
+]
+cli = [
+    "fire>=0.7.0",
+]
+build = [
+    "ansible>=11.6.0",
+    "build>=1.2.2.post1",
+    "cython>=3.1.1",
+    "ninja>=1.11.1.4",
+    "pip>=25.1.1",
+    "setuptools>=80.9.0",
+    "setuptools-scm>=8.3.1",
+    "wheel>=0.45.1",
+]

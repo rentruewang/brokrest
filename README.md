@@ -29,13 +29,13 @@ sudo ./install
 
 You might need to enter your password.
 
-Then, install the build tool poetry
+Then, install the build tool pdm
 
 ```bash
-pipx install poetry
+pipx install pdm
 
 # Or using pip
-pip install poetry
+pip install pdm
 ```
 
 Then, install the packages from PyPI, in editable mode.
@@ -43,5 +43,5 @@ Then, install the packages from PyPI, in editable mode.
 # Go back to `brokrest`.
 cd ../
 
-poetry install
+pdm install -G:all
 ```

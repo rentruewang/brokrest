@@ -4,7 +4,7 @@ description = "Brokers can rest now."
 requires-python = "==3.12.7"
 readme = "README.md"
 dynamic = ["version"]
-dependencies = ["freqtrade>=2025.4", "numpy>=1.26.4", "pandas>=2.2.3", "scipy>=1.15.3", "torch>=2.7.0", "sympy>=1.14.0", "alive-progress>=3.2.0", "lark>=1.2.2", "parse>=1.20.2"]
+dependencies = ["freqtrade>=2025.4", "numpy>=1.26.4", "pandas>=2.2.3", "scipy>=1.15.3", "torch>=2.7.0", "sympy>=1.14.0", "alive-progress>=3.2.0", "lark>=1.2.2", "parse>=1.20.2", "scikit-learn>=1.6.1"]
 
 [[project.authors]]
 name = "RenChu Wang"

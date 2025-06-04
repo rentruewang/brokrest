@@ -1,14 +1,24 @@
 [project]
 name = "brokrest"
 description = "Brokers can rest now."
-authors = [
-    {name = "RenChu Wang", email = "patrick1031wang@gmail.com"}
-]
-requires-python = ">=3.12,<4.0"
+requires-python = "==3.12.7"
 readme = "README.md"
-license = {text = "GPL"}
 dynamic = ["version"]
 dependencies = ["freqtrade>=2025.4", "numpy>=1.26.4", "pandas>=2.2.3", "scipy>=1.15.3", "torch>=2.7.0", "sympy>=1.14.0", "alive-progress>=3.2.0", "lark>=1.2.2", "parse>=1.20.2"]
+
+[[project.authors]]
+name = "RenChu Wang"
+email = "patrick1031wang@gmail.com"
+
+[project.license]
+text = "GPL"
+
+[project.optional-dependencies]
+build = ["ansible>=11.6.0", "build>=1.2.2.post1", "cython>=3.1.1", "ninja>=1.11.1.4", "pip>=25.1.1", "setuptools>=80.9.0", "setuptools-scm>=8.3.1", "wheel>=0.45.1"]
+checks = ["autoflake>=2.3.1", "black>=25.1.0", "isort>=6.0.1", "mypy>=1.16.0", "pre-commit>=4.2.0"]
+cli = ["fire>=0.7.0"]
+ipython = ["ipython>=9.3.0", "jupyter>=1.1.1", "jupytext>=1.17.2"]
+tests = ["pytest>=8.3.5", "pytest-cov>=6.1.1", "pytest-xdist>=3.7.0", "pytest-sugar>=1.0.0"]
 
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-scm"]
@@ -16,30 +26,26 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
-[dependency-groups]
-tests = [
-    "pytest>=8.3.5",
-    "pytest-cov>=6.1.1",
-    "pytest-xdist>=3.7.0",
-    "pytest-sugar>=1.0.0",
-]
-checks = [
-    "autoflake>=2.3.1",
-    "black>=25.1.0",
-    "isort>=6.0.1",
-    "mypy>=1.16.0",
-    "pre-commit>=4.2.0",
-]
-cli = [
-    "fire>=0.7.0",
-]
-build = [
-    "ansible>=11.6.0",
-    "build>=1.2.2.post1",
-    "cython>=3.1.1",
-    "ninja>=1.11.1.4",
-    "pip>=25.1.1",
-    "setuptools>=80.9.0",
-    "setuptools-scm>=8.3.1",
-    "wheel>=0.45.1",
+[tool.autoflake]
+in-place = true
+recursive = true
+exclude = "__init__.py"
+expand-star-imports = true
+remove-all-unused-imports = true
+remove-duplicate-keys = true
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.mypy]
+show_error_codes = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "-v",
+    "--import-mode=importlib",
 ]

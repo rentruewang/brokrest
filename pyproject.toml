@@ -13,6 +13,10 @@ email = "patrick1031wang@gmail.com"
 [project.license]
 text = "GPL"
 
+[project.optional-dependencies]
+bokeh = [
+    "bokeh>=3.7.3",
+]
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
@@ -39,5 +43,3 @@ check_untyped_defs = true
 
 [tool.pytest.ini_options]
 addopts = ["-v", "--import-mode=importlib"]
-
-[tool.pdm]

@@ -5,7 +5,7 @@
 groups = ["default", "bokeh"]
 strategy = []
 lock_version = "4.5.0"
-content_hash = "sha256:0d2a4fc065f8a0709fb41ba0913df720fcf29d953ac2591e179cad14e40305fa"
+content_hash = "sha256:7a826a012610a11fda5db45e95dc2f523dc2f167f451850bad9a1c68225fecf9"
 
 [[metadata.targets]]
 requires_python = "~=3.12"
@@ -1777,6 +1777,15 @@ dependencies = [
 files = [
     {file = "starlette-0.46.2-py3-none-any.whl", hash = "sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35"},
     {file = "starlette-0.46.2.tar.gz", hash = "sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5"},
+]
+
+[[package]]
+name = "structlog"
+version = "25.4.0"
+summary = ""
+files = [
+    {file = "structlog-25.4.0-py3-none-any.whl", hash = "sha256:fe809ff5c27e557d14e613f45ca441aabda051d119ee5a0102aaba6ce40eed2c"},
+    {file = "structlog-25.4.0.tar.gz", hash = "sha256:186cd1b0a8ae762e29417095664adf1d6a31702160a46dacb7796ea82f7409e4"},
 ]
 
 [[package]]

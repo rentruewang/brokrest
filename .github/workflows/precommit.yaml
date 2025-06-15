@@ -51,7 +51,12 @@ jobs:
           cache: true
 
       - name: ⬇️ TA-Lib
-        run: git clone https://github.com/TA-Lib/ta-lib && cd ta-lib && sudo ./install
+        run: |
+          git clone https://github.com/TA-Lib/ta-lib
+          cd ta-lib
+          sudo ./install
+          cd ..
+          rm -r ta-lib
 
       - name: ⬇️ Python Dependencies
         run: pdm sync -G:all

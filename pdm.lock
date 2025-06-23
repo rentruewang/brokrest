@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "bokeh", "checks", "tests"]
+groups = ["default", "bokeh", "build", "checks", "tests"]
 strategy = []
 lock_version = "4.5.0"
-content_hash = "sha256:8d48b893d22f15afcc0c699e17a7530e5e79c864b8819347f3bada3a4d27169c"
+content_hash = "sha256:2a098af3e1497ea6308522460653a757e1603e7d2fe6f6c751d5d7455bbc3baa"
 
 [[metadata.targets]]
 requires_python = "~=3.12"
@@ -1381,6 +1381,15 @@ files = [
     {file = "pillow-11.2.1-cp313-cp313t-win_amd64.whl", hash = "sha256:36d6b82164c39ce5482f649b437382c0fb2395eabc1e2b1702a6deb8ad647d6e"},
     {file = "pillow-11.2.1-cp313-cp313t-win_arm64.whl", hash = "sha256:225c832a13326e34f212d2072982bb1adb210e0cc0b153e688743018c94a2681"},
     {file = "pillow-11.2.1.tar.gz", hash = "sha256:a64dd61998416367b7ef979b73d3a85853ba9bec4c2925f74e588879a58716b6"},
+]
+
+[[package]]
+name = "pip"
+version = "25.1.1"
+summary = ""
+files = [
+    {file = "pip-25.1.1-py3-none-any.whl", hash = "sha256:2913a38a2abf4ea6b64ab507bd9e967f3b53dc1ede74b01b0931e1ce548751af"},
+    {file = "pip-25.1.1.tar.gz", hash = "sha256:3de45d411d308d5054c2168185d8da7f9a2cd753dbac8acbfa88a8909ecd9077"},
 ]
 
 [[package]]

@@ -1,4 +1,4 @@
-# Copyright (c) RenChu Wang - All Rights Reserved
+# Copyright (c) The BrokRest Authors - All Rights Reserved
 
 import dataclasses as dcls
 from collections.abc import Sequence

@@ -1,1 +1,1 @@
-# Copyright (c) RenChu Wang - All Rights Reserved
+# Copyright (c) The BrokRest Authors - All Rights Reserved

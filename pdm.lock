@@ -5,7 +5,7 @@
 groups = ["default", "bokeh", "build", "checks", "tests"]
 strategy = []
 lock_version = "4.5.0"
-content_hash = "sha256:2a098af3e1497ea6308522460653a757e1603e7d2fe6f6c751d5d7455bbc3baa"
+content_hash = "sha256:284503becc04d8ca4599b1bd42488636272eb28ce3b82cc691119627e2b3b252"
 
 [[metadata.targets]]
 requires_python = "~=3.12"
@@ -553,6 +553,17 @@ summary = ""
 files = [
     {file = "filelock-3.18.0-py3-none-any.whl", hash = "sha256:c401f4f8377c4464e6db25fff06205fd89bdd83b65eb0488ed1b160f780e21de"},
     {file = "filelock-3.18.0.tar.gz", hash = "sha256:adbc88eabb99d2fec8c9c1b229b171f18afa655400173ddc653d5d01501fb9f2"},
+]
+
+[[package]]
+name = "fire"
+version = "0.7.0"
+summary = ""
+dependencies = [
+    "termcolor",
+]
+files = [
+    {file = "fire-0.7.0.tar.gz", hash = "sha256:961550f07936eaf65ad1dc8360f2b2bf8408fad46abbfa4d2a3794f8d2a95cdf"},
 ]
 
 [[package]]

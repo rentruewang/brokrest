@@ -6,6 +6,7 @@ from datetime import timedelta as TimeDelta
 
 import numpy as np
 from numpy.typing import NDArray
+from shapely import MultiPoint, Point
 
 from brokrest.errors import BrokrestError
 
@@ -21,6 +22,10 @@ class Ticks:
 
     def __getitem__(self, idx: int) -> DateTime:
         return self.start + idx * self.interval
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
 
     def __array__(self) -> NDArray:
         return np.arange(
@@ -41,6 +46,11 @@ class PriceHistory:
 
         if len(self.values) != len(self.ticks):
             raise_input_malformed(self)
+
+    def points(self) -> MultiPoint:
+        return MultiPoint(
+            [Point(t.timestamp(), v) for t, v in zip(self.ticks, self.values)]
+        )
 
 
 def raise_input_malformed(hist: PriceHistory, /):

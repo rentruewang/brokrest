@@ -62,7 +62,7 @@ jobs:
         run: pdm sync -G:all
 
       - name: 📦 Install type stubs
-        run: pdm run mypy . --install-types --non-interactive
+        run: pdm run mypy src --install-types --non-interactive
 
       - name: 🏃 mypy
         run: pdm run pre-commit run --all-files mypy

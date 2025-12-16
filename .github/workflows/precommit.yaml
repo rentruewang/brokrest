@@ -8,30 +8,13 @@ jobs:
       - name: 🔔 Check out
         uses: actions/checkout@v3
 
-      - name: 🏗️ python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.13"
-
       - name: ⬇️ Python PDM
         uses: pdm-project/setup-pdm@v4
         with:
-          cache: true
+          python-version: "3.13"
 
-      - name: ⬇️ TA-Lib
-        run: git clone https://github.com/TA-Lib/ta-lib && cd ta-lib && sudo ./install
-
-      - name: ⬇️ Python Dependencies
-        run: pdm sync -G:all
-
-      - name: 🏃 autoflake
-        run: pdm run pre-commit run --all-files autoflake
-
-      - name: 🏃 isort
-        run: pdm run pre-commit run --all-files isort
-
-      - name: 🏃 black
-        run: pdm run pre-commit run --all-files black
+      - name: 🏃 Formatting
+        run: make -C ci format
 
   type:
     name: 👨‍⚕️ Type Checking
@@ -40,29 +23,10 @@ jobs:
       - name: 🔔 Check out
         uses: actions/checkout@v3
 
-      - name: 🏗️ python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.13"
-
       - name: ⬇️ Python PDM
         uses: pdm-project/setup-pdm@v4
         with:
-          cache: true
+          python-version: "3.13"
 
-      - name: ⬇️ TA-Lib
-        run: |
-          git clone https://github.com/TA-Lib/ta-lib
-          cd ta-lib
-          sudo ./install
-          cd ..
-          rm -r ta-lib
-
-      - name: ⬇️ Python Dependencies
-        run: pdm sync -G:all
-
-      - name: 📦 Install type stubs
-        run: pdm run mypy src --install-types --non-interactive
-
-      - name: 🏃 mypy
-        run: pdm run pre-commit run --all-files mypy
+      - name: 🏃 Type checking
+        run: make -C ci typing

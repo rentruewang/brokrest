@@ -1,0 +1,64 @@
+# Copyright (c) AIoWay Authors - All Rights Reserved
+
+import functools
+import os
+import tempfile
+from pathlib import Path
+
+import sh
+
+
+def remove_unwanted_files() -> None:
+    "Remove the files GitHub Actions pre-installed."
+
+    print("Removing files we did not ask for...")
+
+    sh.cmd("sudo rm -rf /usr/local/lib/android")
+    sh.cmd("sudo rm -rf /usr/share/dotnet")
+    sh.cmd("sudo rm -rf /opt/ghc")
+    sh.cmd("sudo rm -rf /usr/local/.ghcup")
+    sh.cmd("docker system prune -af --volumes")
+
+
+def log_storage_usage() -> None:
+    "Log how much usage is currently being used by GitHub Actions."
+    print("Investigating how much storage is used in GitHub Actions...")
+
+    sh.cmd("df -h")
+
+
+@functools.cache
+def in_github_actions() -> bool:
+    "Detect whether or not it is running in GitHub Actions."
+
+    print("Checking if we are in GitHub Actions...", end=" ")
+    result = os.getenv("GITHUB_ACTIONS") == "true"
+    print("Yes" if result else "No")
+    return result
+
+
+@functools.cache
+def setup() -> None:
+    "The shared entrypoint to GitHub Actions scripts"
+
+    # Does nothing outside of GitHub Actions.
+    if not in_github_actions():
+        return
+
+    remove_unwanted_files()
+    log_storage_usage()
+    install_ta_lib()
+
+
+@functools.cache
+def install_ta_lib() -> None:
+    if not in_github_actions():
+        return
+
+    temp_dir = Path(tempfile.gettempdir()) / "ta-lib"
+    sh.cmd("sudo apt-get install python3-dev")
+
+    sh.cmd(f"git clone https://github.com/TA-Lib/ta-lib {temp_dir}")
+    with sh.chdir(temp_dir):
+        sh.cmd("sudo ./install")
+    sh.cmd("rm -rf ta-lib")

@@ -23,6 +23,14 @@ def root() -> Path:
 
 
 @contextlib.contextmanager
+def run_in_root():
+    "Run the sub commands in the root directory."
+
+    with chdir(root()):
+        yield
+
+
+@contextlib.contextmanager
 def chdir(dest: str | Path):
     "Run the following commands in the ``dest`` folder."
 

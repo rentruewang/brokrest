@@ -1,13 +1,17 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
+from __future__ import annotations
 
 import dataclasses as dcls
-from typing import Self
+from typing import TYPE_CHECKING
 
 import numpy as np
 from shapely import LineString, MultiPoint
 
 from .histories import PriceHistory
+
+if TYPE_CHECKING:
+    from typing import Self
 
 
 @dcls.dataclass(frozen=True)
@@ -20,7 +24,7 @@ class BoundingRange:
         return cls.from_points(history.points())
 
     @classmethod
-    def from_points(cls, points: MultiPoint) -> Self:
+    def from_points(cls, points: MultiPoint) -> BoundingRange:
         return _contours(points)
 
 

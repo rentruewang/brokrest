@@ -3,8 +3,12 @@
 "The candles and candle bar charts."
 
 import dataclasses as dcls
-from typing import NamedTuple, Self
 from collections.abc import Sequence
+from typing import NamedTuple, Self
+
+from .vectors import Vec2d
+
+from .painters import Box, Canvas
 
 
 @dcls.dataclass(frozen=True)
@@ -107,6 +111,28 @@ class Candle:
 
         return any(t.is_sorted() for t in tuples_to_check())
 
+    def plot(self, canvas: Canvas) -> None:
+        "Plot method for ``Candle``."
+
+        color = "green" if self.exit - self.enter > 0 else "red"
+
+        canvas.fill(
+            box=Box(
+                left=self.start,
+                right=self.end,
+                top=max(self.enter, self.exit),
+                bottom=min(self.enter, self.exit),
+            ),
+            color=color,
+        )
+
+        middle = (self.end + self.start) / 2
+        canvas.line(
+            Vec2d(middle, self.min),
+            Vec2d(middle, self.max),
+            color=color,
+        )
+
 
 @dcls.dataclass(frozen=True)
 class CandleChart:
@@ -159,6 +185,12 @@ class CandleChart:
             start=start,
             end=end,
         )
+
+    def plot(self, canvas: Canvas) -> None:
+        "Plot method for ``CandleChart``."
+
+        for idx in range(len(self)):
+            self[idx].plot(canvas)
 
     @classmethod
     def from_values(cls, values: Sequence[float]) -> Self:

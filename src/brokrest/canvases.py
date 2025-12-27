@@ -1,3 +1,6 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-from .vectors import *
+"The canvas that handles plotting."
+
+class Canvas:
+    pass

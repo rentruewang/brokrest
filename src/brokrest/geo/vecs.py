@@ -9,13 +9,13 @@ from typing import Callable, Self
 import numpy as np
 from numpy.typing import NDArray
 
-__all__ = ["Coord"]
+__all__ = ["Vec2d"]
 
 
 @dcls.dataclass(frozen=True)
-class Coord:
+class Vec2d:
     """
-    A point that can be represented as pair on the cartesian plane.
+    A vector that can be represented as pair on the cartesian plane.
     """
 
     x: float
@@ -28,19 +28,19 @@ class Coord:
         yield self.x
         yield self.y
 
-    def __add__(self, other: Self) -> Self:
+    def __add__(self, other: Self | float) -> Self:
         return self.__binary_arithmetic(other, lambda l, r: l + r)
 
-    def __sub__(self, other: Self) -> Self:
+    def __sub__(self, other: Self | float) -> Self:
         return self.__binary_arithmetic(other, lambda l, r: l - r)
 
-    def __mul__(self, other: Self) -> Self:
+    def __mul__(self, other: Self | float) -> Self:
         return self.__binary_arithmetic(other, lambda l, r: l * r)
 
-    def __truediv__(self, other: Self) -> Self:
+    def __truediv__(self, other: Self | float) -> Self:
         return self.__binary_arithmetic(other, lambda l, r: l / r)
 
-    def __floordiv__(self, other: Self) -> Self:
+    def __floordiv__(self, other: Self | float) -> Self:
         return self.__binary_arithmetic(other, lambda l, r: l // r)
 
     def __array__(self) -> NDArray:
@@ -51,7 +51,7 @@ class Coord:
         other: Self | float,
         op: Callable[[float, float], float],
     ) -> Self:
-        if isinstance(other, Coord):
+        if isinstance(other, Vec2d):
             return type(self)(x=op(self.x, other.x), y=op(self.y, other.y))
 
         if isinstance(other, float):

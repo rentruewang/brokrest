@@ -6,8 +6,11 @@ import dataclasses as dcls
 
 import seaborn as sns
 from matplotlib import pyplot as plt
-
+from typing import Protocol
+import typing
 from .vectors import Vec2d
+
+__all__ = ["Box", "Canvas", "Painter"]
 
 
 @dcls.dataclass(frozen=True)
@@ -41,9 +44,23 @@ class Canvas:
     right: int
     "The right most boundary."
 
+    interval: int
+    """
+    The interval on the plot.
+    """
+
     def __post_init__(self):
         sns.set_theme()
         plt.clf()
+
+        if self.left >= self.right:
+            raise ValueError(f"{self.left=} >= {self.right=} which is not allowed.")
+
+        if self.interval <= 0:
+            raise ValueError(f"{self.interval=} should be positive.")
+
+    def xs(self) -> list[int]:
+        return list(range(self.left, self.right, self.interval))
 
     def fill(self, *, box: Box, color: str) -> None:
         """
@@ -94,3 +111,21 @@ class Canvas:
         """
 
         plt.plot([start.x, end.x], [start.y, end.y], color=color)
+
+
+@typing.runtime_checkable
+class Painter(Protocol):
+    """
+    ``Painter`` paints on the ``Canvas``.
+    """
+
+    def plot(self, canvas: Canvas) -> None:
+        """
+        Each painter should decide how to paint on ``Canvas``,
+        with the supported methods.
+
+        Args:
+            canvas: Canvas to invoke. Should be invoked sequentially.
+        """
+
+        ...

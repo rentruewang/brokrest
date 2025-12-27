@@ -7,11 +7,34 @@ import dataclasses as dcls
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from .geo import Vec2d
+from .vectors import Vec2d
+
+
+@dcls.dataclass(frozen=True)
+class Box:
+    """
+    A box with 4 sides.
+    """
+
+    left: float
+    "The left side."
+
+    right: float
+    "The right side."
+
+    top: float
+    "The top side."
+
+    bottom: float
+    "The bottom side."
 
 
 @dcls.dataclass(frozen=True)
 class Canvas:
+    """
+    The canvas to plot on.
+    """
+
     left: int
     "The left most boundary."
 
@@ -22,57 +45,43 @@ class Canvas:
         sns.set_theme()
         plt.clf()
 
-    def fill(
-        self,
-        *,
-        left: float,
-        right: float,
-        top: float,
-        bottom: float,
-        color: str,
-    ) -> None:
+    def fill(self, *, box: Box, color: str) -> None:
         """
         Draws a rectangular box on the canvas with the given coordinates, color, and optional fill.
 
         Args:
-            left: Left coordinate of the box.
-            right: Right coordinate of the box.
-            top: Top coordinate of the box.
-            bottom: Bottom coordinate of the box.
+            box: The box to fill.
             color: Color of the box border.
-            fill: Whether to fill the box with color. Default is False.
         """
 
         plt.fill(
-            [left, left, right, right],
-            [top, bottom, bottom, top],
+            [box.left, box.left, box.right, box.right],
+            [box.top, box.bottom, box.bottom, box.top],
             color=color,
         )
 
     def border(
         self,
         *,
-        left: float,
-        right: float,
-        top: float,
-        bottom: float,
+        box: Box,
         color: str,
     ) -> None:
         """
         Draws a rectangular box on the canvas with the given coordinates, color, and optional fill.
 
         Args:
-            left: Left coordinate of the box.
-            right: Right coordinate of the box.
-            top: Top coordinate of the box.
-            bottom: Bottom coordinate of the box.
+            box: The box whose border we want to draw.
             color: Color of the box border.
         """
 
-        plt.plot([left, left], [top, bottom], color=color)  # Left edge
-        plt.plot([right, right], [top, bottom], color=color)  # Right edge
-        plt.plot([left, right], [top, top], color=color)  # Top edge
-        plt.plot([left, right], [bottom, bottom], color=color)  # Bottom edge
+        # Left edge
+        plt.plot([box.left, box.left], [box.top, box.bottom], color=color)
+        # Right edge
+        plt.plot([box.right, box.right], [box.top, box.bottom], color=color)
+        # Top edge
+        plt.plot([box.left, box.right], [box.top, box.top], color=color)
+        # Bottom edge
+        plt.plot([box.left, box.right], [box.bottom, box.bottom], color=color)
 
     def line(self, start: Vec2d, end: Vec2d, color: str):
         """

@@ -3,8 +3,8 @@
 "The candles and candle bar charts."
 
 import dataclasses as dcls
-from typing import NamedTuple, Self
 from collections.abc import Sequence
+from typing import NamedTuple, Self
 
 
 @dcls.dataclass(frozen=True)

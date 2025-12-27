@@ -4,9 +4,10 @@
 
 import abc
 import dataclasses as dcls
-from typing import Protocol
 import typing
 from abc import ABC
+
+__all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
 
 
 class LinearEq(ABC):

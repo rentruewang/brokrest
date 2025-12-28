@@ -128,7 +128,7 @@ class Candle:
 
         middle = (self.end + self.start) / 2
         canvas.line(
-            Vec2d(middle, y=self.min),
+            Vec2d(middle, self.min),
             Vec2d(middle, self.max),
             color=color,
         )

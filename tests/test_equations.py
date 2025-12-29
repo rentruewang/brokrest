@@ -2,10 +2,10 @@
 
 "Test cases for equations."
 
-import math
 from typing import NamedTuple
 
 import pytest
+import torch
 
 from brokrest.equations import InterceptForm, LinearEq, SlopeInterceptForm, StandardForm
 
@@ -63,11 +63,14 @@ def _solve_cases():
 def test_linear_eq_solve(case: _LinearEqSolve):
     "Test the solving of ``LinearEq``."
 
-    assert math.isclose(case.eq.solve(case.x), case.y)
+    ans = case.eq.solve(case.x).float()
+    y = torch.tensor(case.y).float()
+    assert torch.allclose(ans, y)
 
 
 @pytest.mark.parametrize("case", _solve_cases())
 def test_sub_cases_solved(case: _LinearEqSolve):
     "Points on the line (already solved cases) yields 0."
 
-    assert math.isclose(case.eq.subs(case.x, case.y), 0)
+    ans = case.eq.subs(case.x, case.y)
+    assert torch.allclose(ans, torch.zeros_like(ans))

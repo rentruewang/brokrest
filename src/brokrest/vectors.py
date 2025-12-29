@@ -3,13 +3,55 @@
 "Points on a Cartesian plane."
 
 import dataclasses as dcls
+import functools
 import math
+import operator
 from typing import Callable, Self
 
 import numpy as np
 from numpy.typing import NDArray
 
 __all__ = ["Vec2d"]
+
+_Real = int | float
+
+
+def _binary_arithmetic_template(op: Callable[[_Real, _Real], _Real], /):
+    """
+    Template method for operators like +, -, *, /, // etc.
+
+    Args:
+        op: The operator performed elementwise that the method would do.
+
+    Returns:
+        A method.
+    """
+
+    @functools.wraps(op)
+    def method(self: "Vec2d", other: "Vec2d | _Real") -> "Vec2d":
+        if isinstance(other, Vec2d):
+            return type(self)(x=op(self.x, other.x), y=op(self.y, other.y))
+
+        if isinstance(other, _Real):
+            return type(self)(x=op(self.x, other), y=op(self.y, other))
+
+        # Not sure how to handle others.
+        return NotImplemented
+
+    return method
+
+
+def flip(op: Callable[[_Real, _Real], _Real], /) -> Callable[[_Real, _Real], _Real]:
+    """
+    Flip left and right of the operation.
+    E.g. lambda a, b: a - b would become lambda b, a: b - a
+    """
+
+    @functools.wraps(op)
+    def flipped_op(a: _Real, b: _Real, /) -> _Real:
+        return op(b, a)
+
+    return flipped_op
 
 
 @dcls.dataclass(frozen=True)
@@ -18,47 +60,29 @@ class Vec2d:
     A vector that can be represented as pair on the cartesian plane.
     """
 
-    x: float
+    x: _Real
     "The ``x`` value."
 
-    y: float
+    y: _Real
     "The ``y`` value."
 
     def __iter__(self):
         yield self.x
         yield self.y
 
-    def __add__(self, other: Self | float) -> Self:
-        return self.__binary_arithmetic(other, lambda l, r: l + r)
-
-    def __sub__(self, other: Self | float) -> Self:
-        return self.__binary_arithmetic(other, lambda l, r: l - r)
-
-    def __mul__(self, other: Self | float) -> Self:
-        return self.__binary_arithmetic(other, lambda l, r: l * r)
-
-    def __truediv__(self, other: Self | float) -> Self:
-        return self.__binary_arithmetic(other, lambda l, r: l / r)
-
-    def __floordiv__(self, other: Self | float) -> Self:
-        return self.__binary_arithmetic(other, lambda l, r: l // r)
-
     def __array__(self) -> NDArray:
         return np.array([self.x, self.y])
 
-    def __binary_arithmetic(
-        self,
-        other: Self | float,
-        op: Callable[[float, float], float],
-    ) -> Self:
-        if isinstance(other, Vec2d):
-            return type(self)(x=op(self.x, other.x), y=op(self.y, other.y))
-
-        if isinstance(other, float):
-            return type(self)(x=op(self.x, other), y=op(self.y, other))
-
-        # Not sure how to handle others.
-        return NotImplemented
+    __add__ = __radd__ = _binary_arithmetic_template(operator.add)
+    __sub__ = _binary_arithmetic_template(operator.sub)
+    __rsub__ = _binary_arithmetic_template(flip(operator.sub))
+    __mul__ = __rmul__ = _binary_arithmetic_template(operator.mul)
+    __truediv__ = _binary_arithmetic_template(operator.truediv)
+    __rtruediv__ = _binary_arithmetic_template(flip(operator.truediv))
+    __floordiv__ = _binary_arithmetic_template(operator.floordiv)
+    __rfloordiv__ = _binary_arithmetic_template(flip(operator.floordiv))
+    __pow__ = _binary_arithmetic_template(operator.pow)
+    __rpow__ = _binary_arithmetic_template(flip(operator.pow))
 
     def slope(self) -> float:
         """

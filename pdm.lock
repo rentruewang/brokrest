@@ -5,7 +5,7 @@
 groups = ["default", "bokeh", "build", "checks", "dev", "tests"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:1f0671415e83558c3d470a4c5a6bf0cb2d735d9275d6b55ee26210e6b2b75a08"
+content_hash = "sha256:c10d361f1c00dd33442892547ab30130fc845f9fdd4a2fe13e0702639e3ba710"
 
 [[metadata.targets]]
 requires_python = "~=3.12"

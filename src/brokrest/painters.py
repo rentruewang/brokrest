@@ -106,8 +106,8 @@ class Canvas:
         Draws a line between two points on the canvas.
 
         Args:
-            start (Vec2d): Starting point of the line.
-            end (Vec2d): Ending point of the line.
+            start: Starting point of the line.
+            end: Ending point of the line.
             color: Color of the line.
         """
 

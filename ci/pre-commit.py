@@ -38,5 +38,13 @@ if __name__ == "__main__":
     gha.setup()
     pdm.sync()
 
+    failed: list[str] = []
+
     for tool in tools_for_command(command):
-        pdm.run(f"pre-commit run --all-files {tool}")
+        try:
+            pdm.run(f"pre-commit run --all-files {tool}")
+        except Exception:
+            failed.append(tool)
+
+    if failed:
+        raise RuntimeError("Failed tools: " + ", ".join(f"'{tool}'" for tool in failed))

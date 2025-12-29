@@ -6,9 +6,8 @@ import dataclasses as dcls
 from collections.abc import Sequence
 from typing import NamedTuple, Self
 
-from .vectors import Vec2d
-
 from .painters import Box, Canvas
+from .vectors import Vec2d
 
 
 @dcls.dataclass(frozen=True)
@@ -186,11 +185,15 @@ class CandleChart:
             end=end,
         )
 
+    def __iter__(self):
+        for idx in range(len(self)):
+            yield self[idx]
+
     def plot(self, canvas: Canvas) -> None:
         "Plot method for ``CandleChart``."
 
-        for idx in range(len(self)):
-            self[idx].plot(canvas)
+        for candle in self:
+            candle.plot(canvas)
 
     @classmethod
     def from_values(cls, values: Sequence[float]) -> Self:

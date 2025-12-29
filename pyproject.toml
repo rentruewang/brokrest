@@ -66,7 +66,6 @@ tests = [
     "pytest>=8.4.0",
     "pytest-cov>=6.2.1",
     "pytest-xdist>=3.7.0",
-    "pytest-sugar>=1.0.0",
 ]
 build = [
     "pip>=25.1.1",

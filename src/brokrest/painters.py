@@ -3,11 +3,12 @@
 "The canvas that handles plotting."
 
 import dataclasses as dcls
+import typing
+from typing import Protocol
 
 import seaborn as sns
 from matplotlib import pyplot as plt
-from typing import Protocol
-import typing
+
 from .vectors import Vec2d
 
 __all__ = ["Box", "Canvas", "Painter"]

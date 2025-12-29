@@ -8,6 +8,7 @@ import typing
 from abc import ABC
 
 from brokrest.vectors import Vec2d
+
 from .painters import Canvas
 
 __all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
@@ -81,7 +82,8 @@ class StandardForm(LinearEq):
 
     @typing.override
     def solve(self, x: float) -> float:
-        return (self.a * x + self.c) / self.b
+        # y = (ax + c) / -b
+        return (self.a * x + self.c) / -self.b
 
     @typing.override
     def subs(self, x: float, y: float) -> float:
@@ -113,6 +115,7 @@ class SlopeInterceptForm(LinearEq):
         return self.m * x + self.b - y
 
 
+@dcls.dataclass(frozen=True)
 class InterceptForm(LinearEq):
     """
     A linear equation represented by the intercepts.
@@ -133,7 +136,7 @@ class InterceptForm(LinearEq):
     @typing.override
     def solve(self, x: float) -> float:
         # y = -b (x/a - 1)
-        return self.b - x * self.a / self.b
+        return self.b - x * self.b / self.a
 
     @typing.override
     def subs(self, x: float, y: float) -> float:

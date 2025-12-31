@@ -1,4 +1,4 @@
-# Copyright (c) AIoWay Authors - All Rights Reserved
+# Copyright (c) BrokRest Authors - All Rights Reserved
 
 import functools
 import os

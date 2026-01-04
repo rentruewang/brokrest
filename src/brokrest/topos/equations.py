@@ -14,7 +14,7 @@ from torch import Tensor
 
 from brokrest.vectors import Vec2d
 
-from .painters import Canvas
+from brokrest.plotting import Canvas
 
 __all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
 
@@ -77,17 +77,6 @@ class LinearEq(ABC):
     def _subs(self, x: Tensor, y: Tensor) -> Tensor:
         "The implementation for ``.sub``."
         ...
-
-    def plot(self, canvas: Canvas) -> None:
-        "Plot method for ``LinearEq``."
-
-        xs = canvas.xs()
-        start_x = xs[0]
-        end_x = xs[-1]
-
-        start_y, end_y = self.solve([start_x, end_x])
-
-        canvas.line(Vec2d(start_x, start_y), Vec2d(end_x, end_y), color="blue")
 
 
 @dcls.dataclass(frozen=True)

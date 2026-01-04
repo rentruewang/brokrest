@@ -9,7 +9,7 @@ from abc import ABC
 
 from brokrest.vectors import Vec2d
 
-from .painters import Canvas
+from brokrest.plotting import Canvas
 
 __all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
 
@@ -45,18 +45,6 @@ class LinearEq(ABC):
         """
 
         ...
-
-    def plot(self, canvas: Canvas) -> None:
-        "Plot method for ``LinearEq``."
-
-        xs = canvas.xs()
-        start_x = xs[0]
-        end_x = xs[-1]
-
-        start_y = self.solve(start_x)
-        end_y = self.solve(end_x)
-
-        canvas.line(Vec2d(start_x, start_y), Vec2d(end_x, end_y), color="blue")
 
 
 @dcls.dataclass(frozen=True)

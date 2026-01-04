@@ -7,7 +7,7 @@ from typing import NamedTuple
 
 import pytest
 
-from brokrest.equations import InterceptForm, LinearEq, SlopeInterceptForm, StandardForm
+from brokrest.topos import InterceptForm, LinearEq, SlopeInterceptForm, StandardForm
 
 
 class _LinearEqSolve(NamedTuple):

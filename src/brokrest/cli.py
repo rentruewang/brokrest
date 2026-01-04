@@ -46,6 +46,8 @@ class BrokrestCLI:
         contours: bool = False,
         pair: str = "XBTUSD",
         merge: bool = False,
+        spike: bool = False,
+        spike_prominence: float = 0.05,
     ):
         """
         繪製趨勢線分析圖表
@@ -61,6 +63,8 @@ class BrokrestCLI:
             contours: 顯示凸包邊界
             pair: 交易對（僅 ZIP）
             merge: 合併同方向線段（只留真正峰谷）
+            spike: 使用 spike 感知模式（優先在局部極值點切分）
+            spike_prominence: Spike 顯著性門檻 0-1（預設 0.05 = 5% 價格範圍）
 
         Examples:
             # 從 CSV
@@ -74,6 +78,12 @@ class BrokrestCLI:
             
             # 合併同方向線段
             python -m brokrest plot data/xbtusd_ohlc_sample.csv --merge
+            
+            # Spike 感知模式（優先捕捉局部極值）
+            python -m brokrest plot data/xbtusd_ohlc_sample.csv --spike
+            
+            # 調整 spike 敏感度（越小越敏感）
+            python -m brokrest plot data/xbtusd_ohlc_sample.csv --spike --spike-prominence 0.02
         """
         import pandas as pd
         from .shapes.plotting import TrendPlotter, plot_price_with_trends
@@ -135,12 +145,16 @@ class BrokrestCLI:
 
         # 趨勢偵測
         print(f"\n🔍 分析趨勢...")
+        if spike:
+            print("   🎯 Spike 感知模式（優先捕捉局部極值）")
         prices = df['close'].values
         regression = detect_trends(
             prices,
             n_segments=segments,
             auto=segments is None,
             min_segment_size=max(10, len(prices) // 50),
+            spike_mode=spike,
+            spike_prominence=spike_prominence,
         )
         
         print(regression.trend_summary())
@@ -156,6 +170,8 @@ class BrokrestCLI:
             title += f" (從 {start})"
         elif end:
             title += f" (到 {end})"
+        if spike:
+            title += " [Spike]"
         if merge:
             title += " [Merged]"
             

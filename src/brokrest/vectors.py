@@ -1,19 +1,24 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-"Points on a Cartesian plane."
+"""Points on a Cartesian plane."""
+
+from __future__ import annotations
 
 import dataclasses as dcls
 import functools
 import math
 import operator
-from typing import Callable, Self
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from typing import Self
 
 import numpy as np
 from numpy.typing import NDArray
 
 __all__ = ["Vec2d"]
 
-_Real = int | float
+_Real = (int, float)  # tuple for isinstance checks
 
 
 def _binary_arithmetic_template(op: Callable[[_Real, _Real], _Real], /):

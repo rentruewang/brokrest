@@ -1,39 +1,77 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
+"""
+Convex hull contour calculation for price data.
+"""
+
 from __future__ import annotations
 
 import dataclasses as dcls
-from typing import TYPE_CHECKING
 
 import numpy as np
-from shapely import LineString, MultiPoint
+from numpy.typing import NDArray
+from shapely import MultiPoint
+from shapely.geometry import LineString
 
-from .histories import PriceHistory
-
-if TYPE_CHECKING:
-    from typing import Self
+__all__ = ["BoundingRange", "compute_contours"]
 
 
 @dcls.dataclass(frozen=True)
 class BoundingRange:
-    lower: LineString
-    upper: LineString
+    """Upper and lower bounding lines from convex hull."""
+
+    upper: NDArray
+    lower: NDArray
 
     @classmethod
-    def from_history(cls, history: PriceHistory):
-        return cls.from_points(history.points())
+    def from_prices(cls, prices: NDArray) -> BoundingRange:
+        """Create bounding range from price array."""
+        x = np.arange(len(prices))
+        points = MultiPoint(list(zip(x, prices)))
+        return compute_contours(points)
 
-    @classmethod
-    def from_points(cls, points: MultiPoint) -> BoundingRange:
-        return _contours(points)
 
-
-def _contours(points: MultiPoint):
-    hull = LineString(points.convex_hull)
-    xs, _ = np.array(hull.coords).T
-    assert xs.ndim == 2
-    assert xs.shape[1] == 2
-    diff_xs = xs - np.roll(xs, shift=-1)
-    upper = xs[diff_xs >= 0]
-    lower = xs[diff_xs < 0]
-    return BoundingRange(upper=upper, lower=lower)
+def compute_contours(points: MultiPoint) -> BoundingRange:
+    """
+    Compute upper and lower contours from convex hull.
+    
+    Args:
+        points: MultiPoint geometry
+        
+    Returns:
+        BoundingRange with upper and lower bounds
+    """
+    hull = points.convex_hull
+    
+    if hull.is_empty or hull.geom_type == "Point":
+        return BoundingRange(upper=np.array([]), lower=np.array([]))
+    
+    if hull.geom_type == "LineString":
+        coords = np.array(hull.coords)
+        return BoundingRange(upper=coords, lower=coords)
+    
+    coords = np.array(hull.exterior.coords)
+    xs = coords[:, 0]
+    
+    # Find leftmost and rightmost points
+    left_idx = np.argmin(xs)
+    right_idx = np.argmax(xs)
+    
+    n = len(coords)
+    
+    # Upper hull: from left to right (counter-clockwise)
+    if left_idx <= right_idx:
+        upper_indices = list(range(left_idx, right_idx + 1))
+    else:
+        upper_indices = list(range(left_idx, n)) + list(range(0, right_idx + 1))
+    
+    # Lower hull: from right to left
+    if right_idx <= left_idx:
+        lower_indices = list(range(right_idx, left_idx + 1))
+    else:
+        lower_indices = list(range(right_idx, n)) + list(range(0, left_idx + 1))
+    
+    return BoundingRange(
+        upper=coords[upper_indices],
+        lower=coords[lower_indices],
+    )

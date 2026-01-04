@@ -1,10 +1,12 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-"Tests for the 2D vector."
+"""Tests for the 2D vector."""
+
+from __future__ import annotations
 
 import operator
 from collections.abc import Callable
-from typing import NamedTuple
+from typing import NamedTuple, Union
 
 import pytest
 from pytest import FixtureRequest
@@ -33,8 +35,8 @@ def test_eq():
 
 
 class _BinaryInput(NamedTuple):
-    left: Vec2d | float
-    right: Vec2d | float
+    left: Union[Vec2d, float]
+    right: Union[Vec2d, float]
     op: Callable[..., Vec2d]
     result: Vec2d
 

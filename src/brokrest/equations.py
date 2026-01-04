@@ -1,13 +1,14 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-"A set of linear equations."
+"""A set of linear equations."""
+
+from __future__ import annotations
 
 import abc
 import dataclasses as dcls
-import typing
 from abc import ABC
 from collections.abc import Sequence
-from typing import TypeAlias, TypeIs
+from typing import Union
 
 import torch
 from torch import Tensor
@@ -18,7 +19,8 @@ from .painters import Canvas
 
 __all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
 
-_TensorLike: TypeAlias = int | float | Tensor
+# Python 3.9 compatible type alias
+_TensorLike = Union[int, float, Tensor]
 
 
 class LinearEq(ABC):
@@ -111,12 +113,10 @@ class StandardForm(LinearEq):
     The constant term.
     """
 
-    @typing.override
     def _solve(self, x: Tensor) -> Tensor:
         # y = (ax + c) / -b
         return (self.a * x + self.c) / -self.b
 
-    @typing.override
     def _subs(self, x: Tensor, y: Tensor) -> Tensor:
         return self.a * x + self.b * y + self.c
 
@@ -137,11 +137,9 @@ class SlopeInterceptForm(LinearEq):
     The line passes over (0, b).
     """
 
-    @typing.override
     def _solve(self, x: Tensor) -> Tensor:
         return self.m * x + self.b
 
-    @typing.override
     def _subs(self, x: Tensor, y: Tensor) -> Tensor:
         return self.m * x + self.b - y
 
@@ -164,22 +162,20 @@ class InterceptForm(LinearEq):
     The line passes over (0, b).
     """
 
-    @typing.override
     def _solve(self, x: Tensor) -> Tensor:
         # y = -b (x/a - 1)
         return self.b - x * self.b / self.a
 
-    @typing.override
     def _subs(self, x: Tensor, y: Tensor) -> Tensor:
         return x / self.a + y / self.b - 1
 
 
-def _promote_to_tensor(x: int | float | Sequence[int | float] | Tensor, /) -> Tensor:
+def _promote_to_tensor(x: Union[int, float, Sequence[Union[int, float]], Tensor], /) -> Tensor:
     def convert() -> Tensor:
         if isinstance(x, Tensor):
             return x
 
-        if isinstance(x, int | float):
+        if isinstance(x, (int, float)):
             return torch.tensor(x)
 
         # Check this last because it can be expensive.
@@ -193,5 +189,5 @@ def _promote_to_tensor(x: int | float | Sequence[int | float] | Tensor, /) -> Te
     return ans
 
 
-def _is_seq_of_numbers(x: object) -> TypeIs[Sequence[int | float]]:
-    return isinstance(x, Sequence) and all(isinstance(v, int | float) for v in x)
+def _is_seq_of_numbers(x: object) -> bool:
+    return isinstance(x, Sequence) and all(isinstance(v, (int, float)) for v in x)

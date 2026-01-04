@@ -1,10 +1,15 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-"The candles and candle bar charts."
+"""The candles and candle bar charts."""
+
+from __future__ import annotations
 
 import dataclasses as dcls
 from collections.abc import Sequence
-from typing import NamedTuple, Self
+from typing import TYPE_CHECKING, NamedTuple
+
+if TYPE_CHECKING:
+    from typing import Self
 
 from .painters import Box, Canvas
 from .vectors import Vec2d

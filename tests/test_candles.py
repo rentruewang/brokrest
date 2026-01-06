@@ -3,34 +3,33 @@
 "Test cases for candles."
 
 import pytest
-from numpy import random
+import torch
 
-from brokrest.candles import Candle, CandleChart
+from brokrest.topos import Candle
 
 
 @pytest.fixture()
 def chart():
     "A randomly generated ``CandleChart``."
 
-    return CandleChart.from_values((random.random([101]) * 100).tolist())
+    enter = torch.rand(100)
+    exit = torch.rand(100)
+    start = torch.randn(100)
+    end = start + 1
+    low = torch.zeros(100)
+    high = torch.ones(100)
+    return Candle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
 
 
-def test_chart_index(chart: CandleChart):
+def test_chart_index(chart: Candle):
     "Test chart's index access"
 
     assert len(chart) == 100
     assert isinstance(chart[10], Candle)
     assert isinstance(chart[99], Candle)
     assert isinstance(chart[0], Candle)
+    assert chart[0].ndim == 0
 
-
-def test_chart_contiguous_candles(chart: CandleChart):
-    "Test if each candle has its end equal to the next one's start."
-
-    time = chart.start
-
-    # Check if all the start and end are connected.
-    for candle in chart:
-        assert time == candle.start
-
-        time = candle.end
+    assert isinstance(chart[:10], Candle)
+    assert chart[:10].ndim == 1
+    assert len(chart[:10]) == 10

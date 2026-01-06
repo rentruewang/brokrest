@@ -3,25 +3,25 @@
 import abc
 import dataclasses as dcls
 import typing
-from abc import ABCMeta
+from abc import ABC
 from collections.abc import Sequence
 from typing import Self
 
 from bokeh.plotting import figure as Figure
 
-from brokrest.plotting import Canvas, Displayable
+from brokrest.plotting import Canvas, Displayable, ViewPort
 
 __all__ = ["Topo", "TopoSet"]
 
 
-class Topo(Displayable, metaclass=ABCMeta):
+class Topo(Displayable, ABC):
     """
     A topology that can be displayed on the ``Canvas``.
     """
 
     @typing.override
     def draw(self, canvas: Canvas, /) -> None:
-        sub = self.cut(start=canvas.starting, end=canvas.ending)
+        sub = self.view(canvas.view)
         sub._draw(canvas.figure)
 
     @abc.abstractmethod
@@ -30,15 +30,21 @@ class Topo(Displayable, metaclass=ABCMeta):
         Paint on the figure.
         """
 
-    def cut(self, start: float, end: float) -> "Topo":
+    def view(self, vp: ViewPort, /) -> "Topo":
         """
         Get the subset of topology within the range.
         """
 
-        return self._cut(start=start, end=end)
+        # Check if ``vp`` would require human intervension.
+        if not vp:
+            return self
+
+        return self._cut(vp)
 
     @abc.abstractmethod
-    def _cut(self, start: float, end: float) -> "Topo": ...
+    def _cut(self, vp: ViewPort, /) -> "Topo":
+        "The implementation of ``cut``."
+        ...
 
 
 @dcls.dataclass(frozen=True)
@@ -75,8 +81,8 @@ class TopoSet(Sequence[Topo], Topo):
                 raise NotImplementedError(f"Type: {type(idx)=} is not supported.")
 
     @typing.override
-    def _cut(self, start: float, end: float) -> "Topo":
-        return type(self)([topo._cut(start=start, end=end) for topo in self.topos])
+    def _cut(self, vp: ViewPort) -> "Topo":
+        return type(self)([topo._cut(vp) for topo in self.topos])
 
     @typing.override
     def _draw(self, figure: Figure):

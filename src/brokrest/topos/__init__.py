@@ -2,6 +2,6 @@
 
 "Visualization with ``bokeh``."
 
-from .groups import *
 from .equations import *
+from .groups import *
 from .topos import *

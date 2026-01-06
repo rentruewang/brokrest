@@ -4,18 +4,23 @@
 
 import abc
 import typing
-from abc import ABCMeta
+from abc import ABC
 from collections.abc import Iterator
+from typing import Self, override
 
 import torch
+from bokeh.plotting import figure as Figure
 from tensordict import TensorClass
 from torch import Tensor
-from typing import Self
+
+from brokrest.plotting import ViewPort
+
+from .topos import Topo
 
 __all__ = ["Group", "Rect", "Box", "Segment", "Candle"]
 
 
-class Group(TensorClass, metaclass=ABCMeta):
+class Group(TensorClass, Topo, ABC):
     """
     A group of similar shapes, backed by ``Tensor``s.
     """
@@ -86,7 +91,7 @@ class Group(TensorClass, metaclass=ABCMeta):
         return None
 
 
-class Rect(Group):
+class Rect(Group, ABC):
     """
     A tuple with 4 values.
 
@@ -142,6 +147,25 @@ class Box(Rect):
         "The area of the ``Box``es."
         return self.width * self.height
 
+    @typing.override
+    def _cut(self, vp: ViewPort, /) -> Self:
+        see_left = self.x_0 < vp.right
+        see_right = self.x_1 > vp.left
+        see_bottom = self.y_0 < vp.top
+        see_top = self.y_1 > vp.bottom
+
+        indices = see_left | see_right | see_bottom | see_top
+        return typing.cast(Self, self[indices])
+
+    @typing.override
+    def _draw(self, figure: Figure):
+        _ = figure.rect(
+            x=self.x_0.numpy(),
+            y=self.y_0.numpy(),
+            width=self.width.numpy(),
+            height=self.height.numpy(),
+        )
+
 
 class Segment(Rect):
     def __post_init__(self):
@@ -164,6 +188,45 @@ class Segment(Rect):
     def end(self) -> Tensor:
         "The ending point of a segment."
         return torch.hstack([self.x_1, self.y_1])
+
+    @property
+    def left(self):
+        "The ``min(x)``."
+        return torch.minimum(self.x_0, self.x_1)
+
+    @property
+    def right(self):
+        "The ``max(x)``."
+        return torch.maximum(self.x_0, self.x_1)
+
+    @property
+    def bottom(self):
+        "The ``min(y)``."
+        return torch.minimum(self.y_0, self.y_1)
+
+    @property
+    def top(self):
+        "The ``max(y)``."
+        return torch.maximum(self.y_0, self.y_1)
+
+    @typing.override
+    def _cut(self, vp: ViewPort, /) -> Self:
+        see_left = self.left < vp.right
+        see_right = self.right > vp.left
+        see_bottom = self.bottom < vp.top
+        see_top = self.top > vp.bottom
+
+        indices = see_left | see_right | see_bottom | see_top
+        return typing.cast(Self, self[indices])
+
+    @typing.override
+    def _draw(self, figure: Figure):
+        _ = figure.segment(
+            x0=self.x_0.numpy(),
+            x1=self.x_1.numpy(),
+            y0=self.y_0.numpy(),
+            y1=self.y_1.numpy(),
+        )
 
 
 class Candle(Group):
@@ -233,6 +296,26 @@ class Candle(Group):
         prevs: Self = self[:-1]
         return torch.allclose(nexts.start, prevs.end)
 
+    @property
+    def inc(self):
+        "Is increasing."
+        return (self.exit - self.enter) >= 0
+
+    @property
+    def dec(self):
+        "Is decreasing."
+        return (self.exit - self.enter) < 0
+
+    @property
+    def time(self):
+        "The centered times."
+        return (self.end + self.start) / 2
+
+    @property
+    def width(self):
+        "The width for each candle."
+        return self.end - self.start
+
     @typing.override
     def tensors(self):
         yield self.enter
@@ -241,3 +324,44 @@ class Candle(Group):
         yield self.high
         yield self.start
         yield self.end
+
+    @override
+    def _draw(self, figure: Figure):
+        # The center bars for the candles.
+        _ = figure.segment(
+            x0=self.time.numpy(),
+            y0=self.high.numpy(),
+            x1=self.time.numpy(),
+            y1=self.low.numpy(),
+            color="black",
+        )
+
+        # The body of candles that are decreasing.
+        _ = figure.vbar(
+            x=self.time[self.dec].numpy(),
+            width=self.width.numpy(),
+            top=self.enter[self.dec].numpy(),
+            bottom=self.exit[self.dec].numpy(),
+            color="#eb3c40",
+        )
+
+        # The body of candles that are increasing.
+        _ = figure.vbar(
+            x=self.time[self.inc].numpy(),
+            width=self.width.numpy(),
+            top=self.enter[self.inc].numpy(),
+            bottom=self.exit[self.inc].numpy(),
+            fill_color="white",
+            line_color="#49a3a3",
+            line_width=2,
+        )
+
+    @typing.override
+    def _cut(self, vp: ViewPort, /) -> Self:
+        see_left = self.start < vp.right
+        see_right = self.end > vp.left
+        see_bottom = self.low < vp.top
+        see_top = self.high > vp.bottom
+
+        indices = see_left | see_right | see_bottom | see_top
+        return typing.cast(Self, self[indices])

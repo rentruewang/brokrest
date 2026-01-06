@@ -12,10 +12,6 @@ from typing import TypeAlias, TypeIs
 import torch
 from torch import Tensor
 
-from brokrest.vectors import Vec2d
-
-from brokrest.plotting import Canvas
-
 __all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
 
 _TensorLike: TypeAlias = int | float | Tensor

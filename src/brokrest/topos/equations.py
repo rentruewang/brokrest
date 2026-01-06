@@ -7,10 +7,6 @@ import dataclasses as dcls
 import typing
 from abc import ABC
 
-from brokrest.vectors import Vec2d
-
-from brokrest.plotting import Canvas
-
 __all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
 
 

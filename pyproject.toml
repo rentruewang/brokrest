@@ -42,13 +42,6 @@ show_error_codes = true
 check_untyped_defs = true
 exclude = ["^scripts/.py$"]
 
-[tool.pylint."MESSAGE CONTROL"]
-disable = [
-    "unnecessary-ellipsis",
-    "redefined-builtin",
-    "redefined-outer-name",
-    "too-few-public-methods",
-]
 
 [tool.pytest.ini_options]
 addopts = ["-v", "--import-mode=importlib"]
@@ -60,7 +53,6 @@ checks = [
     "black>=25.1.0",
     "isort>=6.0.1",
     "mypy>=1.16.0",
-    "pylint>=4.0.4",
 ]
 tests = [
     "pytest>=8.4.0",

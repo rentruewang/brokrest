@@ -24,8 +24,6 @@ def tools_for_command(command: str, /):
             yield "black"
         case "typing":
             yield "mypy"
-        case "linting":
-            yield "pylint"
         case _:
             raise NotImplementedError(
                 f"Support for '{command}' command is not yet implemented."

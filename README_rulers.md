@@ -230,6 +230,24 @@ python -m brokrest ruler data.csv --tolerance --decay-rate 0.1 --invalid-penalty
 
 **Use case:** When market conditions change, recent prices may be more relevant for support/resistance levels than older prices.
 
+#### Demo
+before decay rate
+
+```
+python -m brokrest ruler data/xbtusd_ohlc_sample.csv --start 2013-02-01 --end 2016-01-01 --tolerance --tolerance-factor 0.1 --invalid-penalty 0.6 --backend bokeh
+```
+
+![image](imgs/before-decay.png)
+
+after decay rate (0.01)
+
+```
+python -m brokrest ruler data/xbtusd_ohlc_sample.csv --start 2013-02-01 --end 2016-01-01 --tolerance --tolerance-factor 0.1 --invalid-penalty 0.6 --backend bokeh --decay-rate 0.01
+```
+
+![image](imgs/after-decay.png)
+
+
 ---
 
 ### `--auto`

@@ -189,6 +189,9 @@ class BrokrestCLI:
         tolerance_factor: float = 0.1,
         no_clamp: bool = False,
         invalid_penalty: float = 0.0,
+        decay_rate: float = 0.0,
+        auto: bool = False,
+        auto_top_k: int = 10,
     ):
         """
         Plot support and resistance lines (rulers).
@@ -207,11 +210,15 @@ class BrokrestCLI:
             no_clamp: Use pure linear regression slope (ignore constraint bounds)
             invalid_penalty: Penalty for points that violate line constraint in tolerance mode.
                              0.0 = ignore violations (default), 0.5 = moderate, 1.0 = full.
+            decay_rate: Exponential decay for time weighting. Recent points more important.
+                        0.0 = uniform weights (default). 0.01 = weight halves every ~70 steps.
+            auto: Auto mode - test ~100 parameter combinations and show top-scoring lines.
+            auto_top_k: Number of top lines to show in auto mode (default 10).
 
         Examples:
             python -m brokrest ruler data/xbtusd_ohlc_sample.csv
             python -m brokrest ruler data/xbtusd_ohlc_sample.csv --tolerance
-            python -m brokrest ruler data/xbtusd_ohlc_sample.csv --tolerance --invalid-penalty 0.5
+            python -m brokrest ruler data/xbtusd_ohlc_sample.csv --auto
         """
         import pandas as pd
 
@@ -249,10 +256,60 @@ class BrokrestCLI:
             print("❌ No data!")
             return
 
-        # Find rulers
+        prices = df["close"].values
+        output_path = output or "rulers.html"
+        title = f"Support & Resistance ({interval})"
+
+        # Auto mode: test different parameter combinations
+        if auto:
+            from .shapes.rulers import auto_find_rulers, plot_rulers_auto_mpl, plot_rulers_auto_bokeh
+            
+            print(f"\n🔍 Auto mode: testing ~100 parameter combinations...")
+            scored_tops, scored_bots = auto_find_rulers(
+                prices,
+                tolerance_factor=tolerance_factor,
+                top_k=auto_top_k,
+            )
+            
+            print(f"📐 Mode: auto (top {auto_top_k} lines)")
+            print(f"\n📈 Top {len(scored_tops)} Resistance lines:")
+            for i, s in enumerate(scored_tops[:5]):
+                print(f"   {i+1}. Score={s.score} (penalty={s.invalid_penalty:.2f}, decay={s.decay_rate:.3f})")
+            
+            print(f"\n📉 Top {len(scored_bots)} Support lines:")
+            for i, s in enumerate(scored_bots[:5]):
+                print(f"   {i+1}. Score={s.score} (penalty={s.invalid_penalty:.2f}, decay={s.decay_rate:.3f})")
+            
+            # Plot
+            auto_title = f"Auto-discovered {title}"
+            
+            if backend == "mpl":
+                fig = plot_rulers_auto_mpl(
+                    prices, scored_tops, scored_bots,
+                    title=auto_title,
+                    tolerance_factor=tolerance_factor,
+                )
+                output_png = output_path.replace(".html", ".png")
+                fig.savefig(output_png, dpi=150, bbox_inches='tight')
+                print(f"\n✅ Saved: {output_png}")
+            else:
+                from .shapes.plotting import save_bokeh
+                
+                fig = plot_rulers_auto_bokeh(
+                    prices, scored_tops, scored_bots,
+                    title=auto_title,
+                    tolerance_factor=tolerance_factor,
+                )
+                save_bokeh(fig, output_path, title=auto_title)
+                print(f"\n✅ Saved: {output_path}")
+                
+                if not no_open:
+                    self._open_file(output_path)
+            return
+
+        # Normal mode
         from .shapes.rulers import find_rulers, plot_rulers_bokeh, plot_rulers_mpl
 
-        prices = df["close"].values
         topline, bottomline = find_rulers(
             prices, 
             rotate=not no_rotate, 
@@ -260,6 +317,7 @@ class BrokrestCLI:
             tolerance_factor=tolerance_factor,
             clamp=not no_clamp,
             invalid_penalty=invalid_penalty,
+            decay_rate=decay_rate,
         )
 
         mode_parts = []
@@ -271,16 +329,14 @@ class BrokrestCLI:
             mode_parts.append("tolerance")
         if no_clamp:
             mode_parts.append("no-clamp")
+        if decay_rate > 0:
+            mode_parts.append(f"decay={decay_rate}")
         mode = "+".join(mode_parts)
         print(f"\n📐 Mode: {mode}")
         print(f"📈 Resistance: y = {topline.slope:.4f}x + {topline.intercept:.2f}")
         print(f"📉 Support:    y = {bottomline.slope:.4f}x + {bottomline.intercept:.2f}")
 
         # Plot
-        output_path = output or "rulers.html"
-        title = f"Support & Resistance ({interval})"
-        
-        # Pass tolerance_factor for point coloring in tolerance mode
         tol_arg = tolerance_factor if tolerance else None
 
         if backend == "mpl":

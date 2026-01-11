@@ -189,7 +189,7 @@ python -m brokrest ruler data.csv --tolerance --tolerance-factor 0.2
 
 The scoring function is:
 ```
-score = in_band_count - invalid_penalty × invalid_count
+score = weighted_in_band - invalid_penalty × weighted_invalid
 ```
 
 | Value | Effect |
@@ -198,13 +198,67 @@ score = in_band_count - invalid_penalty × invalid_count
 | 0.5 | Moderate penalty: 1 violation = 0.5 in-band points |
 | 1.0 | Full penalty: 1 violation = 1 in-band point |
 
-```bash
-# Moderate penalty for violations
-python -m brokrest ruler data.csv --tolerance --invalid-penalty 0.5
+---
 
-# Strict: violations are heavily penalized
-python -m brokrest ruler data.csv --tolerance --invalid-penalty 1.0
+### `--decay-rate`
+
+**Effect:** Apply exponential decay to time-weight data points. Recent points become more important.
+
+**Weight formula:**
 ```
+weight[i] = exp(-decay_rate × (n - 1 - i))
+```
+
+Where `i` is the point index (0 = oldest, n-1 = most recent).
+
+| Value | Effect | Half-life |
+|-------|--------|-----------|
+| 0.0 (default) | All points equally important | ∞ |
+| 0.01 | Mild decay | ~70 time steps |
+| 0.05 | Moderate decay | ~14 time steps |
+| 0.1 | Strong decay | ~7 time steps |
+
+**Half-life formula:** `half_life = ln(2) / decay_rate ≈ 0.693 / decay_rate`
+
+```bash
+# Mild decay: recent points slightly more important
+python -m brokrest ruler data.csv --tolerance --decay-rate 0.01
+
+# Strong decay: focus on recent data
+python -m brokrest ruler data.csv --tolerance --decay-rate 0.1 --invalid-penalty 0.5
+```
+
+**Use case:** When market conditions change, recent prices may be more relevant for support/resistance levels than older prices.
+
+---
+
+### `--auto`
+
+**Effect:** Automatically test ~100 parameter combinations and display the top-scoring lines.
+
+In auto mode, the system:
+1. Tests various combinations of `invalid_penalty` (0.0 to 1.0) and `decay_rate` (0.0 to 0.1)
+2. Evaluates each resulting ruler using the collision scoring system
+3. Displays the top K lines (default 10) for both resistance and support
+
+```bash
+# Auto mode with default settings
+python -m brokrest ruler data.csv --auto
+
+# Auto mode with custom tolerance band
+python -m brokrest ruler data.csv --auto --tolerance-factor 0.15
+
+# Show top 5 lines instead of 10
+python -m brokrest ruler data.csv --auto --auto-top-k 5
+```
+
+**Output includes:**
+- Multiple resistance lines (red, varying shades)
+- Multiple support lines (blue, varying shades)
+- Score annotations at line endpoints
+- Best parameters shown in legend
+
+**Use case:** When you're not sure which parameters work best, let the algorithm find optimal configurations automatically.
 
 ---
 
@@ -217,6 +271,33 @@ In tolerance mode, points are colored by their relationship to the lines:
 | 🔴 Red | Near resistance line (within band) |
 | 🔵 Blue | Near support line (within band) |
 | 🟢 Green | Other points (not in any band) |
+
+### Line Quality Score
+
+Each ruler line displays a **quality score** at its right endpoint:
+
+```
+Score: 17 (32↑ - 15✗)
+```
+
+- **32↑** = Number of "collisions" (price enters the tolerance band)
+- **15✗** = Number of "invalid runs" (price crosses to the wrong side)
+- **17** = Final score (collisions - invalid runs)
+
+**Collision counting logic:**
+1. A **collision** is when the price sequence:
+   - Was outside the tolerance band
+   - Enters the tolerance band
+   - (Multiple consecutive in-band points count as one collision)
+
+2. An **invalid run** is when the price:
+   - Crosses to the wrong side of the line (above resistance or below support)
+   - (Multiple consecutive invalid points count as one invalid run)
+
+**Interpretation:**
+- Higher score = Better line quality
+- More collisions = Line acts as meaningful support/resistance
+- More invalid runs = Line is frequently violated
 
 ---
 
@@ -344,4 +425,6 @@ fig.savefig("rulers.png")
 | `--no-clamp` | Ignore constraint bounds | Constraints too restrictive |
 | `--tolerance` | Capture more points in band | Want softer bounds |
 | `--invalid-penalty` | Penalize violations | Balance coverage vs. strictness |
+| `--decay-rate` | Recent points more important | Market conditions changing |
+| `--auto` | Test ~100 combos, show top lines | Unsure which params work best |
 

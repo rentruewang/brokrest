@@ -239,6 +239,120 @@ def test_invalid_penalty():
     assert top_with_penalty.slope is not None
 
 
+def test_decay_rate():
+    """Test that decay_rate parameter works for time weighting."""
+    
+    prices = np.array([100.0, 105.0, 103.0, 108.0, 106.0, 110.0, 108.0, 115.0])
+    
+    # Without decay (uniform weights)
+    top_no_decay, bot_no_decay = find_rulers(
+        prices,
+        tolerance=True,
+        decay_rate=0.0,
+    )
+    
+    # With decay (recent points more important)
+    top_with_decay, bot_with_decay = find_rulers(
+        prices,
+        tolerance=True,
+        decay_rate=0.1,
+    )
+    
+    # Both should produce valid rulers
+    assert top_no_decay.slope is not None
+    assert top_with_decay.slope is not None
+    assert bot_no_decay.slope is not None
+    assert bot_with_decay.slope is not None
+
+
+def test_decay_weights():
+    """Test the decay weight computation."""
+    
+    from brokrest.shapes.rulers import _compute_decay_weights
+    
+    # No decay: all weights should be 1
+    weights = _compute_decay_weights(5, decay_rate=0.0)
+    np.testing.assert_array_almost_equal(weights, np.ones(5))
+    
+    # With decay: most recent (last) should have weight 1
+    weights = _compute_decay_weights(5, decay_rate=0.1)
+    assert weights[-1] == 1.0  # Most recent
+    assert weights[0] < weights[-1]  # Oldest should be smaller
+    
+    # Weights should be monotonically increasing
+    assert np.all(np.diff(weights) >= 0)
+
+
+def test_evaluate_ruler():
+    """Test the ruler evaluation (collision counting)."""
+    
+    from brokrest.shapes.rulers import evaluate_ruler
+    
+    # Create a simple scenario
+    prices = np.array([100.0, 105.0, 110.0, 105.0, 100.0, 105.0, 110.0])
+    
+    # Create a horizontal topline at y=108
+    topline = Ruler(slope=0.0, intercept=108.0, is_top=True)
+    
+    collisions, invalids, score = evaluate_ruler(topline, prices, tolerance_factor=0.1)
+    
+    # The evaluation should return valid counts
+    assert collisions >= 0
+    assert invalids >= 0
+    assert score == collisions - invalids
+
+
+def test_evaluate_ruler_no_collisions():
+    """Test evaluation when line is far from data."""
+    
+    from brokrest.shapes.rulers import evaluate_ruler
+    
+    prices = np.array([100.0, 105.0, 103.0, 108.0])
+    
+    # Topline way above all prices
+    topline = Ruler(slope=0.0, intercept=200.0, is_top=True)
+    
+    collisions, invalids, score = evaluate_ruler(topline, prices, tolerance_factor=0.1)
+    
+    # No collisions since line is too far
+    assert collisions == 0
+    assert invalids == 0
+    assert score == 0
+
+
+def test_auto_find_rulers():
+    """Test auto mode that searches for best parameters."""
+    
+    from brokrest.shapes.rulers import auto_find_rulers
+    
+    prices = np.array([100.0, 105.0, 110.0, 105.0, 100.0, 105.0, 110.0, 115.0])
+    
+    scored_tops, scored_bots = auto_find_rulers(
+        prices,
+        tolerance_factor=0.1,
+        top_k=5,
+        n_combinations=25,  # Small for fast test
+    )
+    
+    # Should return up to top_k results
+    assert len(scored_tops) <= 5
+    assert len(scored_bots) <= 5
+    
+    # Should be sorted by score descending
+    if len(scored_tops) > 1:
+        assert scored_tops[0].score >= scored_tops[1].score
+    if len(scored_bots) > 1:
+        assert scored_bots[0].score >= scored_bots[1].score
+    
+    # Each result should have valid ruler
+    for s in scored_tops:
+        assert s.ruler is not None
+        assert s.ruler.is_top is True
+    for s in scored_bots:
+        assert s.ruler is not None
+        assert s.ruler.is_top is False
+
+
 class _SlopeConstraintCase(NamedTuple):
     """Test case for slope constraints."""
     

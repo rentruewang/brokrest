@@ -446,3 +446,46 @@ fig.savefig("rulers.png")
 | `--decay-rate` | Recent points more important | Market conditions changing |
 | `--auto` | Test ~100 combos, show top lines | Unsure which params work best |
 
+---
+
+# Brokrest Intergration
+
+
+### Some main things
+
+| Component | Description | GitHub Link |
+|-----------|-------------|-------------|
+| `Ruler` | Dataclass for support/resistance line | [rulers.py#L30-L58](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L30-L58) |
+| `ScoredRuler` | Ruler with evaluation score (for auto mode) | [rulers.py#L683-L691](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L683-L691) |
+| `find_rulers()` | Main entry point for ruler detection | [rulers.py#L620-L679](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L620-L679) |
+| `evaluate_ruler()` | Score a ruler based on collisions/violations | [rulers.py#L67-L144](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L67-L144) |
+| `ruler()` | CLI handler for all ruler flags | [cli.py#L178-L360](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/cli.py#L178-L360) |
+
+### Flags -> functions
+
+| Flag | Function | Description | GitHub Link |
+|------|----------|-------------|-------------|
+| (default) | `_find_topline()` | Find resistance with slope optimization | [rulers.py#L259-L377](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L259-L377) |
+| (default) | `_find_bottomline()` | Find support with slope optimization | [rulers.py#L429-L538](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L429-L538) |
+| `--no-rotate` | `_find_topline_parallel()` | Shift only, keep regression slope | [rulers.py#L781-L789](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L781-L789) |
+| `--no-rotate` | `_find_bottomline_parallel()` | Shift only, keep regression slope | [rulers.py#L791-L799](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L791-L799) |
+| `--tolerance` | `_optimize_topline_with_band()` | Maximize in-band points for topline | [rulers.py#L171-L257](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L171-L257) |
+| `--tolerance` | `_optimize_bottomline_with_band()` | Maximize in-band points for bottomline | [rulers.py#L541-L618](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L541-L618) |
+| `--decay-rate` | `_compute_decay_weights()` | Exponential decay weights | [rulers.py#L147-L169](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L147-L169) |
+| `--auto` | `auto_find_rulers()` | Search parameter combinations | [rulers.py#L693-L779](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L693-L779) |
+
+### Functions for plotting
+
+| Function | Backend | GitHub Link |
+|----------|---------|-------------|
+| `plot_rulers_mpl()` | Matplotlib | [rulers.py#L801-L909](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L801-L909) |
+| `plot_rulers_bokeh()` | Bokeh | [rulers.py#L911-L1027](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L911-L1027) |
+| `plot_rulers_auto_mpl()` | Matplotlib (auto mode) | [rulers.py#L1029-L1144](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L1029-L1144) |
+| `plot_rulers_auto_bokeh()` | Bokeh (auto mode) | [rulers.py#L1146-L1265](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L1146-L1265) |
+
+### Helper functions
+
+| Function | Description | GitHub Link |
+|----------|-------------|-------------|
+| `_linear_regression()` | Baseline linear regression | [rulers.py#L60-L65](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L60-L65) |
+| `_find_topline_convex()` | Fallback using convex hull | [rulers.py#L379-L427](https://github.com/rentruewang/brokrest/blob/yungsung/src/brokrest/shapes/rulers.py#L379-L427) |

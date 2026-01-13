@@ -344,10 +344,10 @@ def _find_topline(
         left_indices = np.where(left_mask)[0]
         left_constraint_idx = left_indices[np.argmin(slopes_left)]
     
-    if m_lower > m_upper:
-        # Constraints conflict - pivot is a convex point
-        # Fall back to convex hull based approach
-        return _find_topline_convex(x, y)
+    # if m_lower > m_upper:
+    #     # Constraints conflict - pivot is a convex point
+    #     # Fall back to convex hull based approach
+    #     return _find_topline_convex(x, y)
     
     # Find optimal slope in [m_lower, m_upper] that minimizes MSE
     # The MSE is a quadratic in m, so we can find the minimum analytically
@@ -376,54 +376,54 @@ def _find_topline(
     return m_opt, b_opt
 
 
-def _find_topline_convex(x: NDArray, y: NDArray) -> Tuple[float, float]:
-    """
-    Fallback: Find topline using convex hull approach.
+# def _find_topline_convex(x: NDArray, y: NDArray) -> Tuple[float, float]:
+#     """
+#     Fallback: Find topline using convex hull approach.
     
-    Finds the line segment on the upper convex hull that minimizes MSE.
-    """
-    from scipy.spatial import ConvexHull
+#     Finds the line segment on the upper convex hull that minimizes MSE.
+#     """
+#     from scipy.spatial import ConvexHull
     
-    points = np.column_stack([x, y])
+#     points = np.column_stack([x, y])
     
-    if len(points) < 3:
-        return _linear_regression(x, y)
+#     if len(points) < 3:
+#         return _linear_regression(x, y)
     
-    hull = ConvexHull(points)
-    hull_points = points[hull.vertices]
+#     hull = ConvexHull(points)
+#     hull_points = points[hull.vertices]
     
-    # Find upper hull (points where we go from left to right)
-    sorted_idx = np.argsort(hull_points[:, 0])
-    upper_points = hull_points[sorted_idx]
+#     # Find upper hull (points where we go from left to right)
+#     sorted_idx = np.argsort(hull_points[:, 0])
+#     upper_points = hull_points[sorted_idx]
     
-    best_m, best_b = None, None
-    best_mse = np.inf
+#     best_m, best_b = None, None
+#     best_mse = np.inf
     
-    for i in range(len(upper_points) - 1):
-        x1, y1 = upper_points[i]
-        x2, y2 = upper_points[i + 1]
+#     for i in range(len(upper_points) - 1):
+#         x1, y1 = upper_points[i]
+#         x2, y2 = upper_points[i + 1]
         
-        if abs(x2 - x1) < 1e-10:
-            continue
+#         if abs(x2 - x1) < 1e-10:
+#             continue
         
-        m = (y2 - y1) / (x2 - x1)
-        b = y1 - m * x1
+#         m = (y2 - y1) / (x2 - x1)
+#         b = y1 - m * x1
         
-        # Check if all points are below or on the line
-        pred = m * x + b
-        if np.all(y <= pred + 1e-9 * (np.max(y) - np.min(y))):
-            mse = np.mean((y - pred) ** 2)
-            if mse < best_mse:
-                best_mse = mse
-                best_m, best_b = m, b
+#         # Check if all points are below or on the line
+#         pred = m * x + b
+#         if np.all(y <= pred + 1e-9 * (np.max(y) - np.min(y))):
+#             mse = np.mean((y - pred) ** 2)
+#             if mse < best_mse:
+#                 best_mse = mse
+#                 best_m, best_b = m, b
     
-    if best_m is None:
-        # Fallback to shifted regression
-        m, b = _linear_regression(x, y)
-        delta = np.max(y - (m * x + b))
-        return m, b + delta
+#     if best_m is None:
+#         # Fallback to shifted regression
+#         m, b = _linear_regression(x, y)
+#         delta = np.max(y - (m * x + b))
+#         return m, b + delta
     
-    return best_m, best_b
+#     return best_m, best_b
 
 
 def _find_bottomline(

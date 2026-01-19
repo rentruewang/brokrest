@@ -3,12 +3,13 @@
 import numpy as np
 import pandas as pd
 from bokeh import plotting
-from bokeh.sampledata.stocks import MSFT
+from bokeh.sampledata import stocks
+from pandas import DataFrame
 
 from brokrest.plotting import Canvas, Window
 from brokrest.topos import Candle
 
-df = pd.DataFrame(MSFT)[60:120]
+df = DataFrame(stocks.MSFT)[60:120]
 df["date"] = pd.to_datetime(df["date"])
 
 inc = df.close > df.open

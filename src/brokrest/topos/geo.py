@@ -1,97 +1,23 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-"The classes that are a stack of data."
+"A collection of topologies that are geometric shapes."
 
-import abc
 import typing
 from abc import ABC
-from collections.abc import Iterator
 from typing import Self, override
 
 import torch
 from bokeh.plotting import figure as Figure
-from tensordict import TensorClass
 from torch import Tensor
 
 from brokrest.plotting import Window
 
 from .topos import Topo
 
-__all__ = ["Group", "Rect", "Box", "Segment", "Candle"]
+__all__ = ["Rect", "Box", "Segment", "Candle"]
 
 
-class Group(TensorClass, Topo, ABC):
-    """
-    A group of similar shapes, backed by ``Tensor``s.
-    """
-
-    def __post_init__(self) -> None:
-        self._ensure_shapes()
-        self._order_self()
-
-    @typing.no_type_check
-    def _ensure_shapes(self) -> None:
-        "Check if shapes are valid."
-        if not all(isinstance(t, Tensor) for t in self.tensors()):
-            raise TypeError("Data should all be tensors.")
-
-        if len(shapes := {t.shape for t in self.tensors()}) != 1:
-            raise ValueError("Data must all have the same shapes.")
-
-        # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
-        [self.batch_size] = shapes
-
-        # Must be 0D or 1D tensors.
-        if self.ndim not in [0, 1]:
-            raise ValueError(f"Tensors must be 0D or 1D. Got {self.ndim}D.")
-
-    def _order_self(self) -> None:
-        "Sort according to ``argsort``."
-
-        ordering = self.ordering()
-
-        # Do nothing if ``self.ordering() is None``.
-        if ordering is None:
-            return
-
-        if ordering.ndim != 1 or len(ordering) != len(self):
-            raise ValueError(
-                " ".join(
-                    [
-                        f"`ordering` should be a 1D array, permutation of 0-{len(self)=}.",
-                        f"Got a {ordering.ndim}D array with shape {ordering.shape}.",
-                    ]
-                )
-            )
-
-    @abc.abstractmethod
-    def tensors(self) -> Iterator[Tensor]:
-        """
-        The underlying ``Tensor``s backing the current topology.
-        All the tensors yielded should have the same shape.
-
-        Yields:
-            Tensors with the same shape.
-        """
-
-        ...
-
-    def ordering(self) -> Tensor | None:
-        """
-        Return the argsort of the current ``Topology``.
-
-        If the collection doesn't need to be ordered, return ``NotImplemented``.
-
-        Returns:
-            A 1D ``Tensor`` of shape [len(self)],
-            whose elements are permutation of ``range(len(self))``,
-            or ``NotImplemented`` if ordering doesn't exist.
-        """
-
-        return None
-
-
-class Rect(Group, ABC):
+class Rect(Topo, ABC):
     """
     A tuple with 4 values.
 
@@ -133,6 +59,26 @@ class Box(Rect):
             raise ValueError("Box should not have negative height.")
 
     @property
+    def bottom(self) -> Tensor:
+        "The bottom of the box. Alias of ``y_0``."
+        return self.y_0
+
+    @property
+    def top(self) -> Tensor:
+        "The top of the box. Alias of ``y_1``."
+        return self.y_1
+
+    @property
+    def left(self) -> Tensor:
+        "The left of the box. Alias of ``x_0``."
+        return self.x_0
+
+    @property
+    def right(self) -> Tensor:
+        "The right of the box. Alias of ``x_1``."
+        return self.x_1
+
+    @property
     def width(self) -> Tensor:
         "The width of the ``Box``es."
         return self.x_1 - self.x_0
@@ -148,14 +94,8 @@ class Box(Rect):
         return self.width * self.height
 
     @typing.override
-    def _cut(self, vp: Window, /) -> Self:
-        see_left = self.x_0 < vp.right
-        see_right = self.x_1 > vp.left
-        see_bottom = self.y_0 < vp.top
-        see_top = self.y_1 > vp.bottom
-
-        indices = see_left | see_right | see_bottom | see_top
-        return typing.cast(Self, self[indices])
+    def _outer(self):
+        return self
 
     @typing.override
     def _draw(self, figure: Figure):
@@ -165,6 +105,71 @@ class Box(Rect):
             width=self.width.numpy(),
             height=self.height.numpy(),
         )
+
+    def visible(self, window: Window) -> Tensor:
+        """
+        Return a boolean tensor, of whether ``self`` is visible in the view box or not.
+
+        Args:
+            window: The view port to determine.
+
+        Returns:
+            A boolean tensor the same length as ``self``.
+        """
+
+        horiz = _segment_visible(
+            start=self.left,
+            end=self.right,
+            x=window.left,
+            y=window.right,
+        )
+        verti = _segment_visible(
+            start=self.bottom,
+            end=self.top,
+            x=window.bottom,
+            y=window.top,
+        )
+
+        # Both horizontally and vertically visible.
+        return horiz & verti
+
+
+def _segment_visible(start: Tensor, end: Tensor, x: float, y: float) -> Tensor:
+    """
+    Try to see if segment [start, end] is visible in viewport [x, y], vectorized.s
+    """
+
+    result_shape = start.shape
+    assert end.shape == start.shape
+
+    def _ordered(*ordered: Tensor):
+        "The tensors are ordered."
+
+        answer = torch.ones(result_shape).bool()
+        for smaller, larger in zip(ordered[:-1], ordered[1:]):
+            answer &= smaller <= larger
+        return answer
+
+    x_tensor = torch.tensor(x)
+    y_tensor = torch.tensor(y)
+
+    # Let's laid it out on an axis.
+    # the line is visible with one of the conditions:
+    ans = torch.zeros(result_shape).bool()
+
+    # start - x - end - y
+    ans |= _ordered(start, x_tensor, end, y_tensor)
+
+    # start - x - y - end
+    ans |= _ordered(start, x_tensor, y_tensor, end)
+
+    # x - start - y - end
+    ans |= _ordered(x_tensor, start, y_tensor, end)
+
+    # x - start - end - y
+    ans |= _ordered(x_tensor, start, end, y_tensor)
+
+    return ans
 
 
 class Segment(Rect):
@@ -210,14 +215,8 @@ class Segment(Rect):
         return torch.maximum(self.y_0, self.y_1)
 
     @typing.override
-    def _cut(self, vp: Window, /) -> Self:
-        see_left = self.left < vp.right
-        see_right = self.right > vp.left
-        see_bottom = self.bottom < vp.top
-        see_top = self.top > vp.bottom
-
-        indices = see_left | see_right | see_bottom | see_top
-        return typing.cast(Self, self[indices])
+    def _outer(self):
+        return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
     def _draw(self, figure: Figure):
@@ -229,7 +228,7 @@ class Segment(Rect):
         )
 
 
-class Candle(Group):
+class Candle(Topo):
     """
     One single candle bar.
     """
@@ -325,6 +324,10 @@ class Candle(Group):
         yield self.start
         yield self.end
 
+    @typing.override
+    def _outer(self):
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+
     @override
     def _draw(self, figure: Figure):
         # The center bars for the candles.
@@ -355,13 +358,3 @@ class Candle(Group):
             line_color="#49a3a3",
             line_width=2,
         )
-
-    @typing.override
-    def _cut(self, vp: Window, /) -> Self:
-        see_left = self.start < vp.right
-        see_right = self.end > vp.left
-        see_bottom = self.low < vp.top
-        see_top = self.high > vp.bottom
-
-        indices = see_left | see_right | see_bottom | see_top
-        return typing.cast(Self, self[indices])

@@ -3,5 +3,5 @@
 "Visualization with ``bokeh``."
 
 from .equations import *
-from .groups import *
+from .geo import *
 from .topos import *

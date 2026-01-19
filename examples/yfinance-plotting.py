@@ -7,7 +7,7 @@ from bokeh.sampledata import stocks
 from pandas import DataFrame
 
 from brokrest.plotting import Canvas, Window
-from brokrest.topos import Candle
+from brokrest.topos import LeftCandle
 
 df = DataFrame(stocks.MSFT)[60:120]
 df["date"] = pd.to_datetime(df["date"])
@@ -28,13 +28,12 @@ p = plotting.figure(
     background_fill_color="#efefef",
 )
 p.xaxis.major_label_orientation = 0.8  # radians
-candle = Candle(
+candle = LeftCandle(
     enter=np.array(df.open),
     exit=np.array(df.close),
     low=np.array(df.low),
     high=np.array(df.high),
-    start=np.array(_dates) - width / 2,
-    end=np.array(_dates) + width / 2,
+    start=np.array(_dates),
 )
 cv = Canvas(Window(), figure=p)
 candle.draw(cv)

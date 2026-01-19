@@ -8,6 +8,7 @@ from abc import ABC
 from collections.abc import Iterator
 from typing import Self, TypeAlias
 
+import torch
 from bokeh.plotting import figure as Figure
 from numpy.typing import NDArray
 from tensordict import TensorClass
@@ -17,7 +18,7 @@ from torch.types import Number
 from brokrest.plotting import Canvas
 
 if typing.TYPE_CHECKING:
-    from .geo import Box
+    from .rects import Box
 
 
 class Topo(TensorClass, ABC):
@@ -68,19 +69,23 @@ class Topo(TensorClass, ABC):
 
         ordering = self.ordering()
 
-        # Do nothing if ``self.ordering() is None``.
-        if ordering is None:
+        # Do nothing if ``self.ordering() is None``, or if it's an instance not sequence.
+        if ordering is None or self.ndim == 0:
             return
 
-        if ordering.ndim != 1 or len(ordering) != len(self):
+        if len(ordering) != len(self):
             raise ValueError(
                 " ".join(
                     [
-                        f"`ordering` should be a 1D array, permutation of 0-{len(self)=}.",
+                        f"`ordering` should be a permutation of 0-{len(self)=}.",
                         f"Got a {ordering.ndim}D array with shape {ordering.shape}.",
                     ]
                 )
             )
+
+        ordered_index = torch.argsort(ordering)
+        for t in self.tensors():
+            t[:] = t[ordered_index]
 
     @abc.abstractmethod
     def tensors(self) -> Iterator[Tensor]:

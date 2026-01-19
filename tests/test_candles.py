@@ -2,14 +2,16 @@
 
 "Test cases for candles."
 
+import numpy as np
 import pytest
 import torch
+from numpy import random
+from pandas import DataFrame
 
-from brokrest.topos import Candle
+from brokrest.topos import BothCandle, Candle, LeftCandle, candles
 
 
-@pytest.fixture()
-def chart():
+def _tensor_chart():
     "A randomly generated ``CandleChart``."
 
     enter = torch.rand(100)
@@ -18,7 +20,61 @@ def chart():
     end = start + 1
     low = torch.zeros(100)
     high = torch.ones(100)
-    return Candle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
+
+    yield BothCandle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
+    yield LeftCandle(enter=enter, exit=exit, start=start, low=low, high=high)
+
+
+def _dataframe_chart():
+    enter = random.rand(100)
+    exit = random.rand(100)
+    start = random.randn(100)
+    end = start + 1
+    low = np.zeros(100)
+    high = np.ones(100)
+
+    yield candles.dataframe_factory(
+        DataFrame(
+            {
+                "enter": enter,
+                "exit": exit,
+                "start": start,
+                "end": end,
+                "low": low,
+                "high": high,
+            }
+        )
+    )
+    yield candles.dataframe_factory(
+        DataFrame(
+            {
+                "enter": enter,
+                "exit": exit,
+                "start": start,
+                "low": low,
+                "high": high,
+            }
+        )
+    )
+
+
+def _chart():
+    yield from _tensor_chart()
+    yield from _dataframe_chart()
+
+
+@pytest.fixture(params=_chart())
+def chart(request: pytest.FixtureRequest) -> Candle:
+    return request.param
+
+
+def test_chart_is_1d(chart: Candle):
+    assert chart.ndim == 1
+
+
+def test_chart_is_sorted(chart: Candle):
+    start = chart.left.tolist()
+    assert list(start) == sorted(start)
 
 
 def test_chart_index(chart: Candle):

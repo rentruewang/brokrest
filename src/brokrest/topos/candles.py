@@ -10,13 +10,14 @@ from typing import Self
 
 import torch
 from bokeh.plotting import figure as Figure
+from pandas import DataFrame
 from tensordict import TensorClass
 from torch import Tensor
 
 from .rects import Box
 from .topos import Topo
 
-__all__ = ["Candle", "BothCandle", "LeftCandle"]
+__all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
 
 @dcls.dataclass
@@ -315,3 +316,46 @@ class LeftCandle(Candle, _LeftMixin):
     @typing.override
     def ordering(self) -> Tensor:
         return self.start
+
+
+def dataframe_factory(df: DataFrame, /) -> Candle:
+    """
+    Parse an input dataframe into corresponding ``Candle``.
+
+    Args:
+        df:
+            A dataframe.
+            Must have one of the combinations of keys:
+            - 'start', 'end', 'enter', 'exit', 'low','high'
+            - 'start', 'enter', 'exit', 'low', 'high'
+
+
+    Returns:
+        A ``Candle`` instance, type dependent on the input keys.
+    """
+
+    if None is not (
+        inst := _try_init_with_type_and_keys(
+            df, BothCandle, "start", "end", "enter", "exit", "low", "high"
+        )
+    ):
+        return inst
+
+    if None is not (
+        inst := _try_init_with_type_and_keys(
+            df, LeftCandle, "start", "enter", "exit", "low", "high"
+        )
+    ):
+        return inst
+
+    raise NotImplementedError(
+        f"Do not recognize the key combination from df: {list(df.columns)}"
+    )
+
+
+def _try_init_with_type_and_keys(df: DataFrame, typ: type[Candle], *keys: str):
+    if not all(k in df.columns for k in keys):
+        return None
+
+    dicts = {key: df[key].tolist() for key in keys}
+    return typ(**dicts)

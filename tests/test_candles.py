@@ -5,11 +5,11 @@
 import pytest
 import torch
 
-from brokrest.topos import Candle
+from brokrest.topos import BothCandle, Candle
 
 
 @pytest.fixture()
-def chart():
+def chart() -> Candle:
     "A randomly generated ``CandleChart``."
 
     enter = torch.rand(100)
@@ -18,7 +18,16 @@ def chart():
     end = start + 1
     low = torch.zeros(100)
     high = torch.ones(100)
-    return Candle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
+    return BothCandle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
+
+
+def test_chart_is_1d(chart: Candle):
+    assert chart.ndim == 1
+
+
+def test_chart_is_sorted(chart: Candle):
+    start = chart.left.tolist()
+    assert list(start) == sorted(start)
 
 
 def test_chart_index(chart: Candle):

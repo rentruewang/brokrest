@@ -1,0 +1,317 @@
+# Copyright (c) The BrokRest Authors - All Rights Reserved
+
+"A collection of topologies that are geometric shapes."
+
+import abc
+import dataclasses as dcls
+import typing
+from abc import ABC
+from typing import Self
+
+import torch
+from bokeh.plotting import figure as Figure
+from tensordict import TensorClass
+from torch import Tensor
+
+from .rects import Box
+from .topos import Topo
+
+__all__ = ["Candle", "BothCandle", "LeftCandle"]
+
+
+@dcls.dataclass
+class CandleLooks:
+    "The appearances for candles."
+
+    up_line: str = "green"
+    "Color for the boundary of up."
+
+    up_fill: str = "white"
+    "The color for interior of up."
+
+    down_line: str = "red"
+    "Color for the boundary of down."
+
+    down_fill: str = "red"
+    "The color for interior of down."
+
+    line_width: int = 2
+    "How wide should the surrounding line be?"
+
+    width_ratio: float = 0.7
+    "How wide should each bar be? Max 1 min 0"
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.width_ratio <= 1:
+            raise ValueError(f"{self.width_ratio=} is not in range [0, 1]")
+
+    def invert(self) -> Self:
+        return dcls.replace(
+            self,
+            down_line=self.up_line,
+            up_line=self.down_line,
+            up_fill=self.down_fill,
+            down_fill=self.up_fill,
+        )
+
+
+class Candle(Topo, ABC):
+    """
+    A candle on the candle chart
+    """
+
+    enter: Tensor
+    """
+    The entering position of this candle.
+    """
+
+    exit: Tensor
+    """
+    The exiting position of this candle.
+    """
+
+    low: Tensor
+    """
+    The minimum value of the candle.
+    """
+
+    high: Tensor
+    """
+    The maximum value of the candle.
+    """
+
+    looks: CandleLooks = dcls.field(default_factory=CandleLooks)
+    """
+    The profile of the candles' appearances.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
+        if torch.any(self.low > self.high):
+            raise ValueError(
+                f"Min value: {self.low} must be smaller than max value: {self.high}."
+            )
+
+        self._check_value_in_range(self.enter, "entering")
+        self._check_value_in_range(self.exit, "exiting")
+
+    def _check_value_in_range(self, value: Tensor, desc: str) -> None:
+        "Check if the given value is in the range [min, max]."
+
+        if torch.any(self.low > value) or torch.any(self.high < value):
+            message = " ".join(
+                [
+                    f"{desc.capitalize()} value: {self.enter},",
+                    f"but min={self.low}, max={self.high}.",
+                ]
+            )
+            raise ValueError(message)
+
+    @property
+    @abc.abstractmethod
+    def center(self) -> Tensor:
+        "The time at which this candle occurs."
+
+        ...
+
+    @property
+    @abc.abstractmethod
+    def max_width(self) -> float:
+        "The maximum width this candle can occupy."
+
+        ...
+
+    @property
+    @abc.abstractmethod
+    def left(self) -> Tensor:
+        "The left side of the candle."
+
+        ...
+
+    @property
+    @abc.abstractmethod
+    def right(self) -> Tensor:
+        "The right side of the candle."
+
+        ...
+
+    @property
+    def inc(self) -> Tensor:
+        "Is increasing."
+        return (self.exit - self.enter) >= 0
+
+    @property
+    def dec(self) -> Tensor:
+        "Is decreasing."
+        return (self.exit - self.enter) < 0
+
+    @typing.override
+    def tensors(self):
+        yield self.enter
+        yield self.exit
+        yield self.low
+        yield self.high
+
+    @typing.override
+    def _draw(self, figure: Figure):
+        # The center bars for the candles.
+        _ = figure.segment(
+            x0=self.center.numpy(),
+            y0=self.high.numpy(),
+            x1=self.center.numpy(),
+            y1=self.low.numpy(),
+            color="black",
+        )
+
+        width = self.max_width * 0.7
+
+        # The body of candles that are decreasing.
+        _ = figure.vbar(
+            x=self.center[self.dec].numpy(),
+            width=width,
+            top=self.enter[self.dec].numpy(),
+            bottom=self.exit[self.dec].numpy(),
+            fill_color=self.looks.down_fill,
+            color=self.looks.down_line,
+            line_width=self.looks.line_width,
+        )
+
+        # The body of candles that are increasing.
+        _ = figure.vbar(
+            x=self.center[self.inc].numpy(),
+            width=width,
+            top=self.enter[self.inc].numpy(),
+            bottom=self.exit[self.inc].numpy(),
+            fill_color=self.looks.up_fill,
+            line_color=self.looks.up_line,
+            line_width=self.looks.line_width,
+        )
+
+    @typing.override
+    @abc.abstractmethod
+    def ordering(self) -> Tensor:
+        """
+        As the candles are organized by time, ordering must be present.
+        """
+
+
+class _BothMixin(TensorClass):
+
+    start: Tensor
+    """
+    The starting time of the candle.
+    """
+
+    end: Tensor
+    """
+    The ending time of the candle.
+    """
+
+
+class BothCandle(Candle, _BothMixin):
+    """
+    A candle that has a left side and a right side.
+    """
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+
+        if torch.any(self.start > self.end):
+            raise ValueError(
+                f"Starting time {self.start} must be before than ending time: {self.end}."
+            )
+
+    def continuous(self) -> bool:
+        nexts: Self = self[1:]
+        prevs: Self = self[:-1]
+        return torch.allclose(nexts.start, prevs.end)
+
+    @property
+    @typing.override
+    def center(self) -> Tensor:
+        "The centered times."
+        return (self.end + self.start) / 2
+
+    @property
+    @typing.override
+    def max_width(self) -> float:
+        "The width for each candle."
+        return min(self.end - self.start).item()
+
+    @property
+    @typing.override
+    def left(self):
+        return self.center - self.max_width
+
+    @property
+    @typing.override
+    def right(self):
+        return self.center + self.max_width
+
+    @typing.override
+    def tensors(self):
+        yield from super().tensors()
+        yield self.start
+        yield self.end
+
+    @typing.override
+    def _outer(self):
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+
+    @typing.override
+    def ordering(self) -> Tensor:
+        return self.start
+
+
+class _LeftMixin(TensorClass):
+    start: Tensor
+    """
+    The starting time of the candle.
+    """
+
+
+class LeftCandle(Candle, _LeftMixin):
+    """
+    The candle that only has the starting time defined (timing is implicit).
+    """
+
+    @property
+    @typing.override
+    def center(self) -> Tensor:
+        "The centered times."
+        return self.start + self.max_width / 2
+
+    @property
+    @typing.override
+    def max_width(self) -> float:
+        "The width for each candle. This is the minimal interval between starts."
+
+        return min(self.start[1:] - self.start[:-1]).item()
+
+    @property
+    @typing.override
+    def left(self):
+        return self.start
+
+    @property
+    @typing.override
+    def right(self):
+        return self.end
+
+    @property
+    def end(self):
+        return self.start + self.max_width
+
+    @typing.override
+    def tensors(self):
+        yield from super().tensors()
+        yield self.left
+
+    @typing.override
+    def _outer(self):
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+
+    @typing.override
+    def ordering(self) -> Tensor:
+        return self.start

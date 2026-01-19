@@ -9,7 +9,7 @@ from typing import Self
 
 from bokeh.plotting import figure as Figure
 
-from brokrest.plotting import Canvas, Displayable, ViewPort
+from brokrest.plotting import Canvas, Displayable, Window
 
 __all__ = ["Topo", "TopoSet"]
 
@@ -21,29 +21,30 @@ class Topo(Displayable, ABC):
 
     @typing.override
     def draw(self, canvas: Canvas, /) -> None:
-        sub = self.view(canvas.view)
-        sub._draw(canvas.figure)
+        self._draw(canvas.figure)
 
     @abc.abstractmethod
-    def _draw(self, figure: Figure):
+    def _draw(self, figure: Figure, /):
         """
         Paint on the figure.
         """
 
-    def view(self, vp: ViewPort, /) -> "Topo":
+    def window(self) -> Window:
+        pass
+    def within(self, window: Window, /) -> "Topo":
         """
         Get the subset of topology within the range.
         """
 
         # Check if ``vp`` would require human intervension.
-        if not vp:
+        if not window.is_set():
             return self
 
-        return self._cut(vp)
+        return self._within(window)
 
     @abc.abstractmethod
-    def _cut(self, vp: ViewPort, /) -> "Topo":
-        "The implementation of ``cut``."
+    def _within(self, vp: Window, /) -> "Topo":
+        "The implementation of ``within``."
         ...
 
 
@@ -81,8 +82,8 @@ class TopoSet(Sequence[Topo], Topo):
                 raise NotImplementedError(f"Type: {type(idx)=} is not supported.")
 
     @typing.override
-    def _cut(self, vp: ViewPort) -> "Topo":
-        return type(self)([topo._cut(vp) for topo in self.topos])
+    def _within(self, window: Window) -> "Topo":
+        return type(self)([topo._within(window) for topo in self.topos])
 
     @typing.override
     def _draw(self, figure: Figure):

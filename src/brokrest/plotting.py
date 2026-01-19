@@ -10,13 +10,13 @@ from typing import Protocol
 from bokeh import plotting
 from bokeh.plotting import figure as Figure
 
-__all__ = ["Canvas", "ViewPort", "Displayable"]
+__all__ = ["Canvas", "Window", "Displayable"]
 
 
 @dcls.dataclass(frozen=True)
-class ViewPort:
+class Window:
     """
-    ``ViewPort`` specifies the region where ``Canvas`` is plotting
+    ``Window`` specifies the region where ``Canvas`` is plotting
     """
 
     left: float = -float("inf")
@@ -35,7 +35,7 @@ class ViewPort:
                 )
             )
 
-    def __bool__(self) -> bool:
+    def is_set(self) -> bool:
         """
         Whether or not the ``ViewPort`` requires user handling.
         The default (infinite size) does not require user handling, so would be ``False``.
@@ -57,7 +57,7 @@ class Canvas:
     The canvas to plot on.
     """
 
-    view: ViewPort
+    window: Window
     """
     The viewport to use.
     """

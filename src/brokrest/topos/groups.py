@@ -13,7 +13,7 @@ from bokeh.plotting import figure as Figure
 from tensordict import TensorClass
 from torch import Tensor
 
-from brokrest.plotting import ViewPort
+from brokrest.plotting import Window
 
 from .topos import Topo
 
@@ -148,7 +148,7 @@ class Box(Rect):
         return self.width * self.height
 
     @typing.override
-    def _cut(self, vp: ViewPort, /) -> Self:
+    def _cut(self, vp: Window, /) -> Self:
         see_left = self.x_0 < vp.right
         see_right = self.x_1 > vp.left
         see_bottom = self.y_0 < vp.top
@@ -210,7 +210,7 @@ class Segment(Rect):
         return torch.maximum(self.y_0, self.y_1)
 
     @typing.override
-    def _cut(self, vp: ViewPort, /) -> Self:
+    def _cut(self, vp: Window, /) -> Self:
         see_left = self.left < vp.right
         see_right = self.right > vp.left
         see_bottom = self.bottom < vp.top
@@ -357,7 +357,7 @@ class Candle(Group):
         )
 
     @typing.override
-    def _cut(self, vp: ViewPort, /) -> Self:
+    def _cut(self, vp: Window, /) -> Self:
         see_left = self.start < vp.right
         see_right = self.end > vp.left
         see_bottom = self.low < vp.top

@@ -8,6 +8,7 @@ from abc import ABC
 import torch
 from bokeh.plotting import figure as Figure
 from torch import Tensor
+from torch._tensor import Tensor
 
 from brokrest.plotting import Window
 
@@ -23,24 +24,31 @@ class Rect(Topo, ABC):
     If ``batch_size`` is not 1, all ``x_0``, ``x_1``, ``y_0``, ``y_1`` need to be the same shape.
     """
 
-    x_0: Tensor
-    "The left side."
+    KEYS = "x_0", "x_1", "y_0", "y_1"
 
-    x_1: Tensor
-    "The right side."
+    @property
+    def x_0(self) -> Tensor:
+        "The left side."
 
-    y_0: Tensor
-    "The top side."
+        return self["x_0"]
 
-    y_1: Tensor
-    "The bottom side."
+    @property
+    def x_1(self) -> Tensor:
+        "The right side."
 
-    @typing.override
-    def tensors(self):
-        yield self.x_0
-        yield self.x_1
-        yield self.y_0
-        yield self.y_1
+        return self["x_0"]
+
+    @property
+    def y_0(self) -> Tensor:
+        "The top side."
+
+        return self["x_0"]
+
+    @property
+    def y_1(self) -> Tensor:
+        "The bottom side."
+
+        return self["x_0"]
 
 
 class Box(Rect):
@@ -172,35 +180,33 @@ def _segment_visible(start: Tensor, end: Tensor, x: float, y: float) -> Tensor:
 
 
 class Segment(Rect):
-    def __post_init__(self):
-        super().__post_init__()
 
-        # Argsort according to ``x_0``.
-        ordered = torch.argsort(self.x_0)
-
-        self.x_0 = self.x_0[ordered]
-        self.x_1 = self.x_1[ordered]
-        self.y_0 = self.y_0[ordered]
-        self.y_1 = self.y_1[ordered]
+    @typing.override
+    def ordering(self) -> Tensor:
+        return torch.argsort(self.x_0)
 
     @property
     def start(self) -> Tensor:
         "The starting point of a segment."
+
         return torch.hstack([self.x_0, self.y_0])
 
     @property
     def end(self) -> Tensor:
         "The ending point of a segment."
+
         return torch.hstack([self.x_1, self.y_1])
 
     @property
     def left(self):
         "The ``min(x)``."
+
         return torch.minimum(self.x_0, self.x_1)
 
     @property
     def right(self):
         "The ``max(x)``."
+
         return torch.maximum(self.x_0, self.x_1)
 
     @property
@@ -215,7 +221,9 @@ class Segment(Rect):
 
     @typing.override
     def _outer(self):
-        return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
+        return Box.init_tensordict(
+            x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top
+        )
 
     @typing.override
     def _draw(self, figure: Figure):

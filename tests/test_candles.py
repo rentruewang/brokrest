@@ -21,10 +21,10 @@ def _tensor_chart():
     low = torch.zeros(100)
     high = torch.ones(100)
 
-    yield BothCandle.init_tensordict(
+    yield BothCandle.init_tensor(
         enter=enter, exit=exit, start=start, end=end, low=low, high=high
     )
-    yield LeftCandle.init_tensordict(
+    yield LeftCandle.init_tensor(
         enter=enter, exit=exit, start=start, low=low, high=high
     )
 

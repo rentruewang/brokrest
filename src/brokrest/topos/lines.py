@@ -2,126 +2,70 @@
 
 "A set of linear equations."
 
-import abc
-import dataclasses as dcls
 import typing
-from abc import ABC
+from typing import ClassVar, Self
 
-__all__ = ["LinearEq", "StandardForm", "SlopeInterceptForm", "InterceptForm"]
+import torch
+from torch import Tensor
+
+from brokrest.plotting import Canvas
+
+from .points import Point
+from .topos import Topo
+
+__all__ = ["Line"]
 
 
-class LinearEq(ABC):
+class Line(Topo):
     """
-    A linear equation.
+    A set of lines. Represented as `y = mx + b` (slope intercept form).
     """
 
-    @abc.abstractmethod
-    def solve(self, x: float) -> float:
+    KEYS: ClassVar[tuple[str, ...]] = "m", "b"
+
+    def apply(self, x: Tensor) -> Tensor:
         """
-        Get the y value of the line equation when x is given.
-
-        Args:
-            x: The x value.
-
-        Returns:
-            The y value.
-        """
-
-        ...
-
-    @abc.abstractmethod
-    def subs(self, x: float, y: float) -> float:
-        """
-        The linear equation assumes that RHS = 0.
-        This method applies x, y to the LHS, and get the value of RHS.
-
-        If this method returns 0, the point is on the line.
-        If 2 points (a, b), (c, d) have the same signs (both positive or both negative)
-        after substituted into the equation, they are on the same side of the line.
+        Returns mx + b as a self.ndim + 1 matrix ``R``. ``R_ij = m_i x_j + b_i.``
         """
 
-        ...
+        return self.m[..., None] * x[None, ...] + self.b[..., None]
 
+    def subs(self, points: Point) -> Tensor:
+        """
+        Returns mx + b as a self.ndim + 1 matrix ``R``.
+        ``R_ij = m_i x_j + b_i - y_j.``
+        """
 
-@dcls.dataclass(frozen=True)
-class StandardForm(LinearEq):
-    """
-    The standard form ax + by + c = 0
-    """
+        return self.apply(points.x) - points.y[None, ...]
 
-    a: float
-    """
-    The x coefficient.
-    """
+    @property
+    def m(self):
+        return self["m"]
 
-    b: float
-    """
-    The y coefficient.
-    """
-
-    c: float
-    """
-    The constant term.
-    """
+    @property
+    def b(self):
+        return self["b"]
 
     @typing.override
-    def solve(self, x: float) -> float:
-        # y = (ax + c) / -b
-        return (self.a * x + self.c) / -self.b
+    def draw(self, canvas: Canvas) -> None:
+        raise NotImplementedError
 
-    @typing.override
-    def subs(self, x: float, y: float) -> float:
-        return self.a * x + self.b * y + self.c
+    @classmethod
+    def standard(cls, a: Tensor, b: Tensor, c: Tensor) -> Self:
+        "Create a line in the ``ax + by + c = 0`` form."
 
+        # y = -a/b x - c/b
+        return cls.init_tensor(m=-a / b, b=-c / b)
 
-@dcls.dataclass(frozen=True)
-class SlopeInterceptForm(LinearEq):
-    """
-    An equation mx + b - y = 0.
-    """
+    @classmethod
+    def intercept(cls, a: Tensor, b: Tensor) -> Self:
+        "Create a line in the ``x/a + y/b = 1`` form."
 
-    m: float
-    """
-    The slop of the current equation.
-    """
+        # y = b - b/a x
+        return cls.init_tensor(m=-b / a, b=b)
 
-    b: float
-    """
-    The line passes over (0, b).
-    """
+    @classmethod
+    def slope_intercept(cls, m: Tensor, b: Tensor) -> Self:
+        "Create a line in the ``y = mx + b`` form."
 
-    @typing.override
-    def solve(self, x: float) -> float:
-        return self.m * x + self.b
-
-    @typing.override
-    def subs(self, x: float, y: float) -> float:
-        return self.m * x + self.b - y
-
-
-@dcls.dataclass(frozen=True)
-class InterceptForm(LinearEq):
-    """
-    A linear equation represented by the intercepts.
-
-    The equation is represented as x/a + y/b - 1 = 0
-    """
-
-    a: float
-    """
-    The line passes over (a, 0).
-    """
-
-    b: float
-    """
-    The line passes over (0, b).
-    """
-
-    @typing.override
-    def solve(self, x: float) -> float:
-        # y = -b (x/a - 1)
-        return self.b - x * self.b / self.a
-
-    @typing.override
-    def subs(self, x: float, y: float) -> float:
-        return x / self.a + y / self.b - 1
+        return cls.init_tensor(m=m, b=b)

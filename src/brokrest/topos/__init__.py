@@ -3,6 +3,7 @@
 "Visualization with ``bokeh``."
 
 from .candles import *
-from .equations import *
+from .lines import *
+from .points import *
 from .rects import *
 from .topos import *

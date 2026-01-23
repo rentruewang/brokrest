@@ -3,62 +3,106 @@
 "Topologies API ``Topo``, representing a set of shapes."
 
 import abc
+import dataclasses as dcls
 import typing
 from abc import ABC
-from collections.abc import Iterator
-from typing import Self, TypeAlias
+from collections.abc import Iterable, Iterator
+from typing import ClassVar, Self, TypeIs
 
+import numpy as np
 import torch
 from bokeh.plotting import figure as Figure
 from numpy.typing import NDArray
-from tensordict import TensorClass
+from tensordict import TensorDict
 from torch import Size, Tensor
-from torch.types import Number
 
-from brokrest.plotting import Canvas
+from brokrest.plotting import Canvas, Displayable
 
 if typing.TYPE_CHECKING:
     from .rects import Box
 
 
-class Topo(TensorClass, ABC):
+@dcls.dataclass
+class Topo(Displayable, ABC):
     """
     A set of topologies.
     """
 
-    # The "type stubs" of ``TensorDict`` as ``Topo`` is a ``TensorClass``.
-    if typing.TYPE_CHECKING:
+    data: TensorDict
+    """
+    The backing data.
+    """
 
-        def __len__(self) -> int: ...
-
-        IndexType: TypeAlias = int | slice | list[int] | NDArray | Tensor
-        """
-        The index that is accepted.
-        Using a ``TypeAlias`` s.t. it can be reused in other ``typing.TYPE_CHECKING`` blocks.
-        """
-
-        def __getitem__(self, idx: IndexType) -> Self: ...
-
-        @property
-        def batch_size(self) -> Size: ...
-
-        @property
-        def ndim(self) -> int: ...
-
-        def to_dict(self) -> dict[str, Tensor]: ...
+    KEYS: ClassVar[tuple[str, ...]]
+    """
+    The keys a class accepts, in order.
+    """
 
     def __post_init__(self) -> None:
+        self._validate_keys()
         self._ensure_shapes()
         self._order_self()
 
-    @typing.no_type_check
+    def __contains__(self, key: str) -> bool:
+        return key in self.keys()
+
+    def __repr__(self):
+        return repr(self.data)
+
+    @typing.final
+    def __len__(self) -> int:
+        return len(self.data)
+
+    @typing.overload
+    def __getitem__(self, idx: str) -> Tensor: ...
+
+    @typing.overload
+    def __getitem__(self, idx: list[str]) -> TensorDict: ...
+
+    @typing.overload
+    def __getitem__(self, idx: int | slice | list[int] | NDArray | Tensor) -> Self: ...
+
+    @typing.final
+    def __getitem__(self, idx):
+        if isinstance(idx, str):
+            return self._getitem_str(idx)
+
+        if _list_of_str(idx):
+            return self._getitem_list_str(idx)
+
+        if isinstance(idx, int | slice | Tensor):
+            return self._getitem_rows(idx)
+
+        # Numpy compatible types (more expensive to construct).
+        if np.isdtype((arr := np.array(idx)).dtype, "integral"):
+            return self._getitem_rows(arr)
+
+        raise ValueError(f"{type(idx)=} is not supported!")
+
+    def _getitem_str(self, idx: str) -> Tensor:
+        return self.data[idx]
+
+    def _getitem_list_str(self, idx: list[str]) -> TensorDict:
+        return self.data.select(*idx)
+
+    def _getitem_rows(self, idx: int | slice | list[int] | NDArray | Tensor) -> Self:
+        return type(self)(self.data[idx])
+
+    def _validate_keys(self) -> None:
+        "Check if all keys specified are present."
+
+        data_keys: Iterable[str] = self.data.keys()
+
+        if set(self.keys()).difference(data_keys):
+            raise KeyError(
+                f"Required keys: {self.keys()=}, but self.data has keys: {data_keys}"
+            )
+
     def _ensure_shapes(self) -> None:
         "Check if shapes are valid."
-        if not all(isinstance(t, Tensor) for t in self.tensors()):
-            raise TypeError("Data should all be tensors.")
 
         # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
-        self.auto_batch_size_()
+        self.data.auto_batch_size_()
 
         # Must be 0D or 1D tensors.
         if self.ndim not in [0, 1]:
@@ -84,11 +128,9 @@ class Topo(TensorClass, ABC):
             )
 
         ordered_index = torch.argsort(ordering)
-        for t in self.tensors():
-            t[:] = t[ordered_index]
+        self.data = self.data[ordered_index]
 
-    @abc.abstractmethod
-    def tensors(self) -> Iterator[Tensor]:
+    def keys(self) -> tuple[str, ...]:
         """
         The underlying ``Tensor``s backing the current topology.
         All the tensors yielded should have the same shape.
@@ -97,7 +139,17 @@ class Topo(TensorClass, ABC):
             Tensors with the same shape.
         """
 
-        ...
+        return self.KEYS
+
+    @typing.final
+    def values(self) -> Iterator[Tensor]:
+        for key in self.keys():
+            yield self[key]
+
+    @typing.final
+    def items(self) -> Iterator[tuple[str, Tensor]]:
+        for key in self.keys():
+            yield key, self[key]
 
     def ordering(self) -> Tensor | None:
         """
@@ -112,25 +164,6 @@ class Topo(TensorClass, ABC):
         """
 
         return None
-
-    def item(self) -> dict[str, Number]:
-        """
-        Convert ``ItemSet`` with 1 element to an ``Item``.
-
-        Raises:
-            ValueError: If the number of items is not 1.
-
-        Returns:
-            Item: _description_
-        """
-
-        if (elems := len(self)) != 1:
-            cls_name = type(self).__qualname__
-            raise ValueError(
-                f"An ``{cls_name}`` with {elems} elements cannot call `item()`."
-            )
-
-        return {k: v.item() for k, v in self.to_dict().items()}
 
     def outer(self) -> "Box":
         """
@@ -157,7 +190,6 @@ class Topo(TensorClass, ABC):
         "Implementation of ``outer``."
         ...
 
-    @typing.override
     def draw(self, canvas: Canvas, /) -> None:
         """
         Populate the canvas with ``bokeh``, filter based on viewbox (``self.outer()``).
@@ -179,3 +211,38 @@ class Topo(TensorClass, ABC):
         """
 
         ...
+
+    @property
+    def ndim(self) -> int:
+        return self.data.ndim
+
+    @property
+    def batch_size(self) -> Size:
+        return self.data.batch_size
+
+    def to_dict(self):
+        return self.data.to_dict()
+
+    def item(self):
+        return self.data.item()
+
+    def to(self, device: str) -> Self:
+        self.data = self.data.to(device)
+        return self
+
+    @classmethod
+    def init_tensordict(cls, **items) -> Self:
+        """
+        Construct a ``TensorDict`` from input, and set ``self.data`` to it.
+
+        Returns:
+            An instance of ``Self`` (depends on which class calls this method).
+        """
+
+        return cls(data=TensorDict(items))
+
+
+def _list_of_str(obj: object) -> TypeIs[list[str]]:
+    "Check if ``obj`` is ``list[str]``. Expensive."
+
+    return isinstance(obj, list) and all(isinstance(elem, str) for elem in obj)

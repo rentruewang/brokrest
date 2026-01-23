@@ -5,7 +5,6 @@
 import typing
 from typing import ClassVar, Self
 
-import torch
 from torch import Tensor
 
 from brokrest.plotting import Canvas

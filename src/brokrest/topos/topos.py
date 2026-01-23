@@ -15,11 +15,14 @@ from bokeh.plotting import figure as Figure
 from numpy.typing import NDArray
 from tensordict import TensorDict
 from torch import Size, Tensor
+from torch._tensor import Tensor
 
 from brokrest.plotting import Canvas, Displayable
 
 if typing.TYPE_CHECKING:
     from .rects import Box
+
+__all__ = ["Topo", "TopoShape"]
 
 
 @dcls.dataclass
@@ -108,6 +111,13 @@ class Topo(Displayable, ABC):
         if self.ndim not in [0, 1]:
             raise ValueError(f"Tensors must be 0D or 1D. Got {self.ndim}D.")
 
+        auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
+        if auto_shape != self.batch_size:
+            raise ValueError(
+                f"Discovered batch size: {self.batch_size} "
+                f"should match the broadcasted shape: {auto_shape}."
+            )
+
     def _order_self(self) -> None:
         "Sort according to ``argsort``."
 
@@ -165,6 +175,78 @@ class Topo(Displayable, ABC):
 
         return None
 
+    @property
+    def ndim(self) -> int:
+        return self.data.ndim
+
+    @property
+    def batch_size(self) -> Size:
+        return self.data.batch_size
+
+    def numel(self) -> int:
+        return self.data.numel()
+
+    def to_dict(self):
+        return self.data.to_dict()
+
+    def item(self):
+        return self.data.item()
+
+    def to(self, device: str) -> Self:
+        self.data = self.data.to(device)
+        return self
+
+    @classmethod
+    def init_tensor(cls, **tensors: Tensor) -> Self:
+        """
+        Construct a ``TensorDict`` from input, and set ``self.data`` to it.
+        Broadcasts the input ``Tensor``s to the same shape before constructing
+        the ``TensorDict``, guaranteeing that the generated ``TensorDict``
+        would always discover the biggest common batch size in shared axeses.
+
+        Returns:
+            An instance of ``Self`` (depends on which class calls this method).
+        """
+
+        tensors = broadcast_tensor_dict(tensors)
+        try:
+            return cls(data=TensorDict(tensors))
+        except KeyError as ke:
+            raise TypeError(
+                f"Expected {[*tensors.keys()]=} to contain all keys from {cls.KEYS=}."
+            ) from ke
+
+
+class TopoShape(Topo, ABC):
+    """
+    A topo set representing shapes that have clear boundaries.
+    """
+
+    def draw(self, canvas: Canvas, /) -> None:
+        """
+        Populate the canvas with ``bokeh``, filter based on viewbox (``self.outer()``).
+        """
+
+        selected = self
+
+        # Get the bounding box of ``self``, and get rid of points not in the box.
+        box = self.outer()
+        visible_topos = box.visible(canvas.window)
+        selected = selected[visible_topos]
+
+        selected._draw(canvas.figure)
+
+    @abc.abstractmethod
+    def _draw(self, figure: Figure, /) -> None:
+        """
+        The implementation of ``draw``.
+
+        Args:
+            figure: A ``bokeh`` figure.
+        """
+
+        ...
+
     def outer(self) -> "Box":
         """
         Get the outer boundary of the current topology,
@@ -188,58 +270,18 @@ class Topo(Displayable, ABC):
     @abc.abstractmethod
     def _outer(self) -> "Box":
         "Implementation of ``outer``."
-        ...
-
-    def draw(self, canvas: Canvas, /) -> None:
-        """
-        Populate the canvas with ``bokeh``, filter based on viewbox (``self.outer()``).
-        """
-
-        # Get the bounding box of ``self``.
-        box = self.outer()
-        visible_topos = box.visible(canvas.window)
-        filtered = self[visible_topos]
-        filtered._draw(canvas.figure)
-
-    @abc.abstractmethod
-    def _draw(self, figure: Figure, /) -> None:
-        """
-        The implementation of ``draw``.
-
-        Args:
-            figure: A ``bokeh`` figure.
-        """
 
         ...
 
-    @property
-    def ndim(self) -> int:
-        return self.data.ndim
 
-    @property
-    def batch_size(self) -> Size:
-        return self.data.batch_size
+def broadcast_tensor_dict(items: dict[str, Tensor]) -> dict[str, Tensor]:
+    """
+    Broadcast the tensors in a mapping from string to tensors to the same shape.
+    """
 
-    def to_dict(self):
-        return self.data.to_dict()
-
-    def item(self):
-        return self.data.item()
-
-    def to(self, device: str) -> Self:
-        self.data = self.data.to(device)
-        return self
-
-    @classmethod
-    def init_tensordict(cls, **items) -> Self:
-        """
-        Construct a ``TensorDict`` from input, and set ``self.data`` to it.
-
-        Returns:
-            An instance of ``Self`` (depends on which class calls this method).
-        """
-
-        return cls(data=TensorDict(items))
+    keys = list(items.keys())
+    vals = [items[k] for k in keys]
+    return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
 
 
 def _list_of_str(obj: object) -> TypeIs[list[str]]:

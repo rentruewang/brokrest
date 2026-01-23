@@ -28,7 +28,7 @@ p = plotting.figure(
     background_fill_color="#efefef",
 )
 p.xaxis.major_label_orientation = 0.8  # radians
-candle = LeftCandle.init_tensordict(
+candle = LeftCandle.init_tensor(
     enter=np.array(df.open),
     exit=np.array(df.close),
     low=np.array(df.low),

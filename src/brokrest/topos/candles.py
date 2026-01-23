@@ -14,7 +14,7 @@ from pandas import DataFrame
 from torch import Tensor
 
 from .rects import Box
-from .topos import Topo
+from .topos import TopoShape
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
@@ -56,7 +56,7 @@ class CandleLooks:
 
 
 @dcls.dataclass
-class Candle(Topo, ABC):
+class Candle(TopoShape, ABC):
     """
     A candle on the candle chart
     """
@@ -256,7 +256,7 @@ class BothCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return Box.init_tensordict(
+        return Box.init_tensor(
             x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high
         )
 
@@ -305,7 +305,7 @@ class LeftCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return Box.init_tensordict(
+        return Box.init_tensor(
             x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high
         )
 
@@ -353,5 +353,5 @@ def _try_init_with_type_and_keys(df: DataFrame, typ: type[Candle], *keys: str):
     if not all(k in df.columns for k in keys):
         return None
 
-    dicts = {key: df[key].tolist() for key in keys}
-    return typ.init_tensordict(**dicts)
+    dicts = {key: torch.tensor(df[key].tolist()) for key in keys}
+    return typ.init_tensor(**dicts)

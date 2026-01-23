@@ -43,6 +43,12 @@ show_error_codes = true
 check_untyped_defs = true
 exclude = ["^scripts/.py$"]
 
+# Skipping analysis for some modules because they are not typed.
+[[tool.mypy.overrides]]
+module = [
+    "tensordict.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = ["-v", "--import-mode=importlib"]

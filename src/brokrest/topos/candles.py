@@ -6,12 +6,11 @@ import abc
 import dataclasses as dcls
 import typing
 from abc import ABC
-from typing import Self
+from typing import ClassVar, Self
 
 import torch
 from bokeh.plotting import figure as Figure
 from pandas import DataFrame
-from tensordict import TensorClass
 from torch import Tensor
 
 from .rects import Box
@@ -56,30 +55,13 @@ class CandleLooks:
         )
 
 
+@dcls.dataclass
 class Candle(Topo, ABC):
     """
     A candle on the candle chart
     """
 
-    enter: Tensor
-    """
-    The entering position of this candle.
-    """
-
-    exit: Tensor
-    """
-    The exiting position of this candle.
-    """
-
-    low: Tensor
-    """
-    The minimum value of the candle.
-    """
-
-    high: Tensor
-    """
-    The maximum value of the candle.
-    """
+    KEYS: ClassVar[tuple[str, ...]] = "enter", "exit", "low", "high"
 
     looks: CandleLooks = dcls.field(default_factory=CandleLooks)
     """
@@ -108,6 +90,38 @@ class Candle(Topo, ABC):
                 ]
             )
             raise ValueError(message)
+
+    @property
+    def enter(self) -> Tensor:
+        """
+        The entering position of this candle.
+        """
+
+        return self["enter"]
+
+    @property
+    def exit(self) -> Tensor:
+        """
+        The exiting position of this candle.
+        """
+
+        return self["exit"]
+
+    @property
+    def low(self) -> Tensor:
+        """
+        The minimum value of the candle.
+        """
+
+        return self["low"]
+
+    @property
+    def high(self) -> Tensor:
+        """
+        The maximum value of the candle.
+        """
+
+        return self["high"]
 
     @property
     @abc.abstractmethod
@@ -146,13 +160,6 @@ class Candle(Topo, ABC):
     def dec(self) -> Tensor:
         "Is decreasing."
         return (self.exit - self.enter) < 0
-
-    @typing.override
-    def tensors(self):
-        yield self.enter
-        yield self.exit
-        yield self.low
-        yield self.high
 
     @typing.override
     def _draw(self, figure: Figure):
@@ -197,23 +204,12 @@ class Candle(Topo, ABC):
         """
 
 
-class _BothMixin(TensorClass):
-
-    start: Tensor
-    """
-    The starting time of the candle.
-    """
-
-    end: Tensor
-    """
-    The ending time of the candle.
-    """
-
-
-class BothCandle(Candle, _BothMixin):
+class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
     """
+
+    KEYS: ClassVar[tuple[str, ...]] = *Candle.KEYS, "start", "end"
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -224,9 +220,17 @@ class BothCandle(Candle, _BothMixin):
             )
 
     def continuous(self) -> bool:
-        nexts: Self = self[1:]
-        prevs: Self = self[:-1]
+        nexts = self[1:]
+        prevs = self[:-1]
         return torch.allclose(nexts.start, prevs.end)
+
+    @property
+    def start(self):
+        return self["start"]
+
+    @property
+    def end(self):
+        return self["end"]
 
     @property
     @typing.override
@@ -251,31 +255,26 @@ class BothCandle(Candle, _BothMixin):
         return self.center + self.max_width
 
     @typing.override
-    def tensors(self):
-        yield from super().tensors()
-        yield self.start
-        yield self.end
-
-    @typing.override
     def _outer(self):
-        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return Box.init_tensordict(
+            x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high
+        )
 
     @typing.override
     def ordering(self) -> Tensor:
         return self.start
 
 
-class _LeftMixin(TensorClass):
-    start: Tensor
-    """
-    The starting time of the candle.
-    """
-
-
-class LeftCandle(Candle, _LeftMixin):
+class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).
     """
+
+    KEYS: ClassVar[tuple[str, ...]] = *Candle.KEYS, "start"
+
+    @property
+    def start(self):
+        return self["start"]
 
     @property
     @typing.override
@@ -305,13 +304,10 @@ class LeftCandle(Candle, _LeftMixin):
         return self.start + self.max_width
 
     @typing.override
-    def tensors(self):
-        yield from super().tensors()
-        yield self.left
-
-    @typing.override
     def _outer(self):
-        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return Box.init_tensordict(
+            x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high
+        )
 
     @typing.override
     def ordering(self) -> Tensor:
@@ -334,18 +330,18 @@ def dataframe_factory(df: DataFrame, /) -> Candle:
         A ``Candle`` instance, type dependent on the input keys.
     """
 
-    if None is not (
+    if (
         inst := _try_init_with_type_and_keys(
             df, BothCandle, "start", "end", "enter", "exit", "low", "high"
         )
-    ):
+    ) is not None:
         return inst
 
-    if None is not (
+    if (
         inst := _try_init_with_type_and_keys(
             df, LeftCandle, "start", "enter", "exit", "low", "high"
         )
-    ):
+    ) is not None:
         return inst
 
     raise NotImplementedError(
@@ -358,4 +354,4 @@ def _try_init_with_type_and_keys(df: DataFrame, typ: type[Candle], *keys: str):
         return None
 
     dicts = {key: df[key].tolist() for key in keys}
-    return typ(**dicts)
+    return typ.init_tensordict(**dicts)

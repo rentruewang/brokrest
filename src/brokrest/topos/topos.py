@@ -22,7 +22,7 @@ from brokrest.plotting import Canvas, Displayable
 if typing.TYPE_CHECKING:
     from .rects import Box
 
-__all__ = ["Topo", "TopoShape"]
+__all__ = ["Topo", "Shape"]
 
 
 @dcls.dataclass
@@ -217,7 +217,7 @@ class Topo(Displayable, ABC):
             ) from ke
 
 
-class TopoShape(Topo, ABC):
+class Shape(Topo, ABC):
     """
     A topo set representing shapes that have clear boundaries.
     """

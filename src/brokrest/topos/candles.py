@@ -14,7 +14,7 @@ from pandas import DataFrame
 from torch import Tensor
 
 from .rects import Box
-from .topos import TopoShape
+from .topos import Shape
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
@@ -56,7 +56,7 @@ class CandleLooks:
 
 
 @dcls.dataclass
-class Candle(TopoShape, ABC):
+class Candle(Shape, ABC):
     """
     A candle on the candle chart
     """

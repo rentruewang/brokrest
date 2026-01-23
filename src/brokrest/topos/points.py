@@ -8,12 +8,14 @@ from typing import ClassVar
 from bokeh.plotting import figure as Figure
 
 from .rects import Box
-from .topos import TopoShape
+from .topos import Shape
 
 __all__ = ["Point"]
 
 
-class Point(TopoShape):
+class Point(Shape):
+    "A collection of points."
+
     KEYS: ClassVar[tuple[str, ...]] = "x", "y"
 
     @property

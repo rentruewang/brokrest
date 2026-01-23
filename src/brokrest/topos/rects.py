@@ -12,12 +12,12 @@ from torch._tensor import Tensor
 
 from brokrest.plotting import Window
 
-from .topos import TopoShape
+from .topos import Shape
 
 __all__ = ["Rect", "Box", "Segment"]
 
 
-class Rect(TopoShape, ABC):
+class Rect(Shape, ABC):
     """
     A tuple with 4 values.
 

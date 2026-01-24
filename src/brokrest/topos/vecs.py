@@ -3,19 +3,18 @@
 "A set of points."
 
 import typing
+from abc import ABC
 from typing import ClassVar
 
 from bokeh.plotting import figure as Figure
 
 from .rects import Box
-from .topos import Shape
+from .topos import Shape, Topo
 
-__all__ = ["Point"]
+__all__ = ["Vector", "Point"]
 
 
-class Point(Shape):
-    "A collection of points."
-
+class Vector(Topo, ABC):
     KEYS: ClassVar[tuple[str, ...]] = "x", "y"
 
     @property
@@ -25,6 +24,10 @@ class Point(Shape):
     @property
     def y(self):
         return self["y"]
+
+
+class Point(Vector, Shape):
+    "A collection of points."
 
     @typing.override
     def _outer(self) -> Box:

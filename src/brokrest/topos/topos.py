@@ -26,7 +26,7 @@ __all__ = ["Topo", "Shape"]
 
 
 @dcls.dataclass
-class Topo(Displayable, ABC):
+class Topo(ABC):
     """
     A set of topologies.
     """
@@ -217,11 +217,12 @@ class Topo(Displayable, ABC):
             ) from ke
 
 
-class Shape(Topo, ABC):
+class Shape(Displayable, Topo, ABC):
     """
     A topo set representing shapes that have clear boundaries.
     """
 
+    @typing.override
     def draw(self, canvas: Canvas, /) -> None:
         """
         Populate the canvas with ``bokeh``, filter based on viewbox (``self.outer()``).

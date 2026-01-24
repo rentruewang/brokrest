@@ -7,15 +7,15 @@ from typing import ClassVar, Self
 
 from torch import Tensor
 
-from brokrest.plotting import Canvas
+from brokrest.plotting import Canvas, Displayable
 
-from .points import Point
 from .topos import Topo
+from .vecs import Point
 
 __all__ = ["Line"]
 
 
-class Line(Topo):
+class Line(Displayable, Topo):
     """
     A set of lines. Represented as `y = mx + b` (slope intercept form).
     """

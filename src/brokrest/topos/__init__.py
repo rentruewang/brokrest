@@ -2,6 +2,6 @@
 
 from .candles import *
 from .lines import *
-from .points import *
 from .rects import *
 from .topos import *
+from .vecs import *

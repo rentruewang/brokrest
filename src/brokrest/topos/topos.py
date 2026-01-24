@@ -197,7 +197,7 @@ class Topo(Displayable, ABC):
         return self
 
     @classmethod
-    def init_tensor(cls, **tensors: Tensor) -> Self:
+    def init(cls, **tensors: Tensor) -> Self:
         """
         Construct a ``TensorDict`` from input, and set ``self.data`` to it.
         Broadcasts the input ``Tensor``s to the same shape before constructing

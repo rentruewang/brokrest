@@ -28,7 +28,7 @@ class Point(Shape):
 
     @typing.override
     def _outer(self) -> Box:
-        return Box.init_tensor(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
+        return Box.init(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
 
     @typing.override
     def _draw(self, figure: Figure, /) -> None:

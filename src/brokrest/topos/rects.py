@@ -221,9 +221,7 @@ class Segment(Rect):
 
     @typing.override
     def _outer(self):
-        return Box.init_tensor(
-            x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top
-        )
+        return Box.init(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
     def _draw(self, figure: Figure):

@@ -22,7 +22,7 @@ def _solve_cases():
             a=torch.tensor(5),
             b=torch.tensor(4),
         ),
-        point=Point.init_tensor(
+        point=Point.init(
             x=torch.tensor([5, 0]),
             y=torch.tensor([0, 4]),
         ),
@@ -34,7 +34,7 @@ def _solve_cases():
             m=torch.tensor(9),
             b=torch.tensor(3),
         ),
-        point=Point.init_tensor(
+        point=Point.init(
             x=torch.tensor([0, 1]),
             y=torch.tensor([3, 12]),
         ),

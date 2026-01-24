@@ -22,26 +22,11 @@ class Ruler(Protocol):
                 Would be switched to ``Candle`` once ready.
 
         Returns:
-            The output topology.
+            The output topology. Since ``Topo`` can be batched,
+            the output can represent multiple homogenius topologies.
         """
 
         ...
-
-
-RULERS: dict[str, Ruler] = {}
-
-
-def register_ruler(name: str):
-    "Register a ruler into a global dictionary, s.t. it can be called by name."
-
-    def register[R: Ruler](ruler: R) -> R:
-        if name in RULERS:
-            raise KeyError(f"Ruler with {name=} already exists.")
-
-        RULERS[name] = ruler
-        return ruler
-
-    return register
 
 
 class PencilCase(Protocol):
@@ -59,5 +44,5 @@ class PencilCase(Protocol):
 
 
         Returns:
-            The output topologies.
+            The output is a set of (maybe) heterogenius topologies.
         """

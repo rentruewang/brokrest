@@ -10,6 +10,7 @@ from collections.abc import Iterable, Iterator
 from typing import ClassVar, Self, TypeIs
 
 import numpy as np
+import tensordict
 import torch
 from bokeh.plotting import figure as Figure
 from numpy.typing import NDArray
@@ -22,11 +23,11 @@ from brokrest.plotting import Canvas, Displayable
 if typing.TYPE_CHECKING:
     from .rects import Box
 
-__all__ = ["Topo", "TopoShape"]
+__all__ = ["Topo", "Shape"]
 
 
 @dcls.dataclass
-class Topo(Displayable, ABC):
+class Topo(ABC):
     """
     A set of topologies.
     """
@@ -63,22 +64,32 @@ class Topo(Displayable, ABC):
     def __getitem__(self, idx: list[str]) -> TensorDict: ...
 
     @typing.overload
-    def __getitem__(self, idx: int | slice | list[int] | NDArray | Tensor) -> Self: ...
+    def __getitem__(
+        self, idx: int | slice | list[int] | tuple | NDArray | Tensor
+    ) -> Self: ...
 
     @typing.final
     def __getitem__(self, idx):
+        """
+        The getitem operator.
+
+        If the input is a str, it is a column.
+        If the input is list[str], it is treated as a set of columns.
+        Otherwise, they are treated as rows (int, slice, list[int], NDArray, Tensor).
+        """
+
         if isinstance(idx, str):
             return self._getitem_str(idx)
 
         if _list_of_str(idx):
             return self._getitem_list_str(idx)
 
-        if isinstance(idx, int | slice | Tensor):
-            return self._getitem_rows(idx)
+        if isinstance(idx, int | slice | tuple | Tensor):
+            return self._getitem_direct(idx)
 
         # Numpy compatible types (more expensive to construct).
         if np.isdtype((arr := np.array(idx)).dtype, "integral"):
-            return self._getitem_rows(arr)
+            return self._getitem_direct(arr)
 
         raise ValueError(f"{type(idx)=} is not supported!")
 
@@ -88,7 +99,7 @@ class Topo(Displayable, ABC):
     def _getitem_list_str(self, idx: list[str]) -> TensorDict:
         return self.data.select(*idx)
 
-    def _getitem_rows(self, idx: int | slice | list[int] | NDArray | Tensor) -> Self:
+    def _getitem_direct(self, idx) -> Self:
         return type(self)(self.data[idx])
 
     def _validate_keys(self) -> None:
@@ -106,10 +117,6 @@ class Topo(Displayable, ABC):
 
         # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
         self.data.auto_batch_size_()
-
-        # Must be 0D or 1D tensors.
-        if self.ndim not in [0, 1]:
-            raise ValueError(f"Tensors must be 0D or 1D. Got {self.ndim}D.")
 
         auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
         if auto_shape != self.batch_size:
@@ -175,6 +182,11 @@ class Topo(Displayable, ABC):
 
         return None
 
+    def flatten(self) -> Self:
+        "Flatten the batch dimensions."
+
+        return type(self)(data=self.data.flatten())
+
     @property
     def ndim(self) -> int:
         return self.data.ndim
@@ -197,7 +209,11 @@ class Topo(Displayable, ABC):
         return self
 
     @classmethod
-    def init_tensor(cls, **tensors: Tensor) -> Self:
+    def stack(cls, *topos: Self) -> Self:
+        return cls(data=tensordict.stack(list(topos)))
+
+    @classmethod
+    def init(cls, **tensors: Tensor) -> Self:
         """
         Construct a ``TensorDict`` from input, and set ``self.data`` to it.
         Broadcasts the input ``Tensor``s to the same shape before constructing
@@ -217,11 +233,12 @@ class Topo(Displayable, ABC):
             ) from ke
 
 
-class TopoShape(Topo, ABC):
+class Shape(Displayable, Topo, ABC):
     """
     A topo set representing shapes that have clear boundaries.
     """
 
+    @typing.override
     def draw(self, canvas: Canvas, /) -> None:
         """
         Populate the canvas with ``bokeh``, filter based on viewbox (``self.outer()``).

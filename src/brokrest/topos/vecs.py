@@ -2,9 +2,12 @@
 
 "A set of points."
 
+import operator
 import typing
 from abc import ABC
-from typing import ClassVar
+from collections.abc import Callable
+from numbers import Number
+from typing import ClassVar, Self, TypeAlias
 
 import torch
 from bokeh.plotting import figure as Figure
@@ -18,6 +21,44 @@ __all__ = ["Vector", "Point"]
 
 class Vector(Topo, ABC):
     KEYS: ClassVar[tuple[str, ...]] = "x", "y"
+
+    ElemWiseRhs: TypeAlias = "Number | Vector"
+
+    def __add__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(self, other, operator.add)
+
+    def __radd__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(other, self, operator.add)
+
+    def __sub__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(self, other, operator.sub)
+
+    def __rsub__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(other, self, operator.sub)
+
+    def __mul__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(self, other, operator.mul)
+
+    def __rmul__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(other, self, operator.mul)
+
+    def __truediv__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(self, other, operator.truediv)
+
+    def __rtruediv__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(other, self, operator.truediv)
+
+    def __floordiv__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(self, other, operator.floordiv)
+
+    def __rfloordiv__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(other, self, operator.floordiv)
+
+    def __pow__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(self, other, operator.pow)
+
+    def __rpow__(self, other: ElemWiseRhs) -> Self:
+        return _element_wise(other, self, operator.pow)
 
     def __matmul__(self, other: "Vector") -> Tensor:
         """
@@ -48,6 +89,27 @@ class Vector(Topo, ABC):
     @property
     def length(self) -> Tensor:
         return (self.x**2 + self.y**2) ** 0.5
+
+
+def _element_wise(lhs, rhs, op: Callable[..., Tensor]):
+    match lhs, rhs:
+        # Even though both are ``Vector``,
+        # this would be called as a method on ``lhs``,
+        # so the return type is based on ``lhs``.
+        case Vector(), Vector():
+            return type(lhs).init(x=op(lhs.x, rhs.x), y=op(lhs.y, rhs.y))
+
+        # For ``__op__``.
+        case Vector(), Number():
+            return type(lhs).init(x=op(lhs.x, rhs), y=op(lhs.y, rhs))
+
+        # For ``__rop__``.
+        case Number(), Vector():
+            return type(rhs).init(x=op(lhs, rhs.x), y=op(lhs, rhs.y))
+
+        # This will never happen (if called as metohd), so it shall raise and error.
+        case _, _:
+            raise TypeError(f"Unrecognized types {type(lhs)=}, {type(rhs)=}.")
 
 
 class Point(Vector, Shape):

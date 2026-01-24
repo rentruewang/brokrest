@@ -67,6 +67,14 @@ class Topo(ABC):
 
     @typing.final
     def __getitem__(self, idx):
+        """
+        The getitem operator.
+
+        If the input is a str, it is a column.
+        If the input is list[str], it is treated as a set of columns.
+        Otherwise, they are treated as rows (int, slice, list[int], NDArray, Tensor).
+        """
+
         if isinstance(idx, str):
             return self._getitem_str(idx)
 

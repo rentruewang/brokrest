@@ -3,6 +3,7 @@
 "A set of rulers reliant on linear regressions."
 
 import dataclasses as dcls
+import math
 import typing
 from typing import NamedTuple
 
@@ -38,19 +39,41 @@ class LineReg(Ruler):
         return Line.init(m=m, b=b)
 
 
-def linear_regression(points: Point, pin: int) -> Line:
-    point = points[pin]
-    points = points - point
+def pinned_linear_regression(points: Point, *pin: int) -> Line:
+    """
+    Linear regression on points, with some pins applied.
+    Each pin would trigger a new linear regression (in parallel).
+    """
+
+    pin_idx = list(pin)
+    point = points[pin_idx]
+    points = points[..., None] - point[None, ...]
     linreg = LineReg(bias=False)
     line = linreg(points)
-    return shift_line(line, point)
+    return shift_line_on(line, point)
 
 
-def shift_line(line: Line, point: Point) -> Line:
-    shifts = point.y - line.apply(point.x)
+def shift_line_on(line: Line, point: Point) -> Line:
+    "Shift the line to fit a point. The output would have a new dimension matching points."
+
+    shifts = (point.y - line.apply(point.x)).flatten()
     m = line.m[..., None]
     b = line.b[..., None] + shifts
     return Line.init(m=m, b=b)
+
+
+def shift_line_percentage(line: Line, point: Point, ratio: float) -> Line:
+    values = line.subs(point)
+    ordered = values.argsort()
+    num_items = math.floor(ratio * len(line))
+    selected = point[ordered[num_items]]
+    return shift_line_on(line, selected)
+
+
+def boundary_rotate_linereg(points: Point, /) -> Line:
+    line = boundary_linereg(points)
+    argmin, argmax = arg_minmax_for_line(line, points)
+    return pinned_linear_regression(points, argmin, argmax)
 
 
 def boundary_linereg(points: Point, /) -> Line:
@@ -58,12 +81,17 @@ def boundary_linereg(points: Point, /) -> Line:
     Do linear regression, then shift to top and bottom boundaries.
     """
 
-    linreg = LineReg(bias=True)(points)
-    value = linreg.subs(points)
+    regression_line = LineReg(bias=True)(points)
+    argmin, argmax = arg_minmax_for_line(regression_line, points)
+    minmax = points[[argmin, argmax]]
+    return shift_line_on(regression_line, minmax).flatten()
+
+
+def arg_minmax_for_line(line: Line, points: Point) -> tuple[int, int]:
+    value = line.subs(points)
     maximum = int(torch.argmax(value).item())
     minimum = int(torch.argmin(value).item())
-    selected = points[[maximum, minimum]]
-    return shift_line(linreg, selected).flatten()
+    return minimum, maximum
 
 
 def _bias_expand(x: Tensor) -> Tensor:

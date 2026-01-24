@@ -38,6 +38,34 @@ class LineReg(Ruler):
         return Line.init(m=m, b=b)
 
 
+def linear_regression(points: Point, pin: int) -> Line:
+    point = points[pin]
+    points = points - point
+    linreg = LineReg(bias=False)
+    line = linreg(points)
+    return shift_line(line, point)
+
+
+def shift_line(line: Line, point: Point) -> Line:
+    shifts = point.y - line.apply(point.x)
+    m = line.m[..., None]
+    b = line.b[..., None] + shifts
+    return Line.init(m=m, b=b)
+
+
+def boundary_linereg(points: Point, /) -> Line:
+    """
+    Do linear regression, then shift to top and bottom boundaries.
+    """
+
+    linreg = LineReg(bias=True)(points)
+    value = linreg.subs(points)
+    maximum = int(torch.argmax(value).item())
+    minimum = int(torch.argmin(value).item())
+    selected = points[[maximum, minimum]]
+    return shift_line(linreg, selected).flatten()
+
+
 def _bias_expand(x: Tensor) -> Tensor:
     ones = torch.ones_like(x)
     return torch.stack([x, ones], dim=-1)

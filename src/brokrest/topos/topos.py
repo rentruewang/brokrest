@@ -10,6 +10,7 @@ from collections.abc import Iterable, Iterator
 from typing import ClassVar, Self, TypeIs
 
 import numpy as np
+import tensordict
 import torch
 from bokeh.plotting import figure as Figure
 from numpy.typing import NDArray
@@ -63,7 +64,9 @@ class Topo(ABC):
     def __getitem__(self, idx: list[str]) -> TensorDict: ...
 
     @typing.overload
-    def __getitem__(self, idx: int | slice | list[int] | NDArray | Tensor) -> Self: ...
+    def __getitem__(
+        self, idx: int | slice | list[int] | tuple | NDArray | Tensor
+    ) -> Self: ...
 
     @typing.final
     def __getitem__(self, idx):
@@ -81,12 +84,12 @@ class Topo(ABC):
         if _list_of_str(idx):
             return self._getitem_list_str(idx)
 
-        if isinstance(idx, int | slice | Tensor):
-            return self._getitem_rows(idx)
+        if isinstance(idx, int | slice | tuple | Tensor):
+            return self._getitem_direct(idx)
 
         # Numpy compatible types (more expensive to construct).
         if np.isdtype((arr := np.array(idx)).dtype, "integral"):
-            return self._getitem_rows(arr)
+            return self._getitem_direct(arr)
 
         raise ValueError(f"{type(idx)=} is not supported!")
 
@@ -96,7 +99,7 @@ class Topo(ABC):
     def _getitem_list_str(self, idx: list[str]) -> TensorDict:
         return self.data.select(*idx)
 
-    def _getitem_rows(self, idx: int | slice | list[int] | NDArray | Tensor) -> Self:
+    def _getitem_direct(self, idx) -> Self:
         return type(self)(self.data[idx])
 
     def _validate_keys(self) -> None:
@@ -114,10 +117,6 @@ class Topo(ABC):
 
         # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
         self.data.auto_batch_size_()
-
-        # Must be 0D or 1D tensors.
-        if self.ndim not in [0, 1]:
-            raise ValueError(f"Tensors must be 0D or 1D. Got {self.ndim}D.")
 
         auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
         if auto_shape != self.batch_size:
@@ -183,6 +182,11 @@ class Topo(ABC):
 
         return None
 
+    def flatten(self) -> Self:
+        "Flatten the batch dimensions."
+
+        return type(self)(data=self.data.flatten())
+
     @property
     def ndim(self) -> int:
         return self.data.ndim
@@ -203,6 +207,10 @@ class Topo(ABC):
     def to(self, device: str) -> Self:
         self.data = self.data.to(device)
         return self
+
+    @classmethod
+    def stack(cls, *topos: Self) -> Self:
+        return cls(data=tensordict.stack(list(topos)))
 
     @classmethod
     def init(cls, **tensors: Tensor) -> Self:

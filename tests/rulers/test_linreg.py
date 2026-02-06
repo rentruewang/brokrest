@@ -3,12 +3,10 @@
 "Test cases for linear regressions."
 
 import pytest
-import torch
 from pytest import FixtureRequest
 
 from brokrest.rulers import LineReg
-from brokrest.rulers.linear import LineReg
-from brokrest.topos import Point
+from brokrest.topos import Candle, Point
 
 
 @pytest.fixture

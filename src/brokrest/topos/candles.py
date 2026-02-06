@@ -18,8 +18,14 @@ from brokrest import tds
 
 from .rects import Box
 from .topos import Shape
+from .vecs import Point
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
+
+
+LOGGER = logging.getLogger(__name__)
+
+type CandleToPoint = Literal["low-high", "enter-exit"]
 
 
 @dcls.dataclass
@@ -186,6 +192,22 @@ class Candle(Shape, ABC):
         """
 
         return CandleLooks()
+
+    def points(self, kind: CandleToPoint = "enter-exit") -> Point:
+        x = torch.cat([self.center] * 2)
+
+        match kind:
+            case "low-high":
+                y_0 = self.low
+                y_1 = self.high
+            case "enter-exit":
+                y_0 = self.enter
+                y_1 = self.exit
+            case _:
+                raise ValueError(f"{kind=} is not recognized.")
+
+        y = torch.cat([y_0, y_1])
+        return Point.init(x=x, y=y)
 
 
 @tds.tensorclass

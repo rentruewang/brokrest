@@ -3,7 +3,7 @@
 import abc
 from typing import Protocol
 
-from brokrest.topos import Point, Topo,Line
+from brokrest.topos import Line, Point, Topo
 
 __all__ = ["Ruler", "PencilCase"]
 

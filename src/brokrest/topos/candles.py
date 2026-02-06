@@ -194,6 +194,10 @@ class Candle(Shape, ABC):
         return CandleLooks()
 
     def points(self, kind: CandleToPoint = "enter-exit") -> Point:
+        """
+        Convert candle to points, s.t. algorithms like clustering can work.
+        """
+
         x = torch.cat([self.center] * 2)
 
         match kind:

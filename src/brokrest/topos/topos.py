@@ -35,6 +35,12 @@ class Topo(TensorClass, ABC):
     def _ensure_shapes(self) -> None:
         # Check if shapes are valid.
 
+        # Force batch size to be at least 1 dim.
+        if self.data.ndim == 0:
+            self.data = self.data.unsqueeze(0)
+
+        assert self.ndim
+
         auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
         if auto_shape != self.batch_size:
             raise ValueError(

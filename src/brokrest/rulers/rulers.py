@@ -3,7 +3,7 @@
 import abc
 from typing import Protocol
 
-from brokrest.topos import Point, Topo
+from brokrest.topos import Line, Point, Topo
 
 __all__ = ["Ruler", "PencilCase"]
 
@@ -12,7 +12,7 @@ class Ruler(Protocol):
     "A ruler is a protocol that generates from a set of points, a ``Topo``."
 
     @abc.abstractmethod
-    def __call__(self, chart: Point, /) -> Topo:
+    def __call__(self, chart: Point, /) -> Line:
         """
         Generate
 

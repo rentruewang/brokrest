@@ -183,7 +183,7 @@ class Segment(Rect):
 
     @typing.override
     def ordering(self) -> Tensor:
-        return torch.argsort(self.x_0)
+        return self.x_0
 
     @property
     def start(self) -> Tensor:

@@ -3,17 +3,20 @@
 "Test cases for linear regressions."
 
 import pytest
-import torch
 from pytest import FixtureRequest
 
 from brokrest.rulers import LineReg
-from brokrest.rulers.linear import LineReg
-from brokrest.topos import Point
+from brokrest.topos import Candle, Point
 
 
-@pytest.fixture
-def points() -> Point:
-    return Point.init(x=torch.randn(100), y=torch.randn(100))
+def _strategy():
+    yield "enter-exit"
+    yield "low-high"
+
+
+@pytest.fixture(params=_strategy())
+def points(candle: Candle, request: FixtureRequest) -> Point:
+    return candle.points(request.param)
 
 
 @pytest.fixture(params=[False, True])

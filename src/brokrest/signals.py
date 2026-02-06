@@ -81,28 +81,19 @@ class BollingerBand(Signal):
         Compute Bollinger Bands in PyTorch.
         """
 
-        # For conv1d.
-        prices = prices.view(1, 1, -1)
+        kernel = torch.ones(self.window) / self.window
 
-        # 1. Compute rolling mean using conv1d
-        kernel = torch.ones(1, 1, self.window) / self.window
-        middle_band = F.conv1d(prices, kernel, stride=1)
+        # Rolling mean.
+        middle_band = convolve(prices, kernel)
 
-        # 2. Compute rolling standard deviation
-        # Rolling variance: E[x^2] - (E[x])^2
+        # Variance: E[x^2] - (E[x])^2
         prices_sq = prices**2
-        mean_sq = F.conv1d(prices_sq, kernel, stride=1)
+        mean_sq = convolve(prices_sq, kernel)
         variance = mean_sq - middle_band**2
         std = torch.sqrt(variance.clamp(min=1e-8))
 
-        # 3. Upper and lower bands
         upper_band = middle_band + self.num_std * std
         lower_band = middle_band - self.num_std * std
-
-        # Remove batch/channel dims
-        middle_band = middle_band.view(-1)
-        upper_band = upper_band.view(-1)
-        lower_band = lower_band.view(-1)
 
         return torch.stack([middle_band, upper_band, lower_band], dim=-1)
 

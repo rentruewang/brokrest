@@ -118,6 +118,12 @@ class Topo(ABC):
         # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
         self.data.auto_batch_size_()
 
+        # Force batch size to be at least 1 dim.
+        if self.data.ndim == 0:
+            self.data = self.data.unsqueeze(0)
+
+        assert self.ndim
+
         auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
         if auto_shape != self.batch_size:
             raise ValueError(

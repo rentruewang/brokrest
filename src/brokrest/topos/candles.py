@@ -203,6 +203,8 @@ class Candle(Shape, ABC):
         As the candles are organized by time, ordering must be present.
         """
 
+        ...
+
 
 class BothCandle(Candle):
     """

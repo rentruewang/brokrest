@@ -5,7 +5,7 @@
 groups = ["default", "build", "checks", "data", "dev", "tests"]
 strategy = []
 lock_version = "4.5.0"
-content_hash = "sha256:a3d43487930879f45882f38be22834a013d479ddc8b86092451ffe5d172c2290"
+content_hash = "sha256:d771ade646c4b707c95ce736011508d193f04785483ef41e533882a7f5405daa"
 
 [[metadata.targets]]
 requires_python = "~=3.12"
@@ -834,18 +834,6 @@ summary = ""
 files = [
     {file = "filelock-3.20.1-py3-none-any.whl", hash = "sha256:15d9e9a67306188a44baa72f569d2bfd803076269365fdea0934385da4dc361a"},
     {file = "filelock-3.20.1.tar.gz", hash = "sha256:b8360948b351b80f420878d8516519a2204b07aefcdcfd24912a5d33127f188c"},
-]
-
-[[package]]
-name = "fire"
-version = "0.7.1"
-summary = ""
-dependencies = [
-    "termcolor",
-]
-files = [
-    {file = "fire-0.7.1-py3-none-any.whl", hash = "sha256:e43fd8a5033a9001e7e2973bab96070694b9f12f2e0ecf96d4683971b5ab1882"},
-    {file = "fire-0.7.1.tar.gz", hash = "sha256:3b208f05c736de98fb343310d090dcc4d8c78b2a89ea4f32b837c586270a9cbf"},
 ]
 
 [[package]]
@@ -3201,15 +3189,6 @@ files = [
     {file = "tensordict-0.10.0-cp313-cp313t-manylinux_2_28_aarch64.whl", hash = "sha256:3aeb85359ae11142f9c29cb55d4e46e516381d772271aeff001e3c310715d5fa"},
     {file = "tensordict-0.10.0-cp313-cp313t-manylinux_2_28_x86_64.whl", hash = "sha256:194adb6cac77e8e4f32b4b10b6a373d3389133e58b6eef184c598908d7cadc93"},
     {file = "tensordict-0.10.0-cp313-cp313t-win_amd64.whl", hash = "sha256:7e5ba5d9eb21d76f1fc8fd5b06453cc497b2283f2317cbb2cb1bd848a92f2e2a"},
-]
-
-[[package]]
-name = "termcolor"
-version = "3.2.0"
-summary = ""
-files = [
-    {file = "termcolor-3.2.0-py3-none-any.whl", hash = "sha256:a10343879eba4da819353c55cb8049b0933890c2ebf9ad5d3ecd2bb32ea96ea6"},
-    {file = "termcolor-3.2.0.tar.gz", hash = "sha256:610e6456feec42c4bcd28934a8c87a06c3fa28b01561d46aa09a9881b8622c58"},
 ]
 
 [[package]]

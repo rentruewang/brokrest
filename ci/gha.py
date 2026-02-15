@@ -47,18 +47,3 @@ def setup() -> None:
 
     remove_unwanted_files()
     log_storage_usage()
-    install_ta_lib()
-
-
-@functools.cache
-def install_ta_lib() -> None:
-    if not in_github_actions():
-        return
-
-    temp_dir = Path(tempfile.gettempdir()) / "ta-lib"
-    sh.cmd("sudo apt-get install python3-dev")
-
-    sh.cmd(f"git clone https://github.com/TA-Lib/ta-lib {temp_dir}")
-    with sh.chdir(temp_dir):
-        sh.cmd("sudo ./install")
-    sh.cmd("rm -rf ta-lib")

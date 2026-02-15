@@ -12,6 +12,11 @@ __all__ = ["Signal", "Rsi", "Ema", "Macd", "BollingerBand"]
 
 
 class Signal(Protocol):
+    """
+    ``Signal`` is a callable that converts the raw datapoint into some signals.
+    It must have the same number of datapoints, matching the original input.
+    """
+
     def __call__(self, data: Tensor, /) -> Tensor: ...
 
 
@@ -42,7 +47,7 @@ class Ema(Signal):
 
     def __post_init__(self):
         if not 0 <= self.decay <= 1:
-            raise ValueError(f"{self.decay=} should be a positive number.")
+            raise ValueError(f"{self.decay=} should be a number between 0 and 1.")
 
     @typing.override
     def __call__(self, data: Tensor, /) -> Tensor:
@@ -63,7 +68,7 @@ class Macd(Signal):
 
     @typing.override
     def __call__(self, data: Tensor, /) -> Tensor:
-        return Ema(self.fast)(data) - Ema(self.slow)(data)
+        return Ema(1 / self.fast)(data) - Ema(1 / self.slow)(data)
 
 
 @dcls.dataclass(frozen=True)

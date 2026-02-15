@@ -2,8 +2,7 @@
 
 import functools
 import os
-import tempfile
-from pathlib import Path
+import shutil
 
 import sh
 
@@ -13,10 +12,14 @@ def remove_unwanted_files() -> None:
 
     print("Removing files we did not ask for...")
 
-    sh.cmd("sudo rm -rf /usr/local/lib/android")
-    sh.cmd("sudo rm -rf /usr/share/dotnet")
-    sh.cmd("sudo rm -rf /opt/ghc")
-    sh.cmd("sudo rm -rf /usr/local/.ghcup")
+    for path in [
+        "/usr/local/lib/android",
+        "/usr/share/dotnet",
+        "/opt/ghc",
+        "/usr/local/.ghcup",
+    ]:
+        shutil.rmtree(path, ignore_errors=True)
+
     sh.cmd("docker system prune -af --volumes")
 
 

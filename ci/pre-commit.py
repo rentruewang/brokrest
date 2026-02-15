@@ -34,7 +34,7 @@ if __name__ == "__main__":
     command = parse_args()
 
     gha.setup()
-    pdm.sync()
+    pdm.install()
 
     failed: list[str] = []
 

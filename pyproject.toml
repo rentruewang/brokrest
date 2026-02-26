@@ -1,10 +1,10 @@
 [project]
 name = "brokrest"
 description = "Brokers can rest now."
-requires-python = ">=3.12,<4"
+requires-python = ">=3.13,<3.14"
 readme = "README.md"
 dynamic = ["version"]
-dependencies = ["numpy>=1.26.4", "pandas>=2.2.3", "scipy>=1.15.3", "torch>=2.7.1", "sympy>=1.14.0", "lark>=1.2.2", "scikit-learn>=1.6.1", "shapely>=2.1.1", "tensordict>=0.10.0", "bokeh>=3.8.2"]
+dependencies = ["numpy>=1.26.4", "pandas>=2.2.3", "torch>=2.7.1", "shapely>=2.1.1", "tensordict>=0.10.0", "bokeh>=3.8.2"]
 
 [[project.authors]]
 name = "RenChu Wang"
@@ -15,8 +15,8 @@ text = "AGPL"
 
 [project.optional-dependencies]
 data = [
-    "yfinance>=1.0",
     "bokeh-sampledata>=2025.0",
+    "yahooquery>=2.4.1",
 ]
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-scm"]

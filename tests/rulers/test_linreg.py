@@ -13,7 +13,7 @@ from brokrest.topos import Point
 
 @pytest.fixture
 def points() -> Point:
-    return Point.init(x=torch.randn(100), y=torch.randn(100))
+    return Point(x=torch.randn(100), y=torch.randn(100))
 
 
 @pytest.fixture(params=[False, True])

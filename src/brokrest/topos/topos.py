@@ -63,7 +63,9 @@ class Topo(TensorClass, ABC):
             )
 
         ordered_index = torch.argsort(ordering)
-        self.data = self.data[ordered_index]
+
+        for key in self.keys():
+            setattr(self, key, getattr(self, key)[ordered_index])
 
     def sort_key(self) -> Tensor | None:
         """

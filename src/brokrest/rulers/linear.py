@@ -36,7 +36,7 @@ class LineReg(Ruler):
         x = expand(points.x)
         sol: Tensor = linalg.lstsq(x, points.y).solution
         m, b = parse(sol)
-        return Line.init(m=m, b=b)
+        return Line(m=m, b=b)
 
 
 def pinned_linear_regression(points: Point, *pin: int) -> Line:
@@ -59,7 +59,7 @@ def shift_line_on(line: Line, point: Point) -> Line:
     shifts = (point.y - line.apply(point.x)).flatten()
     m = line.m[..., None]
     b = line.b[..., None] + shifts
-    return Line.init(m=m, b=b)
+    return Line(m=m, b=b)
 
 
 def shift_line_percentage(line: Line, point: Point, ratio: float) -> Line:

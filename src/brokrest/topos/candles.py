@@ -4,14 +4,17 @@
 
 import abc
 import dataclasses as dcls
+import functools
 import typing
 from abc import ABC
-from typing import ClassVar, Self
+from typing import Self
 
 import torch
 from bokeh.plotting import figure as Figure
 from pandas import DataFrame
 from torch import Tensor
+
+from brokrest import tds
 
 from .rects import Box
 from .topos import Shape
@@ -55,18 +58,23 @@ class CandleLooks:
         )
 
 
-@dcls.dataclass
+@tds.tensorclass
 class Candle(Shape, ABC):
     """
     A candle on the candle chart
     """
 
-    KEYS: ClassVar[tuple[str, ...]] = "enter", "exit", "low", "high"
+    enter: Tensor
+    "The entering position of this candle."
 
-    looks: CandleLooks = dcls.field(default_factory=CandleLooks)
-    """
-    The profile of the candles' appearances.
-    """
+    exit: Tensor
+    "The exiting position of this candle."
+
+    low: Tensor
+    "The minimum value of the candle."
+
+    high: Tensor
+    "The maximum value of the candle."
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -90,38 +98,6 @@ class Candle(Shape, ABC):
                 ]
             )
             raise ValueError(message)
-
-    @property
-    def enter(self) -> Tensor:
-        """
-        The entering position of this candle.
-        """
-
-        return self["enter"]
-
-    @property
-    def exit(self) -> Tensor:
-        """
-        The exiting position of this candle.
-        """
-
-        return self["exit"]
-
-    @property
-    def low(self) -> Tensor:
-        """
-        The minimum value of the candle.
-        """
-
-        return self["low"]
-
-    @property
-    def high(self) -> Tensor:
-        """
-        The maximum value of the candle.
-        """
-
-        return self["high"]
 
     @property
     @abc.abstractmethod
@@ -203,13 +179,26 @@ class Candle(Shape, ABC):
         As the candles are organized by time, ordering must be present.
         """
 
+    @functools.cached_property
+    def looks(self) -> CandleLooks:
+        """
+        The profile of the candles' appearances.
+        """
 
+        return CandleLooks()
+
+
+@tds.tensorclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
     """
 
-    KEYS: ClassVar[tuple[str, ...]] = *Candle.KEYS, "start", "end"
+    start: Tensor
+    "The starting time of the candle."
+
+    end: Tensor
+    "The ending time of the candle."
 
     def __post_init__(self) -> None:
         super().__post_init__()
@@ -223,14 +212,6 @@ class BothCandle(Candle):
         nexts = self[1:]
         prevs = self[:-1]
         return torch.allclose(nexts.start, prevs.end)
-
-    @property
-    def start(self):
-        return self["start"]
-
-    @property
-    def end(self):
-        return self["end"]
 
     @property
     @typing.override
@@ -256,23 +237,20 @@ class BothCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return Box.init(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
     def sort_key(self) -> Tensor:
         return self.start
 
 
+@tds.tensorclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).
     """
 
-    KEYS: ClassVar[tuple[str, ...]] = *Candle.KEYS, "start"
-
-    @property
-    def start(self):
-        return self["start"]
+    start: Tensor
 
     @property
     @typing.override
@@ -303,7 +281,7 @@ class LeftCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return Box.init(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
     def sort_key(self) -> Tensor:
@@ -350,4 +328,4 @@ def _try_init_with_type_and_keys(df: DataFrame, typ: type[Candle], *keys: str):
         return None
 
     dicts = {key: torch.tensor(df[key].tolist()) for key in keys}
-    return typ.init(**dicts)
+    return typ(**dicts)

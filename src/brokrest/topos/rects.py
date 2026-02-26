@@ -8,8 +8,8 @@ from abc import ABC
 import torch
 from bokeh.plotting import figure as Figure
 from torch import Tensor
-from torch._tensor import Tensor
 
+from brokrest import tds
 from brokrest.plotting import Window
 
 from .topos import Shape
@@ -17,6 +17,7 @@ from .topos import Shape
 __all__ = ["Rect", "Box", "Segment"]
 
 
+@tds.tensorclass
 class Rect(Shape, ABC):
     """
     A tuple with 4 values.
@@ -24,33 +25,20 @@ class Rect(Shape, ABC):
     If ``batch_size`` is not 1, all ``x_0``, ``x_1``, ``y_0``, ``y_1`` need to be the same shape.
     """
 
-    KEYS = "x_0", "x_1", "y_0", "y_1"
+    x_0: Tensor
+    "The left side."
 
-    @property
-    def x_0(self) -> Tensor:
-        "The left side."
+    x_1: Tensor
+    "The right side."
 
-        return self["x_0"]
+    y_0: Tensor
+    "The top side."
 
-    @property
-    def x_1(self) -> Tensor:
-        "The right side."
-
-        return self["x_0"]
-
-    @property
-    def y_0(self) -> Tensor:
-        "The top side."
-
-        return self["x_0"]
-
-    @property
-    def y_1(self) -> Tensor:
-        "The bottom side."
-
-        return self["x_0"]
+    y_1: Tensor
+    "The bottom side."
 
 
+@tds.tensorclass
 class Box(Rect):
     """
     A box with 4 sides.
@@ -179,10 +167,11 @@ def _segment_visible(start: Tensor, end: Tensor, x: float, y: float) -> Tensor:
     return ans
 
 
+@tds.tensorclass
 class Segment(Rect):
 
     @typing.override
-    def ordering(self) -> Tensor:
+    def sort_key(self) -> Tensor:
         return torch.argsort(self.x_0)
 
     @property
@@ -221,7 +210,7 @@ class Segment(Rect):
 
     @typing.override
     def _outer(self):
-        return Box.init(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
+        return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
     def _draw(self, figure: Figure):

@@ -56,7 +56,7 @@ class Topo(TensorClass, ABC):
             raise ValueError(
                 " ".join(
                     [
-                        f"`ordering` should be a permutation of 0-{len(self)=}.",
+                        f"`Topo.sort_key()` should be a permutation of 0-{len(self)=}.",
                         f"Got a {ordering.ndim}D array with shape {ordering.shape}.",
                     ]
                 )

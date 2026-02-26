@@ -198,7 +198,7 @@ class Candle(Shape, ABC):
 
     @typing.override
     @abc.abstractmethod
-    def ordering(self) -> Tensor:
+    def sort_key(self) -> Tensor:
         """
         As the candles are organized by time, ordering must be present.
         """
@@ -259,7 +259,7 @@ class BothCandle(Candle):
         return Box.init(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def ordering(self) -> Tensor:
+    def sort_key(self) -> Tensor:
         return self.start
 
 
@@ -306,7 +306,7 @@ class LeftCandle(Candle):
         return Box.init(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def ordering(self) -> Tensor:
+    def sort_key(self) -> Tensor:
         return self.start
 
 

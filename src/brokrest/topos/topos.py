@@ -3,22 +3,16 @@
 "Topologies API ``Topo``, representing a set of shapes."
 
 import abc
-import dataclasses as dcls
 import typing
 from abc import ABC
-from collections.abc import Iterable, Iterator
-from typing import ClassVar, Self, TypeIs
+from typing import TypeIs
 
-import numpy as np
-import tensordict
 import torch
 from bokeh.plotting import figure as Figure
-from numpy.typing import NDArray
-from tensordict import TensorDict
-from torch import Size, Tensor
-from torch._tensor import Tensor
+from torch import Tensor
 
 from brokrest.plotting import Canvas, Displayable
+from brokrest.tds import TensorClass
 
 if typing.TYPE_CHECKING:
     from .rects import Box
@@ -26,97 +20,20 @@ if typing.TYPE_CHECKING:
 __all__ = ["Topo", "Shape"]
 
 
-@dcls.dataclass
-class Topo(ABC):
+class Topo(TensorClass, ABC):
     """
     A set of topologies.
     """
 
-    data: TensorDict
-    """
-    The backing data.
-    """
-
-    KEYS: ClassVar[tuple[str, ...]]
-    """
-    The keys a class accepts, in order.
-    """
-
     def __post_init__(self) -> None:
-        self._validate_keys()
+        # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
+        self.auto_batch_size_()
+
         self._ensure_shapes()
-        self._order_self()
-
-    def __contains__(self, key: str) -> bool:
-        return key in self.keys()
-
-    def __repr__(self):
-        return repr(self.data)
-
-    @typing.final
-    def __len__(self) -> int:
-        return len(self.data)
-
-    @typing.overload
-    def __getitem__(self, idx: str) -> Tensor: ...
-
-    @typing.overload
-    def __getitem__(self, idx: list[str]) -> TensorDict: ...
-
-    @typing.overload
-    def __getitem__(
-        self, idx: int | slice | list[int] | tuple | NDArray | Tensor
-    ) -> Self: ...
-
-    @typing.final
-    def __getitem__(self, idx):
-        """
-        The getitem operator.
-
-        If the input is a str, it is a column.
-        If the input is list[str], it is treated as a set of columns.
-        Otherwise, they are treated as rows (int, slice, list[int], NDArray, Tensor).
-        """
-
-        if isinstance(idx, str):
-            return self._getitem_str(idx)
-
-        if _list_of_str(idx):
-            return self._getitem_list_str(idx)
-
-        if isinstance(idx, int | slice | tuple | Tensor):
-            return self._getitem_direct(idx)
-
-        # Numpy compatible types (more expensive to construct).
-        if np.isdtype((arr := np.array(idx)).dtype, "integral"):
-            return self._getitem_direct(arr)
-
-        raise ValueError(f"{type(idx)=} is not supported!")
-
-    def _getitem_str(self, idx: str) -> Tensor:
-        return self.data[idx]
-
-    def _getitem_list_str(self, idx: list[str]) -> TensorDict:
-        return self.data.select(*idx)
-
-    def _getitem_direct(self, idx) -> Self:
-        return type(self)(self.data[idx])
-
-    def _validate_keys(self) -> None:
-        "Check if all keys specified are present."
-
-        data_keys: Iterable[str] = self.data.keys()
-
-        if set(self.keys()).difference(data_keys):
-            raise KeyError(
-                f"Required keys: {self.keys()=}, but self.data has keys: {data_keys}"
-            )
+        self._sort_by_key()
 
     def _ensure_shapes(self) -> None:
-        "Check if shapes are valid."
-
-        # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
-        self.data.auto_batch_size_()
+        # Check if shapes are valid.
 
         auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
         if auto_shape != self.batch_size:
@@ -125,10 +42,11 @@ class Topo(ABC):
                 f"should match the broadcasted shape: {auto_shape}."
             )
 
-    def _order_self(self) -> None:
+    @typing.no_type_check
+    def _sort_by_key(self) -> None:
         "Sort according to ``argsort``."
 
-        ordering = self.ordering()
+        ordering = self.sort_key()
 
         # Do nothing if ``self.ordering() is None``, or if it's an instance not sequence.
         if ordering is None or self.ndim == 0:
@@ -147,30 +65,9 @@ class Topo(ABC):
         ordered_index = torch.argsort(ordering)
         self.data = self.data[ordered_index]
 
-    def keys(self) -> tuple[str, ...]:
+    def sort_key(self) -> Tensor | None:
         """
-        The underlying ``Tensor``s backing the current topology.
-        All the tensors yielded should have the same shape.
-
-        Yields:
-            Tensors with the same shape.
-        """
-
-        return self.KEYS
-
-    @typing.final
-    def values(self) -> Iterator[Tensor]:
-        for key in self.keys():
-            yield self[key]
-
-    @typing.final
-    def items(self) -> Iterator[tuple[str, Tensor]]:
-        for key in self.keys():
-            yield key, self[key]
-
-    def ordering(self) -> Tensor | None:
-        """
-        Return the argsort of the current ``Topology``.
+        Return the argsort of the current ``Topo``.
 
         If the collection doesn't need to be ordered, return ``NotImplemented``.
 
@@ -181,56 +78,6 @@ class Topo(ABC):
         """
 
         return None
-
-    def flatten(self) -> Self:
-        "Flatten the batch dimensions."
-
-        return type(self)(data=self.data.flatten())
-
-    @property
-    def ndim(self) -> int:
-        return self.data.ndim
-
-    @property
-    def batch_size(self) -> Size:
-        return self.data.batch_size
-
-    def numel(self) -> int:
-        return self.data.numel()
-
-    def to_dict(self):
-        return self.data.to_dict()
-
-    def item(self):
-        return self.data.item()
-
-    def to(self, device: str) -> Self:
-        self.data = self.data.to(device)
-        return self
-
-    @classmethod
-    def stack(cls, *topos: Self) -> Self:
-        return cls(data=tensordict.stack(list(topos)))
-
-    @classmethod
-    def init(cls, **tensors: Tensor) -> Self:
-        """
-        Construct a ``TensorDict`` from input, and set ``self.data`` to it.
-        Broadcasts the input ``Tensor``s to the same shape before constructing
-        the ``TensorDict``, guaranteeing that the generated ``TensorDict``
-        would always discover the biggest common batch size in shared axeses.
-
-        Returns:
-            An instance of ``Self`` (depends on which class calls this method).
-        """
-
-        tensors = broadcast_tensor_dict(tensors)
-        try:
-            return cls(data=TensorDict(tensors))
-        except KeyError as ke:
-            raise TypeError(
-                f"Expected {[*tensors.keys()]=} to contain all keys from {cls.KEYS=}."
-            ) from ke
 
 
 class Shape(Displayable, Topo, ABC):

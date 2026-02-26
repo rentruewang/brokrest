@@ -4,9 +4,10 @@
 
 import abc
 import dataclasses as dcls
+import logging
 import typing
 from abc import ABC
-from typing import ClassVar, Self
+from typing import ClassVar, Literal, Self
 
 import torch
 from bokeh.plotting import figure as Figure
@@ -15,8 +16,14 @@ from torch import Tensor
 
 from .rects import Box
 from .topos import Shape
+from .vecs import Point
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
+
+
+LOGGER = logging.getLogger(__name__)
+
+type CandleToPoint = Literal["low-high", "enter-exit"]
 
 
 @dcls.dataclass
@@ -202,6 +209,28 @@ class Candle(Shape, ABC):
         """
         As the candles are organized by time, ordering must be present.
         """
+
+        ...
+
+    def points(self, kind: CandleToPoint = "enter-exit") -> Point:
+        """
+        Convert candle to points, s.t. algorithms like clustering can work.
+        """
+
+        x = torch.cat([self.center] * 2)
+
+        match kind:
+            case "low-high":
+                y_0 = self.low
+                y_1 = self.high
+            case "enter-exit":
+                y_0 = self.enter
+                y_1 = self.exit
+            case _:
+                raise ValueError(f"{kind=} is not recognized.")
+
+        y = torch.cat([y_0, y_1])
+        return Point.init(x=x, y=y)
 
 
 class BothCandle(Candle):

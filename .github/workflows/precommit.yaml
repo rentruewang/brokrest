@@ -11,11 +11,10 @@ jobs:
       - name: ⬇️ Python PDM
         uses: pdm-project/setup-pdm@v4
         with:
-          python-version: "3.13"
           cache: true
 
       - name: 🏃 Formatting
-        run: make -C ci format
+        run: pip install nox[pbs] && nox -rs formatting
 
   type:
     name: 👨‍⚕️ Type Checking
@@ -27,8 +26,7 @@ jobs:
       - name: ⬇️ Python PDM
         uses: pdm-project/setup-pdm@v4
         with:
-          python-version: "3.13"
           cache: true
 
       - name: 🏃 Type checking
-        run: make -C ci typing
+        run: pip install nox[pbs] && nox -rs typing

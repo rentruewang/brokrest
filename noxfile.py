@@ -215,7 +215,7 @@ class _Commands:
 
     def mypy(self):
         "``mypy`` command."
-        self.session.run_install("mypy", "--non-interactive", "--install-types")
+        self.session.run("mypy", "--non-interactive", "--install-types")
         self.pdm.run("mypy", "src")
 
     @property

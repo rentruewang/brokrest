@@ -7,7 +7,7 @@ import os
 import nox
 from nox import Session
 
-PYTHON_VERSIONS = ["3.12", "3.13", "3.14"]
+PYTHON_VERSIONS = ["3.13", "3.14"]
 
 
 @nox.session

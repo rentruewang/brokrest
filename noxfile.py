@@ -201,22 +201,22 @@ class _Commands:
         "``pytest`` command."
         self.pdm.run("pytest")
 
-    def autoflake(self):
+    def autoflake(self, path: str = "."):
         "``autoflake`` command."
-        self.pdm.run("autoflake", ".")
+        self.pdm.run("autoflake", path)
 
-    def isort(self):
+    def isort(self, path: str = "."):
         "``isort`` command."
-        self.pdm.run("isort", ".")
+        self.pdm.run("isort", path)
 
-    def black(self):
+    def black(self, path: str = "."):
         "``black`` command."
-        self.pdm.run("black", ".")
+        self.pdm.run("black", path)
 
-    def mypy(self):
+    def mypy(self, path: str = "src"):
         "``mypy`` command."
-        self.pdm.run("mypy", "--non-interactive", "--install-types")
-        self.pdm.run("mypy", "src")
+        self.pdm.run("mypy", "--non-interactive", "--install-types", path)
+        self.pdm.run("mypy", path)
 
     @property
     def pdm(self):

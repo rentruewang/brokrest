@@ -61,10 +61,10 @@ class Vec2d:
     """
 
     x: _Real
-    "The ``x`` value."
+    "The `x` value."
 
     y: _Real
-    "The ``y`` value."
+    "The `y` value."
 
     def __iter__(self):
         yield self.x
@@ -102,7 +102,7 @@ class Vec2d:
     @classmethod
     def cartesian(cls, x: float, y: float) -> Self:
         """
-        Constructor to create a ``Point`` from cartesian coordinate.
+        Constructor to create a `Point` from cartesian coordinate.
 
         Args:
             x: The x component.

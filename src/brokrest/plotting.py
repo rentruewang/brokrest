@@ -16,7 +16,7 @@ __all__ = ["Canvas", "Window", "Displayable"]
 @dcls.dataclass(frozen=True)
 class Window:
     """
-    ``Window`` specifies the region where ``Canvas`` is plotting
+    `Window` specifies the region where `Canvas` is plotting
     """
 
     left: float = -float("inf")
@@ -37,9 +37,9 @@ class Window:
 
     def is_set(self) -> bool:
         """
-        Whether or not the ``ViewPort`` requires user handling.
-        The default (infinite size) does not require user handling, so would be ``False``.
-        All other configuration would be ``True``.
+        Whether or not the `ViewPort` requires user handling.
+        The default (infinite size) does not require user handling, so would be `False`.
+        All other configuration would be `True`.
         """
 
         return (
@@ -72,13 +72,13 @@ class Canvas:
 @typing.runtime_checkable
 class Displayable(Protocol):
     """
-    ``Painter`` paints on the ``Canvas``.
+    `Painter` paints on the `Canvas`.
     """
 
     @abc.abstractmethod
     def draw(self, canvas: Canvas, /) -> None:
         """
-        Each painter should decide how to paint on ``Canvas``,
+        Each painter should decide how to paint on `Canvas`,
         with the supported methods.
 
         Args:

@@ -290,7 +290,7 @@ class LeftCandle(Candle):
 
 def dataframe_factory(df: DataFrame, /) -> Candle:
     """
-    Parse an input dataframe into corresponding ``Candle``.
+    Parse an input dataframe into corresponding `Candle`.
 
     Args:
         df:
@@ -301,7 +301,7 @@ def dataframe_factory(df: DataFrame, /) -> Candle:
 
 
     Returns:
-        A ``Candle`` instance, type dependent on the input keys.
+        A `Candle` instance, type dependent on the input keys.
     """
 
     if (

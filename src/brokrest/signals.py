@@ -13,7 +13,7 @@ __all__ = ["Signal", "Rsi", "Ema", "Macd", "BollingerBand"]
 
 class Signal(Protocol):
     """
-    ``Signal`` is a callable that converts the raw datapoint into some signals.
+    `Signal` is a callable that converts the raw datapoint into some signals.
     It must have the same number of datapoints, matching the original input.
     """
 

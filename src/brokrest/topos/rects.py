@@ -22,7 +22,7 @@ class Rect(Shape, ABC):
     """
     A tuple with 4 values.
 
-    If ``batch_size`` is not 1, all ``x_0``, ``x_1``, ``y_0``, ``y_1`` need to be the same shape.
+    If `batch_size` is not 1, all `x_0`, `x_1`, `y_0`, `y_1` need to be the same shape.
     """
 
     x_0: Tensor
@@ -55,37 +55,37 @@ class Box(Rect):
 
     @property
     def bottom(self) -> Tensor:
-        "The bottom of the box. Alias of ``y_0``."
+        "The bottom of the box. Alias of `y_0`."
         return self.y_0
 
     @property
     def top(self) -> Tensor:
-        "The top of the box. Alias of ``y_1``."
+        "The top of the box. Alias of `y_1`."
         return self.y_1
 
     @property
     def left(self) -> Tensor:
-        "The left of the box. Alias of ``x_0``."
+        "The left of the box. Alias of `x_0`."
         return self.x_0
 
     @property
     def right(self) -> Tensor:
-        "The right of the box. Alias of ``x_1``."
+        "The right of the box. Alias of `x_1`."
         return self.x_1
 
     @property
     def width(self) -> Tensor:
-        "The width of the ``Box``es."
+        "The width of the `Box`es."
         return self.x_1 - self.x_0
 
     @property
     def height(self) -> Tensor:
-        "The height of the ``Box``es."
+        "The height of the `Box`es."
         return self.y_1 - self.y_0
 
     @property
     def area(self) -> Tensor:
-        "The area of the ``Box``es."
+        "The area of the `Box`es."
         return self.width * self.height
 
     @typing.override
@@ -103,13 +103,13 @@ class Box(Rect):
 
     def visible(self, window: Window) -> Tensor:
         """
-        Return a boolean tensor, of whether ``self`` is visible in the view box or not.
+        Return a boolean tensor, of whether `self` is visible in the view box or not.
 
         Args:
             window: The view port to determine.
 
         Returns:
-            A boolean tensor the same length as ``self``.
+            A boolean tensor the same length as `self`.
         """
 
         horiz = _segment_visible(
@@ -188,24 +188,24 @@ class Segment(Rect):
 
     @property
     def left(self):
-        "The ``min(x)``."
+        "The `min(x)`."
 
         return torch.minimum(self.x_0, self.x_1)
 
     @property
     def right(self):
-        "The ``max(x)``."
+        "The `max(x)`."
 
         return torch.maximum(self.x_0, self.x_1)
 
     @property
     def bottom(self):
-        "The ``min(y)``."
+        "The `min(y)`."
         return torch.minimum(self.y_0, self.y_1)
 
     @property
     def top(self):
-        "The ``max(y)``."
+        "The `max(y)`."
         return torch.maximum(self.y_0, self.y_1)
 
     @typing.override

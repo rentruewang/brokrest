@@ -20,12 +20,12 @@ __all__ = ["LineReg"]
 @dcls.dataclass
 class LineReg(Ruler):
     """
-    A linear regression solver that generates a ``Line`` over given points.
+    A linear regression solver that generates a `Line` over given points.
     """
 
     bias: bool
     """
-    Whether or not the ``Line`` is passing over the origin.
+    Whether or not the `Line` is passing over the origin.
     """
 
     @typing.override

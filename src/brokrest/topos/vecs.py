@@ -93,19 +93,19 @@ class Vector(Topo, ABC):
 
 
 def _element_wise(lhs: Any, rhs: Any, op: Callable[..., Tensor]):
-    # Even though both are ``Vector``,
-    # this would be called as a method on ``lhs``,
-    # so the return type is based on ``lhs``.
+    # Even though both are `Vector`,
+    # this would be called as a method on `lhs`,
+    # so the return type is based on `lhs`.
     if isinstance(lhs, Vector) and isinstance(rhs, Vector):
 
         return type(lhs)(x=op(lhs.x, rhs.x), y=op(lhs.y, rhs.y))
 
-    # For ``__op__``.
+    # For `__op__`.
     elif isinstance(lhs, Vector):
 
         return type(lhs)(x=op(lhs.x, rhs), y=op(lhs.y, rhs))
 
-    # For ``__rop__``.
+    # For `__rop__`.
     elif isinstance(rhs, Vector):
         return type(rhs)(x=op(lhs, rhs.x), y=op(lhs, rhs.y))
 

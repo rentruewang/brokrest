@@ -12,7 +12,7 @@ from brokrest.topos import BothCandle, Candle, LeftCandle, candles
 
 
 def _tensor_chart():
-    "A randomly generated ``CandleChart``."
+    "A randomly generated `CandleChart`."
 
     enter = torch.rand(100)
     exit = torch.rand(100)

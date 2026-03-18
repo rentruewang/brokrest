@@ -23,7 +23,7 @@ def test_flip():
 
 
 def test_eq():
-    "The ``Vec2d``'s equal method."
+    "The `Vec2d`'s equal method."
 
     left = Vec2d(11, 13)
     right = Vec2d(11, 13)
@@ -177,7 +177,7 @@ def test_vector_binary_op(binary_inputs: _BinaryInput):
 
 
 def test_origin():
-    "Test the convenience method ``origin``."
+    "Test the convenience method `origin`."
 
     assert Vec2d.origin() == Vec2d(0, 0)
 

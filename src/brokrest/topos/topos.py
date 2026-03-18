@@ -1,6 +1,6 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-"Topologies API ``Topo``, representing a set of shapes."
+"Topologies API `Topo`, representing a set of shapes."
 
 import abc
 import typing
@@ -26,7 +26,7 @@ class Topo(TensorClass, ABC):
     """
 
     def __post_init__(self) -> None:
-        # This is s.t. we don't need to manually set ``batch_size`` or ``shape``.
+        # This is s.t. we don't need to manually set `batch_size` or `shape`.
         self.auto_batch_size_()
 
         self._ensure_shapes()
@@ -44,11 +44,11 @@ class Topo(TensorClass, ABC):
 
     @typing.no_type_check
     def _sort_by_key(self) -> None:
-        "Sort according to ``argsort``."
+        "Sort according to `argsort`."
 
         ordering = self.sort_key()
 
-        # Do nothing if ``self.ordering() is None``, or if it's an instance not sequence.
+        # Do nothing if `self.ordering() is None`, or if it's an instance not sequence.
         if ordering is None or self.ndim == 0:
             return
 
@@ -69,14 +69,14 @@ class Topo(TensorClass, ABC):
 
     def sort_key(self) -> Tensor | None:
         """
-        Return the argsort of the current ``Topo``.
+        Return the argsort of the current `Topo`.
 
-        If the collection doesn't need to be ordered, return ``NotImplemented``.
+        If the collection doesn't need to be ordered, return `NotImplemented`.
 
         Returns:
-            A 1D ``Tensor`` of shape [len(self)],
-            whose elements are permutation of ``range(len(self))``,
-            or ``NotImplemented`` if ordering doesn't exist.
+            A 1D `Tensor` of shape [len(self)],
+            whose elements are permutation of `range(len(self))`,
+            or `NotImplemented` if ordering doesn't exist.
         """
 
         return None
@@ -90,12 +90,12 @@ class Shape(Displayable, Topo, ABC):
     @typing.override
     def draw(self, canvas: Canvas, /) -> None:
         """
-        Populate the canvas with ``bokeh``, filter based on viewbox (``self.outer()``).
+        Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
 
         selected = self
 
-        # Get the bounding box of ``self``, and get rid of points not in the box.
+        # Get the bounding box of `self`, and get rid of points not in the box.
         box = self.outer()
         visible_topos = box.visible(canvas.window)
         selected = selected[visible_topos]
@@ -105,10 +105,10 @@ class Shape(Displayable, Topo, ABC):
     @abc.abstractmethod
     def _draw(self, figure: Figure, /) -> None:
         """
-        The implementation of ``draw``.
+        The implementation of `draw`.
 
         Args:
-            figure: A ``bokeh`` figure.
+            figure: A `bokeh` figure.
         """
 
         ...
@@ -135,7 +135,7 @@ class Shape(Displayable, Topo, ABC):
 
     @abc.abstractmethod
     def _outer(self) -> "Box":
-        "Implementation of ``outer``."
+        "Implementation of `outer`."
 
         ...
 
@@ -151,6 +151,6 @@ def broadcast_tensor_dict(items: dict[str, Tensor]) -> dict[str, Tensor]:
 
 
 def _list_of_str(obj: object) -> TypeIs[list[str]]:
-    "Check if ``obj`` is ``list[str]``. Expensive."
+    "Check if `obj` is `list[str]`. Expensive."
 
     return isinstance(obj, list) and all(isinstance(elem, str) for elem in obj)

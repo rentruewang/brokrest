@@ -9,7 +9,7 @@ __all__ = ["Ruler", "PencilCase"]
 
 
 class Ruler(Protocol):
-    "A ruler is a protocol that generates from a set of points, a ``Topo``."
+    "A ruler is a protocol that generates from a set of points, a `Topo`."
 
     @abc.abstractmethod
     def __call__(self, chart: Point, /) -> Topo:
@@ -18,11 +18,11 @@ class Ruler(Protocol):
 
         Args:
             chart:
-                The input chart. Currently they are ``Point``s for convenience.
-                Would be switched to ``Candle`` once ready.
+                The input chart. Currently they are `Point`s for convenience.
+                Would be switched to `Candle` once ready.
 
         Returns:
-            The output topology. Since ``Topo`` can be batched,
+            The output topology. Since `Topo` can be batched,
             the output can represent multiple homogenius topologies.
         """
 
@@ -39,8 +39,8 @@ class PencilCase(Protocol):
 
         Args:
             chart:
-                The input chart. Currently they are ``Point``s for convenience.
-                Would be switched to ``Candle`` once ready.
+                The input chart. Currently they are `Point`s for convenience.
+                Would be switched to `Candle` once ready.
 
 
         Returns:

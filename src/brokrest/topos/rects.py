@@ -2,39 +2,38 @@
 
 "A set of shapes that can be represented as a 4 tuple."
 
+import abc
 import typing
-from abc import ABC
 
 import torch
-from bokeh.plotting import figure as Figure
-from torch import Tensor
+from bokeh import plotting
 
+from brokrest import plotting as P
 from brokrest import tds
-from brokrest.plotting import Window
 
-from .topos import Shape
+from . import topos
 
 __all__ = ["Rect", "Box", "Segment"]
 
 
 @tds.tensorclass
-class Rect(Shape, ABC):
+class Rect(topos.Shape, abc.ABC):
     """
     A tuple with 4 values.
 
     If `batch_size` is not 1, all `x_0`, `x_1`, `y_0`, `y_1` need to be the same shape.
     """
 
-    x_0: Tensor
+    x_0: torch.Tensor
     "The left side."
 
-    x_1: Tensor
+    x_1: torch.Tensor
     "The right side."
 
-    y_0: Tensor
+    y_0: torch.Tensor
     "The top side."
 
-    y_1: Tensor
+    y_1: torch.Tensor
     "The bottom side."
 
 
@@ -54,37 +53,37 @@ class Box(Rect):
             raise ValueError("Box should not have negative height.")
 
     @property
-    def bottom(self) -> Tensor:
+    def bottom(self) -> torch.Tensor:
         "The bottom of the box. Alias of `y_0`."
         return self.y_0
 
     @property
-    def top(self) -> Tensor:
+    def top(self) -> torch.Tensor:
         "The top of the box. Alias of `y_1`."
         return self.y_1
 
     @property
-    def left(self) -> Tensor:
+    def left(self) -> torch.Tensor:
         "The left of the box. Alias of `x_0`."
         return self.x_0
 
     @property
-    def right(self) -> Tensor:
+    def right(self) -> torch.Tensor:
         "The right of the box. Alias of `x_1`."
         return self.x_1
 
     @property
-    def width(self) -> Tensor:
+    def width(self) -> torch.Tensor:
         "The width of the `Box`es."
         return self.x_1 - self.x_0
 
     @property
-    def height(self) -> Tensor:
+    def height(self) -> torch.Tensor:
         "The height of the `Box`es."
         return self.y_1 - self.y_0
 
     @property
-    def area(self) -> Tensor:
+    def area(self) -> torch.Tensor:
         "The area of the `Box`es."
         return self.width * self.height
 
@@ -93,7 +92,7 @@ class Box(Rect):
         return self
 
     @typing.override
-    def _draw(self, figure: Figure):
+    def _draw(self, figure: plotting.figure):
         _ = figure.rect(
             x=self.x_0.numpy(),
             y=self.y_0.numpy(),
@@ -101,7 +100,7 @@ class Box(Rect):
             height=self.height.numpy(),
         )
 
-    def visible(self, window: Window) -> Tensor:
+    def visible(self, window: P.Window) -> torch.Tensor:
         """
         Return a boolean tensor, of whether `self` is visible in the view box or not.
 
@@ -129,7 +128,9 @@ class Box(Rect):
         return horiz & verti
 
 
-def _segment_visible(start: Tensor, end: Tensor, x: float, y: float) -> Tensor:
+def _segment_visible(
+    start: torch.Tensor, end: torch.Tensor, x: float, y: float
+) -> torch.Tensor:
     """
     Try to see if segment [start, end] is visible in viewport [x, y], vectorized.s
     """
@@ -137,7 +138,7 @@ def _segment_visible(start: Tensor, end: Tensor, x: float, y: float) -> Tensor:
     result_shape = start.shape
     assert end.shape == start.shape
 
-    def _ordered(*ordered: Tensor):
+    def _ordered(*ordered: torch.Tensor):
         "The tensors are ordered."
 
         answer = torch.ones(result_shape).bool()
@@ -171,17 +172,17 @@ def _segment_visible(start: Tensor, end: Tensor, x: float, y: float) -> Tensor:
 class Segment(Rect):
 
     @typing.override
-    def sort_key(self) -> Tensor:
+    def sort_key(self) -> torch.Tensor:
         return torch.argsort(self.x_0)
 
     @property
-    def start(self) -> Tensor:
+    def start(self) -> torch.Tensor:
         "The starting point of a segment."
 
         return torch.hstack([self.x_0, self.y_0])
 
     @property
-    def end(self) -> Tensor:
+    def end(self) -> torch.Tensor:
         "The ending point of a segment."
 
         return torch.hstack([self.x_1, self.y_1])
@@ -213,7 +214,7 @@ class Segment(Rect):
         return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
-    def _draw(self, figure: Figure):
+    def _draw(self, figure: plotting.figure):
         _ = figure.segment(
             x0=self.x_0.numpy(),
             x1=self.x_1.numpy(),

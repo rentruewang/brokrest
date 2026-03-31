@@ -8,7 +8,7 @@ from abc import ABC
 from typing import TypeIs
 
 import torch
-from bokeh.plotting import figure as Figure
+from bokeh import plotting
 from torch import Tensor
 
 from brokrest.plotting import Canvas, Displayable
@@ -103,7 +103,7 @@ class Shape(Displayable, Topo, ABC):
         selected._draw(canvas.figure)
 
     @abc.abstractmethod
-    def _draw(self, figure: Figure, /) -> None:
+    def _draw(self, figure: plotting.figure, /) -> None:
         """
         The implementation of `draw`.
 

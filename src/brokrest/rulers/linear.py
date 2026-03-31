@@ -5,41 +5,40 @@
 import dataclasses as dcls
 import math
 import typing
-from typing import NamedTuple
 
 import torch
-from torch import Tensor, linalg
+from torch import linalg
 
-from brokrest.topos import Line, Point
+from brokrest import topos
 
-from .rulers import Ruler
+from . import rulers
 
 __all__ = ["LineReg"]
 
 
 @dcls.dataclass
-class LineReg(Ruler):
+class LineReg(rulers.Ruler):
     """
-    A linear regression solver that generates a `Line` over given points.
+    A linear regression solver that generates a `topos.Line` over given points.
     """
 
     bias: bool
     """
-    Whether or not the `Line` is passing over the origin.
+    Whether or not the `topos.Line` is passing over the origin.
     """
 
     @typing.override
-    def __call__(self, points: Point, /) -> Line:
+    def __call__(self, points: topos.Point, /) -> topos.Line:
         expand = _bias_expand if self.bias else _expand
         parse = _bias_parse if self.bias else _parse
 
         x = expand(points.x)
-        sol: Tensor = linalg.lstsq(x, points.y).solution
+        sol: torch.Tensor = linalg.lstsq(x, points.y).solution
         m, b = parse(sol)
-        return Line(m=m, b=b)
+        return topos.Line(m=m, b=b)
 
 
-def pinned_linear_regression(points: Point, *pin: int) -> Line:
+def pinned_linear_regression(points: topos.Point, *pin: int) -> topos.Line:
     """
     Linear regression on points, with some pins applied.
     Each pin would trigger a new linear regression (in parallel).
@@ -53,16 +52,18 @@ def pinned_linear_regression(points: Point, *pin: int) -> Line:
     return shift_line_on(line, point)
 
 
-def shift_line_on(line: Line, point: Point) -> Line:
+def shift_line_on(line: topos.Line, point: topos.Point) -> topos.Line:
     "Shift the line to fit a point. The output would have a new dimension matching points."
 
     shifts = (point.y - line.apply(point.x)).flatten()
     m = line.m[..., None]
     b = line.b[..., None] + shifts
-    return Line(m=m, b=b)
+    return topos.Line(m=m, b=b)
 
 
-def shift_line_percentage(line: Line, point: Point, ratio: float) -> Line:
+def shift_line_percentage(
+    line: topos.Line, point: topos.Point, ratio: float
+) -> topos.Line:
     values = line.subs(point)
     ordered = values.argsort()
     num_items = math.floor(ratio * len(line))
@@ -70,13 +71,13 @@ def shift_line_percentage(line: Line, point: Point, ratio: float) -> Line:
     return shift_line_on(line, selected)
 
 
-def boundary_rotate_linereg(points: Point, /) -> Line:
+def boundary_rotate_linereg(points: topos.Point, /) -> topos.Line:
     line = boundary_linereg(points)
     argmin, argmax = arg_minmax_for_line(line, points)
     return pinned_linear_regression(points, argmin, argmax)
 
 
-def boundary_linereg(points: Point, /) -> Line:
+def boundary_linereg(points: topos.Point, /) -> topos.Line:
     """
     Do linear regression, then shift to top and bottom boundaries.
     """
@@ -87,31 +88,31 @@ def boundary_linereg(points: Point, /) -> Line:
     return shift_line_on(regression_line, minmax).flatten()
 
 
-def arg_minmax_for_line(line: Line, points: Point) -> tuple[int, int]:
+def arg_minmax_for_line(line: topos.Line, points: topos.Point) -> tuple[int, int]:
     value = line.subs(points)
     maximum = int(torch.argmax(value).item())
     minimum = int(torch.argmin(value).item())
     return minimum, maximum
 
 
-def _bias_expand(x: Tensor) -> Tensor:
+def _bias_expand(x: torch.Tensor) -> torch.Tensor:
     ones = torch.ones_like(x)
     return torch.stack([x, ones], dim=-1)
 
 
-def _expand(x: Tensor) -> Tensor:
+def _expand(x: torch.Tensor) -> torch.Tensor:
     return x[..., None]
 
 
-class _SlopeAndBias(NamedTuple):
-    m: Tensor
-    b: Tensor
+class _SlopeAndBias(typing.NamedTuple):
+    m: torch.Tensor
+    b: torch.Tensor
 
 
-def _bias_parse(sol: Tensor) -> _SlopeAndBias:
+def _bias_parse(sol: torch.Tensor) -> _SlopeAndBias:
     return _SlopeAndBias(m=sol[0], b=sol[1])
 
 
-def _parse(sol: Tensor) -> _SlopeAndBias:
+def _parse(sol: torch.Tensor) -> _SlopeAndBias:
     m = sol[0]
     return _SlopeAndBias(m=m, b=torch.zeros_like(m))

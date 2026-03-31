@@ -7,7 +7,7 @@ from collections import abc as cabc
 
 import tensordict as td
 import torch
-from numpy.typing import NDArray
+from numpy import typing as npt
 
 __all__ = ["TensorClass", "tensorclass"]
 
@@ -36,7 +36,7 @@ class TensorClass:
         @typing.overload
         @typing.overload
         def __getitem__(
-            self, key: int | slice | list[int] | tuple | NDArray | torch.Tensor
+            self, key: int | slice | list[int] | tuple | npt.NDArray | torch.Tensor
         ) -> typing.Self: ...
 
         def __getitem__(self, key):

@@ -5,10 +5,8 @@
 import abc
 import dataclasses as dcls
 import typing
-from typing import Protocol
 
 from bokeh import plotting
-from bokeh.plotting import figure as Figure
 
 __all__ = ["Canvas", "Window", "Displayable"]
 
@@ -62,7 +60,7 @@ class Canvas:
     The viewport to use.
     """
 
-    figure: Figure
+    figure: plotting.figure
     "The figure to plot on."
 
     def show(self):
@@ -70,7 +68,7 @@ class Canvas:
 
 
 @typing.runtime_checkable
-class Displayable(Protocol):
+class Displayable(typing.Protocol):
     """
     `Painter` paints on the `Canvas`.
     """

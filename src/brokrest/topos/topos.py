@@ -4,23 +4,20 @@
 
 import abc
 import typing
-from abc import ABC
-from typing import TypeIs
 
 import torch
-from bokeh.plotting import figure as Figure
-from torch import Tensor
+from bokeh import plotting
 
-from brokrest.plotting import Canvas, Displayable
-from brokrest.tds import TensorClass
+from brokrest import plotting as P
+from brokrest import tds
 
 if typing.TYPE_CHECKING:
-    from .rects import Box
+    from . import rects
 
 __all__ = ["Topo", "Shape"]
 
 
-class Topo(TensorClass, ABC):
+class Topo(tds.TensorClass, abc.ABC):
     """
     A set of topologies.
     """
@@ -67,14 +64,14 @@ class Topo(TensorClass, ABC):
         for key in self.keys():
             setattr(self, key, getattr(self, key)[ordered_index])
 
-    def sort_key(self) -> Tensor | None:
+    def sort_key(self) -> torch.Tensor | None:
         """
         Return the argsort of the current `Topo`.
 
         If the collection doesn't need to be ordered, return `NotImplemented`.
 
         Returns:
-            A 1D `Tensor` of shape [len(self)],
+            A 1D `torch.Tensor` of shape [len(self)],
             whose elements are permutation of `range(len(self))`,
             or `NotImplemented` if ordering doesn't exist.
         """
@@ -82,13 +79,13 @@ class Topo(TensorClass, ABC):
         return None
 
 
-class Shape(Displayable, Topo, ABC):
+class Shape(P.Displayable, Topo, abc.ABC):
     """
     A topo set representing shapes that have clear boundaries.
     """
 
     @typing.override
-    def draw(self, canvas: Canvas, /) -> None:
+    def draw(self, canvas: P.Canvas, /) -> None:
         """
         Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
@@ -103,7 +100,7 @@ class Shape(Displayable, Topo, ABC):
         selected._draw(canvas.figure)
 
     @abc.abstractmethod
-    def _draw(self, figure: Figure, /) -> None:
+    def _draw(self, figure: plotting.figure, /) -> None:
         """
         The implementation of `draw`.
 
@@ -113,7 +110,7 @@ class Shape(Displayable, Topo, ABC):
 
         ...
 
-    def outer(self) -> "Box":
+    def outer(self) -> "rects.Box":
         """
         Get the outer boundary of the current topology,
         s.t. we can easily filter, with vector / GPU operations,
@@ -134,13 +131,13 @@ class Shape(Displayable, Topo, ABC):
         return outer
 
     @abc.abstractmethod
-    def _outer(self) -> "Box":
+    def _outer(self) -> "rects.Box":
         "Implementation of `outer`."
 
         ...
 
 
-def broadcast_tensor_dict(items: dict[str, Tensor]) -> dict[str, Tensor]:
+def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     """
     Broadcast the tensors in a mapping from string to tensors to the same shape.
     """
@@ -150,7 +147,7 @@ def broadcast_tensor_dict(items: dict[str, Tensor]) -> dict[str, Tensor]:
     return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
 
 
-def _list_of_str(obj: object) -> TypeIs[list[str]]:
+def _list_of_str(obj: object) -> typing.TypeIs[list[str]]:
     "Check if `obj` is `list[str]`. Expensive."
 
     return isinstance(obj, list) and all(isinstance(elem, str) for elem in obj)

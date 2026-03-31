@@ -2,22 +2,20 @@
 
 import dataclasses as dcls
 import typing
-from typing import Protocol
 
 import torch
-from torch import Tensor
 from torch.nn import functional as F
 
 __all__ = ["Signal", "Rsi", "Ema", "Macd", "BollingerBand"]
 
 
-class Signal(Protocol):
+class Signal(typing.Protocol):
     """
     `Signal` is a callable that converts the raw datapoint into some signals.
     It must have the same number of datapoints, matching the original input.
     """
 
-    def __call__(self, data: Tensor, /) -> Tensor: ...
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor: ...
 
 
 @dcls.dataclass(frozen=True)
@@ -29,7 +27,7 @@ class Rsi(Signal):
             raise ValueError(f"{self.window=} should be a positive number.")
 
     @typing.override
-    def __call__(self, data: Tensor, /) -> Tensor:
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
         delta = data[1:] - data[:-1]
         gain = delta.where(delta > 0, 0)
         loss = -delta.where(delta < 0, 0)
@@ -50,7 +48,7 @@ class Ema(Signal):
             raise ValueError(f"{self.decay=} should be a number between 0 and 1.")
 
     @typing.override
-    def __call__(self, data: Tensor, /) -> Tensor:
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
         kernel = self.decay * ((1 - self.decay) ** torch.arange(len(data)))
         kernel = kernel.flip(0)
 
@@ -67,7 +65,7 @@ class Macd(Signal):
     slow: float = 26
 
     @typing.override
-    def __call__(self, data: Tensor, /) -> Tensor:
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
         return Ema(1 / self.fast)(data) - Ema(1 / self.slow)(data)
 
 
@@ -81,7 +79,7 @@ class BollingerBand(Signal):
     num_std: float = 1.5
 
     @typing.override
-    def __call__(self, prices: Tensor):
+    def __call__(self, prices: torch.Tensor):
         """
         Compute Bollinger Bands in PyTorch.
         """
@@ -103,7 +101,7 @@ class BollingerBand(Signal):
         return torch.stack([middle_band, upper_band, lower_band], dim=-1)
 
 
-def convolve(a: Tensor, b: Tensor) -> Tensor:
+def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     assert a.ndim == 1 and b.ndim == 1
 
     padded = F.pad(a, (len(b) - 1, 0))  # pad only on the left (causal)

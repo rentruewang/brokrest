@@ -6,18 +6,14 @@ import abc
 import dataclasses as dcls
 import functools
 import typing
-from abc import ABC
-from typing import Self
 
+import pandas as pd
 import torch
-from bokeh.plotting import figure as Figure
-from pandas import DataFrame
-from torch import Tensor
+from bokeh import plotting
 
 from brokrest import tds
 
-from .rects import Box
-from .topos import Shape
+from . import rects, topos
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
@@ -48,7 +44,7 @@ class CandleLooks:
         if not 0 <= self.width_ratio <= 1:
             raise ValueError(f"{self.width_ratio=} is not in range [0, 1]")
 
-    def invert(self) -> Self:
+    def invert(self) -> typing.Self:
         return dcls.replace(
             self,
             down_line=self.up_line,
@@ -59,21 +55,21 @@ class CandleLooks:
 
 
 @tds.tensorclass
-class Candle(Shape, ABC):
+class Candle(topos.Shape, abc.ABC):
     """
     A candle on the candle chart
     """
 
-    enter: Tensor
+    enter: torch.Tensor
     "The entering position of this candle."
 
-    exit: Tensor
+    exit: torch.Tensor
     "The exiting position of this candle."
 
-    low: Tensor
+    low: torch.Tensor
     "The minimum value of the candle."
 
-    high: Tensor
+    high: torch.Tensor
     "The maximum value of the candle."
 
     def __post_init__(self) -> None:
@@ -87,7 +83,7 @@ class Candle(Shape, ABC):
         self._check_value_in_range(self.enter, "entering")
         self._check_value_in_range(self.exit, "exiting")
 
-    def _check_value_in_range(self, value: Tensor, desc: str) -> None:
+    def _check_value_in_range(self, value: torch.Tensor, desc: str) -> None:
         "Check if the given value is in the range [min, max]."
 
         if torch.any(self.low > value) or torch.any(self.high < value):
@@ -101,7 +97,7 @@ class Candle(Shape, ABC):
 
     @property
     @abc.abstractmethod
-    def center(self) -> Tensor:
+    def center(self) -> torch.Tensor:
         "The time at which this candle occurs."
 
         ...
@@ -115,30 +111,30 @@ class Candle(Shape, ABC):
 
     @property
     @abc.abstractmethod
-    def left(self) -> Tensor:
+    def left(self) -> torch.Tensor:
         "The left side of the candle."
 
         ...
 
     @property
     @abc.abstractmethod
-    def right(self) -> Tensor:
+    def right(self) -> torch.Tensor:
         "The right side of the candle."
 
         ...
 
     @property
-    def inc(self) -> Tensor:
+    def inc(self) -> torch.Tensor:
         "Is increasing."
         return (self.exit - self.enter) >= 0
 
     @property
-    def dec(self) -> Tensor:
+    def dec(self) -> torch.Tensor:
         "Is decreasing."
         return (self.exit - self.enter) < 0
 
     @typing.override
-    def _draw(self, figure: Figure):
+    def _draw(self, figure: plotting.figure):
         # The center bars for the candles.
         _ = figure.segment(
             x0=self.center.numpy(),
@@ -174,7 +170,7 @@ class Candle(Shape, ABC):
 
     @typing.override
     @abc.abstractmethod
-    def sort_key(self) -> Tensor:
+    def sort_key(self) -> torch.Tensor:
         """
         As the candles are organized by time, ordering must be present.
         """
@@ -194,10 +190,10 @@ class BothCandle(Candle):
     A candle that has a left side and a right side.
     """
 
-    start: Tensor
+    start: torch.Tensor
     "The starting time of the candle."
 
-    end: Tensor
+    end: torch.Tensor
     "The ending time of the candle."
 
     def __post_init__(self) -> None:
@@ -215,7 +211,7 @@ class BothCandle(Candle):
 
     @property
     @typing.override
-    def center(self) -> Tensor:
+    def center(self) -> torch.Tensor:
         "The centered times."
         return (self.end + self.start) / 2
 
@@ -237,10 +233,10 @@ class BothCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return rects.Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def sort_key(self) -> Tensor:
+    def sort_key(self) -> torch.Tensor:
         return self.start
 
 
@@ -250,11 +246,11 @@ class LeftCandle(Candle):
     The candle that only has the starting time defined (timing is implicit).
     """
 
-    start: Tensor
+    start: torch.Tensor
 
     @property
     @typing.override
-    def center(self) -> Tensor:
+    def center(self) -> torch.Tensor:
         "The centered times."
         return self.start + self.max_width / 2
 
@@ -281,14 +277,14 @@ class LeftCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return rects.Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def sort_key(self) -> Tensor:
+    def sort_key(self) -> torch.Tensor:
         return self.start
 
 
-def dataframe_factory(df: DataFrame, /) -> Candle:
+def dataframe_factory(df: pd.DataFrame, /) -> Candle:
     """
     Parse an input dataframe into corresponding `Candle`.
 
@@ -323,7 +319,7 @@ def dataframe_factory(df: DataFrame, /) -> Candle:
     )
 
 
-def _try_init_with_type_and_keys(df: DataFrame, typ: type[Candle], *keys: str):
+def _try_init_with_type_and_keys(df: pd.DataFrame, typ: type[Candle], *keys: str):
     if not all(k in df.columns for k in keys):
         return None
 

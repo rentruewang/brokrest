@@ -47,6 +47,7 @@ exclude = ["^scripts/.py$"]
 [[tool.mypy.overrides]]
 module = [
     "tensordict.*",
+    "yahooquery.*",
 ]
 ignore_missing_imports = true
 

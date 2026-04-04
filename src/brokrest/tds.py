@@ -13,9 +13,9 @@ __all__ = ["TensorClass", "tensorclass"]
 
 
 @typing.dataclass_transform()
-@typing.no_type_check
 def tensorclass[T: type](typ: T) -> T:
-    return td.tensorclass(autocast=True)(typ)
+    decorator = typing.cast(typing.Any, td.tensorclass)(autocast=True)
+    return decorator(typ)
 
 
 @tensorclass

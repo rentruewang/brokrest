@@ -3,36 +3,33 @@
 "A set of linear equations."
 
 import typing
-from typing import Self
 
-from torch import Tensor
+import torch
 
-from brokrest import tds
-from brokrest.plotting import Canvas, Displayable
+from brokrest import plotting, tds
 
-from .topos import Topo
-from .vecs import Point
+from . import topos, vecs
 
 __all__ = ["Line"]
 
 
 @tds.tensorclass
-class Line(Displayable, Topo):
+class Line(plotting.Displayable, topos.Topo):
     """
     A set of lines. Represented as `y = mx + b` (slope intercept form).
     """
 
-    m: Tensor
-    b: Tensor
+    m: torch.Tensor
+    b: torch.Tensor
 
-    def apply(self, x: Tensor) -> Tensor:
+    def apply(self, x: torch.Tensor) -> torch.Tensor:
         """
         Returns mx + b as a self.ndim + 1 matrix `R`. `R_ij = m_i x_j + b_i.`
         """
 
         return self.m[..., None] * x[None, ...] + self.b[..., None]
 
-    def subs(self, points: Point) -> Tensor:
+    def subs(self, points: vecs.Point) -> torch.Tensor:
         """
         Returns mx + b as a self.ndim + 1 matrix `R`.
         `R_ij = m_i x_j + b_i - y_j.`
@@ -41,25 +38,25 @@ class Line(Displayable, Topo):
         return self.apply(points.x) - points.y[None, ...]
 
     @typing.override
-    def draw(self, canvas: Canvas) -> None:
+    def draw(self, canvas: plotting.Canvas) -> None:
         raise NotImplementedError
 
     @classmethod
-    def standard(cls, a: Tensor, b: Tensor, c: Tensor) -> Self:
+    def standard(cls, a: torch.Tensor, b: torch.Tensor, c: torch.Tensor) -> typing.Self:
         "Create a line in the `ax + by + c = 0` form."
 
         # y = -a/b x - c/b
         return cls(m=-a / b, b=-c / b)
 
     @classmethod
-    def intercept(cls, a: Tensor, b: Tensor) -> Self:
+    def intercept(cls, a: torch.Tensor, b: torch.Tensor) -> typing.Self:
         "Create a line in the `x/a + y/b = 1` form."
 
         # y = b - b/a x
         return cls(m=-b / a, b=b)
 
     @classmethod
-    def slope_intercept(cls, m: Tensor, b: Tensor) -> Self:
+    def slope_intercept(cls, m: torch.Tensor, b: torch.Tensor) -> typing.Self:
         "Create a line in the `y = mx + b` form."
 
         return cls(m=m, b=b)

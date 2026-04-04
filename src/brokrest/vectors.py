@@ -6,17 +6,18 @@ import dataclasses as dcls
 import functools
 import math
 import operator
-from typing import Callable, Self
+import typing
+from collections import abc as cabc
 
 import numpy as np
-from numpy.typing import NDArray
+from numpy import typing as npt
 
 __all__ = ["Vec2d"]
 
 _Real = int | float
 
 
-def _binary_arithmetic_template(op: Callable[[_Real, _Real], _Real], /):
+def _binary_arithmetic_template(op: cabc.Callable[[_Real, _Real], _Real], /):
     """
     Template method for operators like +, -, *, /, // etc.
 
@@ -41,7 +42,9 @@ def _binary_arithmetic_template(op: Callable[[_Real, _Real], _Real], /):
     return method
 
 
-def flip(op: Callable[[_Real, _Real], _Real], /) -> Callable[[_Real, _Real], _Real]:
+def flip(
+    op: cabc.Callable[[_Real, _Real], _Real], /
+) -> cabc.Callable[[_Real, _Real], _Real]:
     """
     Flip left and right of the operation.
     E.g. lambda a, b: a - b would become lambda b, a: b - a
@@ -70,7 +73,7 @@ class Vec2d:
         yield self.x
         yield self.y
 
-    def __array__(self) -> NDArray:
+    def __array__(self) -> npt.NDArray:
         return np.array([self.x, self.y])
 
     __add__ = __radd__ = _binary_arithmetic_template(operator.add)
@@ -92,7 +95,7 @@ class Vec2d:
         return self.y / self.x
 
     @classmethod
-    def origin(cls) -> Self:
+    def origin(cls) -> typing.Self:
         """
         The origin point on the Cartesian plane.
         """
@@ -100,7 +103,7 @@ class Vec2d:
         return cls.cartesian(x=0, y=0)
 
     @classmethod
-    def cartesian(cls, x: float, y: float) -> Self:
+    def cartesian(cls, x: float, y: float) -> typing.Self:
         """
         Constructor to create a `Point` from cartesian coordinate.
 
@@ -115,7 +118,7 @@ class Vec2d:
         return cls(x=x, y=y)
 
     @classmethod
-    def polar(cls, radius: float, theta: float) -> Self:
+    def polar(cls, radius: float, theta: float) -> typing.Self:
         """
         Construct a point with polar coordinate representation: (R, Theta).
 

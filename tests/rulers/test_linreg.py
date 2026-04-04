@@ -4,18 +4,15 @@
 
 import pytest
 import torch
-from pytest import FixtureRequest
 
-from brokrest.rulers import LineReg
-from brokrest.rulers.linear import LineReg
-from brokrest.topos import Point
+from brokrest import rulers, topos
 
 
 @pytest.fixture
-def points() -> Point:
-    return Point(x=torch.randn(100), y=torch.randn(100))
+def points() -> topos.Point:
+    return topos.Point(x=torch.randn(100), y=torch.randn(100))
 
 
 @pytest.fixture(params=[False, True])
-def linreg(request: FixtureRequest) -> LineReg:
-    return LineReg(bias=request.param)
+def linreg(request: pytest.FixtureRequest) -> rulers.LineReg:
+    return rulers.LineReg(bias=request.param)

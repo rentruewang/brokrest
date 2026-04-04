@@ -15,8 +15,8 @@ text = "AGPL"
 
 [project.optional-dependencies]
 data = [
-    "yfinance>=1.0",
     "bokeh-sampledata>=2025.0",
+    "yahooquery>=2.4.1",
 ]
 [build-system]
 requires = ["setuptools", "wheel", "setuptools-scm"]
@@ -47,6 +47,7 @@ exclude = ["^scripts/.py$"]
 [[tool.mypy.overrides]]
 module = [
     "tensordict.*",
+    "yahooquery.*",
 ]
 ignore_missing_imports = true
 

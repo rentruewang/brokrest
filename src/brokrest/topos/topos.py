@@ -8,16 +8,17 @@ import typing
 import torch
 from bokeh import plotting
 
-from brokrest import plotting as P
-from brokrest import tds
+from brokrest.plotting import Canvas, Displayable
+from brokrest.tds import TensorClass
+
 
 if typing.TYPE_CHECKING:
-    from . import rects
+    from .rects import Box
 
 __all__ = ["Topo", "Shape"]
 
 
-class Topo(tds.TensorClass, abc.ABC):
+class Topo(TensorClass, abc.ABC):
     """
     A set of topologies.
     """
@@ -79,13 +80,13 @@ class Topo(tds.TensorClass, abc.ABC):
         return None
 
 
-class Shape(P.Displayable, Topo, abc.ABC):
+class Shape(Displayable, Topo, abc.ABC):
     """
     A topo set representing shapes that have clear boundaries.
     """
 
     @typing.override
-    def draw(self, canvas: P.Canvas, /) -> None:
+    def draw(self, canvas: Canvas, /) -> None:
         """
         Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
@@ -110,7 +111,7 @@ class Shape(P.Displayable, Topo, abc.ABC):
 
         ...
 
-    def outer(self) -> "rects.Box":
+    def outer(self) -> "Box":
         """
         Get the outer boundary of the current topology,
         s.t. we can easily filter, with vector / GPU operations,
@@ -131,7 +132,7 @@ class Shape(P.Displayable, Topo, abc.ABC):
         return outer
 
     @abc.abstractmethod
-    def _outer(self) -> "rects.Box":
+    def _outer(self) -> "Box":
         "Implementation of `outer`."
 
         ...

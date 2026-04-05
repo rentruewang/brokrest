@@ -8,16 +8,16 @@ import typing
 import torch
 from bokeh import plotting
 
-from brokrest import plotting as P
-from brokrest import tds
+from brokrest.plotting import Window
+from brokrest.tds import tensorclass
 
-from . import topos
+from .topos import Shape
 
 __all__ = ["Rect", "Box", "Segment"]
 
 
-@tds.tensorclass
-class Rect(topos.Shape, abc.ABC):
+@tensorclass
+class Rect(Shape, abc.ABC):
     """
     A tuple with 4 values.
 
@@ -37,7 +37,7 @@ class Rect(topos.Shape, abc.ABC):
     "The bottom side."
 
 
-@tds.tensorclass
+@tensorclass
 class Box(Rect):
     """
     A box with 4 sides.
@@ -100,7 +100,7 @@ class Box(Rect):
             height=self.height.numpy(),
         )
 
-    def visible(self, window: P.Window) -> torch.Tensor:
+    def visible(self, window: Window) -> torch.Tensor:
         """
         Return a boolean tensor, of whether `self` is visible in the view box or not.
 
@@ -168,7 +168,7 @@ def _segment_visible(
     return ans
 
 
-@tds.tensorclass
+@tensorclass
 class Segment(Rect):
 
     @typing.override

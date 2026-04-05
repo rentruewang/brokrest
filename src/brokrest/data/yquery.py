@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 import yahooquery as yq
 
-from brokrest import topos
+from brokrest.topos import LeftCandle
 
 __all__ = ["load"]
 
@@ -27,7 +27,7 @@ Period = typing.Literal[
 
 def load(
     symbol: str = "btc", *, interval: Interval = "1d", period: Period = "ytd"
-) -> topos.LeftCandle:
+) -> LeftCandle:
     if interval not in (ok := typing.get_args(Interval)):
         raise ValueError(f"{interval=} not in accepted values: {ok}")
 
@@ -37,7 +37,7 @@ def load(
     return _yq_load(symbol=symbol, interval=interval, period=period)
 
 
-def _yq_load(symbol: str, interval: Interval, period: Period) -> topos.LeftCandle:
+def _yq_load(symbol: str, interval: Interval, period: Period) -> LeftCandle:
     btc = yq.Ticker(symbols=symbol, asynchronous=True)
 
     df = btc.history(period=period, interval=interval)
@@ -45,7 +45,7 @@ def _yq_load(symbol: str, interval: Interval, period: Period) -> topos.LeftCandl
     if isinstance(df.index, pd.MultiIndex):
         df = df.reset_index(level=0, drop=True)
 
-    return topos.LeftCandle(
+    return LeftCandle(
         enter=torch.from_numpy(df["open"].values.astype("float32")),
         exit=torch.from_numpy(df["close"].values.astype("float32")),
         low=torch.from_numpy(df["low"].values.astype("float32")),

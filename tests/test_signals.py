@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from brokrest import signals
+from brokrest.signals import BollingerBand, Ema, Macd, Rsi, Signal
 
 
 @pytest.fixture
@@ -13,22 +13,22 @@ def data() -> torch.Tensor:
 
 @pytest.fixture
 def rsi():
-    return signals.Rsi()
+    return Rsi()
 
 
 @pytest.fixture
 def ema():
-    return signals.Ema()
+    return Ema()
 
 
 @pytest.fixture
 def bollinger():
-    return signals.BollingerBand()
+    return BollingerBand()
 
 
 @pytest.fixture
 def macd():
-    return signals.Macd()
+    return Macd()
 
 
 @pytest.fixture(
@@ -39,11 +39,11 @@ def macd():
         macd.__name__,
     ],
 )
-def signal(request: pytest.FixtureRequest) -> signals.Signal:
+def signal(request: pytest.FixtureRequest) -> Signal:
     return request.getfixturevalue(request.param)
 
 
-def test_signal_working(data: torch.Tensor, signal: signals.Signal):
+def test_signal_working(data: torch.Tensor, signal: Signal):
     out = signal(data)
     assert isinstance(out, torch.Tensor)
     assert len(out) == len(out)

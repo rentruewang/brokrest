@@ -11,9 +11,10 @@ from collections import abc as cabc
 import torch
 from bokeh import plotting
 
-from brokrest import tds
+from brokrest.tds import tensorclass
 
-from . import rects, topos
+from .rects import Box
+from .topos import Shape, Topo
 
 __all__ = ["Vector", "Point"]
 
@@ -21,8 +22,8 @@ __all__ = ["Vector", "Point"]
 type ElemWiseRhs = "numbers.Number | torch.Tensor | Vector"
 
 
-@tds.tensorclass
-class Vector(topos.Topo, abc.ABC):
+@tensorclass
+class Vector(Topo, abc.ABC):
 
     x: torch.Tensor
     "The x element."
@@ -113,13 +114,13 @@ def _element_wise(
         raise TypeError(f"Unrecognized types {type(lhs)=}, {type(rhs)=}.")
 
 
-@tds.tensorclass
-class Point(Vector, topos.Shape):
+@tensorclass
+class Point(Vector, Shape):
     "A collection of points."
 
     @typing.override
-    def _outer(self) -> rects.Box:
-        return rects.Box(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
+    def _outer(self) -> Box:
+        return Box(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
 
     @typing.override
     def _draw(self, figure: plotting.figure, /) -> None:

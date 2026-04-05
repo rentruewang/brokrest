@@ -8,8 +8,8 @@ import pytest
 import torch
 from numpy import random
 
-from brokrest import topos
-from brokrest.topos import candles
+from brokrest.topos import BothCandle, Candle, LeftCandle
+from brokrest.topos.candles import dataframe_factory
 
 
 def _tensor_chart():
@@ -22,10 +22,8 @@ def _tensor_chart():
     low = torch.zeros(100)
     high = torch.ones(100)
 
-    yield topos.BothCandle(
-        enter=enter, exit=exit, start=start, end=end, low=low, high=high
-    )
-    yield topos.LeftCandle(enter=enter, exit=exit, start=start, low=low, high=high)
+    yield BothCandle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
+    yield LeftCandle(enter=enter, exit=exit, start=start, low=low, high=high)
 
 
 def _dataframe_chart():
@@ -36,7 +34,7 @@ def _dataframe_chart():
     low = np.zeros(100)
     high = np.ones(100)
 
-    yield candles.dataframe_factory(
+    yield dataframe_factory(
         pd.DataFrame(
             {
                 "enter": enter,
@@ -48,7 +46,7 @@ def _dataframe_chart():
             }
         )
     )
-    yield candles.dataframe_factory(
+    yield dataframe_factory(
         pd.DataFrame(
             {
                 "enter": enter,
@@ -67,28 +65,28 @@ def _chart():
 
 
 @pytest.fixture(params=_chart())
-def chart(request: pytest.FixtureRequest) -> topos.Candle:
+def chart(request: pytest.FixtureRequest) -> Candle:
     return request.param
 
 
-def test_chart_is_1d(chart: topos.Candle):
+def test_chart_is_1d(chart: Candle):
     assert chart.ndim == 1
 
 
-def test_chart_is_sorted(chart: topos.Candle):
+def test_chart_is_sorted(chart: Candle):
     start = chart.left.tolist()
     assert list(start) == sorted(start)
 
 
-def test_chart_index(chart: topos.Candle):
+def test_chart_index(chart: Candle):
     "Test chart's index access"
 
     assert len(chart) == 100
-    assert isinstance(chart[10], topos.Candle)
-    assert isinstance(chart[99], topos.Candle)
-    assert isinstance(chart[0], topos.Candle)
+    assert isinstance(chart[10], Candle)
+    assert isinstance(chart[99], Candle)
+    assert isinstance(chart[0], Candle)
     assert chart[0].ndim == 0
 
-    assert isinstance(chart[:10], topos.Candle)
+    assert isinstance(chart[:10], Candle)
     assert chart[:10].ndim == 1
     assert len(chart[:10]) == 10

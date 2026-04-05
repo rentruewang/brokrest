@@ -6,15 +6,17 @@ import typing
 
 import torch
 
-from brokrest import plotting, tds
+from brokrest.plotting import Canvas, Displayable
+from brokrest.tds import tensorclass
 
-from . import topos, vecs
+from .topos import Topo
+from .vecs import Point
 
 __all__ = ["Line"]
 
 
-@tds.tensorclass
-class Line(plotting.Displayable, topos.Topo):
+@tensorclass
+class Line(Displayable, Topo):
     """
     A set of lines. Represented as `y = mx + b` (slope intercept form).
     """
@@ -29,7 +31,7 @@ class Line(plotting.Displayable, topos.Topo):
 
         return self.m[..., None] * x[None, ...] + self.b[..., None]
 
-    def subs(self, points: vecs.Point) -> torch.Tensor:
+    def subs(self, points: Point) -> torch.Tensor:
         """
         Returns mx + b as a self.ndim + 1 matrix `R`.
         `R_ij = m_i x_j + b_i - y_j.`
@@ -38,7 +40,7 @@ class Line(plotting.Displayable, topos.Topo):
         return self.apply(points.x) - points.y[None, ...]
 
     @typing.override
-    def draw(self, canvas: plotting.Canvas) -> None:
+    def draw(self, canvas: Canvas) -> None:
         raise NotImplementedError
 
     @classmethod

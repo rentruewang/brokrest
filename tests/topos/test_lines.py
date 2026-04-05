@@ -7,22 +7,22 @@ import typing
 import pytest
 import torch
 
-from brokrest import topos
+from brokrest.topos import Line, Point
 
 
 class _LinearEqSolve(typing.NamedTuple):
-    eq: topos.Line
-    point: topos.Point
+    eq: Line
+    point: Point
 
 
 def _solve_cases():
     # Test intercept forms
     yield _LinearEqSolve(
-        eq=topos.Line.intercept(
+        eq=Line.intercept(
             a=torch.tensor(5),
             b=torch.tensor(4),
         ),
-        point=topos.Point(
+        point=Point(
             x=torch.tensor([5, 0]),
             y=torch.tensor([0, 4]),
         ),
@@ -30,11 +30,11 @@ def _solve_cases():
 
     # Test slope-intercept
     yield _LinearEqSolve(
-        eq=topos.Line.slope_intercept(
+        eq=Line.slope_intercept(
             m=torch.tensor(9),
             b=torch.tensor(3),
         ),
-        point=topos.Point(
+        point=Point(
             x=torch.tensor([0, 1]),
             y=torch.tensor([3, 12]),
         ),

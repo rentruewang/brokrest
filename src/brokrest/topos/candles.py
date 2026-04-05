@@ -11,9 +11,10 @@ import pandas as pd
 import torch
 from bokeh import plotting
 
-from brokrest import tds
+from brokrest.tds import tensorclass
 
-from . import rects, topos
+from .rects import Box
+from .topos import Shape
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
@@ -54,8 +55,8 @@ class CandleLooks:
         )
 
 
-@tds.tensorclass
-class Candle(topos.Shape, abc.ABC):
+@tensorclass
+class Candle(Shape, abc.ABC):
     """
     A candle on the candle chart
     """
@@ -184,7 +185,7 @@ class Candle(topos.Shape, abc.ABC):
         return CandleLooks()
 
 
-@tds.tensorclass
+@tensorclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
@@ -233,14 +234,14 @@ class BothCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return rects.Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
     def sort_key(self) -> torch.Tensor:
         return self.start
 
 
-@tds.tensorclass
+@tensorclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).
@@ -277,7 +278,7 @@ class LeftCandle(Candle):
 
     @typing.override
     def _outer(self):
-        return rects.Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
+        return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
     def sort_key(self) -> torch.Tensor:

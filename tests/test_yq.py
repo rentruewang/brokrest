@@ -2,14 +2,14 @@
 
 import pytest
 
-from brokrest import topos
-from brokrest.data import yquery
+from brokrest.data.yquery import load
+from brokrest.topos import Candle
 
 
 @pytest.fixture
 def default_candles():
-    return yquery.load()
+    return load()
 
 
 def test_yquery(default_candles):
-    assert isinstance(default_candles, topos.Candle)
+    assert isinstance(default_candles, Candle)

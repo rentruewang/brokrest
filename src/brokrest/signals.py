@@ -102,10 +102,20 @@ class BollingerBand(Signal):
 
 
 def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    if len(a) < len(b):
+        a, b = b, a
+
+    return _convolve(a, b)
+
+
+def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    assert len(a) >= len(b)
     assert a.ndim == 1 and b.ndim == 1
 
-    padded = F.pad(a, (len(b) - 1, 0))  # pad only on the left (causal)
+    # pad only on the left (causal)
+    padded = F.pad(a, (len(b) - 1, 0))
 
-    windows = padded.unfold(0, len(b), 1)  # shape: (len(longer), k_len)
+    # shape: (len(longer), k_len)
+    win_a = padded.unfold(0, len(b), 1)
 
-    return (windows * b).sum(dim=1)
+    return torch.einsum("wb,b->w", win_a, b)

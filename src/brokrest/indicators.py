@@ -110,12 +110,15 @@ def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     assert len(a) >= len(b)
-    assert a.ndim == 1 and b.ndim == 1
+
+    if a.ndim != b.ndim:
+        raise ValueError(
+            f"Both arrays should have the same ndim. {a.ndim=}, {b.ndim=}."
+        )
 
     # pad only on the left (causal)
-    padded = F.pad(a, (len(b) - 1, 0))
-
     # shape: (len(longer), k_len)
+    padded = F.pad(a, (len(b) - 1, 0))
     rolling_a = padded.unfold(0, len(b), 1)
 
-    return torch.einsum("rb,b->r", rolling_a, b)
+    return (rolling_a * b.unsqueeze(0)).sum(dim=1)

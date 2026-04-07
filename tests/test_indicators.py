@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from brokrest.signals import BollingerBand, Ema, Macd, Rsi, Signal
+from brokrest.indicators import BollingerBand, Ema, Indicator, Macd, Rsi, convolve
 
 
 @pytest.fixture
@@ -39,11 +39,17 @@ def macd():
         macd.__name__,
     ],
 )
-def signal(request: pytest.FixtureRequest) -> Signal:
+def signal(request: pytest.FixtureRequest) -> Indicator:
     return request.getfixturevalue(request.param)
 
 
-def test_signal_working(data: torch.Tensor, signal: Signal):
+def test_signal_working(data: torch.Tensor, signal: Indicator):
     out = signal(data)
     assert isinstance(out, torch.Tensor)
     assert len(out) == len(out)
+
+
+def test_convolve_1d():
+    a = torch.randn(9)
+    b = torch.randn(10)
+    assert convolve(a, b).ndim == 1

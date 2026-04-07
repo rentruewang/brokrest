@@ -4,12 +4,11 @@ import dataclasses as dcls
 import typing
 
 import torch
-from torch.nn import functional as F
 
-__all__ = ["Signal", "Rsi", "Ema", "Macd", "BollingerBand"]
+__all__ = ["Indicator", "Rsi", "Ema", "Macd", "BollingerBand"]
 
 
-class Signal(typing.Protocol):
+class Indicator(typing.Protocol):
     """
     `Signal` is a callable that converts the raw datapoint into some signals.
     It must have the same number of datapoints, matching the original input.
@@ -19,7 +18,7 @@ class Signal(typing.Protocol):
 
 
 @dcls.dataclass(frozen=True)
-class Rsi(Signal):
+class Rsi(Indicator):
     window: int = 14
 
     def __post_init__(self):
@@ -40,7 +39,7 @@ class Rsi(Signal):
 
 
 @dcls.dataclass
-class Ema(Signal):
+class Ema(Indicator):
     decay: float = 0.9
 
     def __post_init__(self):
@@ -56,7 +55,7 @@ class Ema(Signal):
 
 
 @dcls.dataclass
-class Macd(Signal):
+class Macd(Indicator):
     """
     MACD signal is just EMA_fast - EMA_slow.
     """
@@ -70,7 +69,7 @@ class Macd(Signal):
 
 
 @dcls.dataclass(frozen=True)
-class BollingerBand(Signal):
+class BollingerBand(Indicator):
     """
     Bollinger band is a lower, middle, upper band.
     """
@@ -102,10 +101,21 @@ class BollingerBand(Signal):
 
 
 def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    assert a.ndim == 1 and b.ndim == 1
+    if len(a) < len(b):
+        a, b = b, a
 
-    padded = F.pad(a, (len(b) - 1, 0))  # pad only on the left (causal)
+    return _convolve(a, b)
 
-    windows = padded.unfold(0, len(b), 1)  # shape: (len(longer), k_len)
 
-    return (windows * b).sum(dim=1)
+def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    assert len(a) >= len(b)
+
+    if a.ndim != 1 or b.ndim != 1:
+        raise ValueError(f"Both arrays should have ndim=1. {a.ndim=}, {b.ndim=}.")
+
+    # pad only on the left (causal)
+    padded = torch.cat([torch.zeros([len(b) - 1, *a.shape[1:]]), a])
+    # shape: (len(longer), *b.shape)
+    rolling_a = padded.unfold(0, len(b), 1)
+
+    return (rolling_a * b.unsqueeze(0)).sum(dim=1)

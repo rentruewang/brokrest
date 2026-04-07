@@ -11,7 +11,6 @@ from bokeh import plotting
 from brokrest.plotting import Canvas, Displayable
 from brokrest.tds import TensorClass
 
-
 if typing.TYPE_CHECKING:
     from .rects import Box
 

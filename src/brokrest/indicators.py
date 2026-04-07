@@ -4,7 +4,6 @@ import dataclasses as dcls
 import typing
 
 import torch
-from torch.nn import functional as F
 
 __all__ = ["Indicator", "Rsi", "Ema", "Macd", "BollingerBand"]
 
@@ -111,14 +110,12 @@ def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     assert len(a) >= len(b)
 
-    if a.ndim != b.ndim:
-        raise ValueError(
-            f"Both arrays should have the same ndim. {a.ndim=}, {b.ndim=}."
-        )
+    if a.ndim != 1 or b.ndim != 1:
+        raise ValueError(f"Both arrays should have ndim=1. {a.ndim=}, {b.ndim=}.")
 
     # pad only on the left (causal)
-    # shape: (len(longer), k_len)
-    padded = F.pad(a, (len(b) - 1, 0))
+    padded = torch.cat([torch.zeros([len(b) - 1, *a.shape[1:]]), a])
+    # shape: (len(longer), *b.shape)
     rolling_a = padded.unfold(0, len(b), 1)
 
     return (rolling_a * b.unsqueeze(0)).sum(dim=1)

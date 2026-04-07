@@ -38,14 +38,13 @@ class LineReg(Ruler):
         return Line(m=m, b=b)
 
 
-def pinned_linear_regression(points: Point, *pin: int) -> Line:
+def pinned_linear_regression(points: Point, pins: list[int]) -> Line:
     """
     Linear regression on points, with some pins applied.
     Each pin would trigger a new linear regression (in parallel).
     """
 
-    pin_idx = list(pin)
-    point = points[pin_idx]
+    point = points[pins]
     points = points[..., None] - point[None, ...]
     linreg = LineReg(bias=False)
     line = linreg(points)
@@ -72,7 +71,7 @@ def shift_line_percentage(line: Line, point: Point, ratio: float) -> Line:
 def boundary_rotate_linereg(points: Point, /) -> Line:
     line = boundary_linereg(points)
     argmin, argmax = arg_minmax_for_line(line, points)
-    return pinned_linear_regression(points, argmin, argmax)
+    return pinned_linear_regression(points, [argmin, argmax])
 
 
 def boundary_linereg(points: Point, /) -> Line:

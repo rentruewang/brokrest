@@ -127,12 +127,20 @@ class Candle(Shape, abc.ABC):
     @property
     def inc(self) -> torch.Tensor:
         "Is increasing."
-        return (self.exit - self.enter) >= 0
+
+        return self.direction >= 0
 
     @property
     def dec(self) -> torch.Tensor:
         "Is decreasing."
-        return (self.exit - self.enter) < 0
+
+        return self.direction < 0
+
+    @property
+    def direction(self):
+        "The direction for each candle. 1 for up and -1 for down."
+
+        return (self.exit - self.enter).sign()
 
     @typing.override
     def _draw(self, figure: plotting.figure):

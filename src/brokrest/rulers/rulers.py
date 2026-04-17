@@ -26,7 +26,7 @@ class Ruler(typing.Protocol):
             the output can represent multiple homogenius topologies.
         """
 
-        ...
+        raise NotImplementedError
 
 
 class PencilCase(typing.Protocol):

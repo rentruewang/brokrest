@@ -101,28 +101,28 @@ class Candle(Shape, abc.ABC):
     def center(self) -> torch.Tensor:
         "The time at which this candle occurs."
 
-        ...
+        raise NotImplementedError
 
     @property
     @abc.abstractmethod
     def max_width(self) -> float:
         "The maximum width this candle can occupy."
 
-        ...
+        raise NotImplementedError
 
     @property
     @abc.abstractmethod
     def left(self) -> torch.Tensor:
         "The left side of the candle."
 
-        ...
+        raise NotImplementedError
 
     @property
     @abc.abstractmethod
     def right(self) -> torch.Tensor:
         "The right side of the candle."
 
-        ...
+        raise NotImplementedError
 
     @property
     def inc(self) -> torch.Tensor:

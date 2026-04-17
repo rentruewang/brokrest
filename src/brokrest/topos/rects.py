@@ -5,6 +5,7 @@
 import abc
 import typing
 
+import shapely
 import torch
 from bokeh import plotting
 
@@ -90,6 +91,14 @@ class Box(Rect):
     @typing.override
     def _outer(self):
         return self
+
+    def shapely(self):
+        return shapely.box(
+            xmin=self.left.numpy(),
+            xmax=self.right.numpy(),
+            ymin=self.bottom.numpy(),
+            ymax=self.top.numpy(),
+        )
 
     @typing.override
     def _draw(self, figure: plotting.figure):

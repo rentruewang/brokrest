@@ -4,8 +4,10 @@
 
 import abc
 import typing
+from collections import abc as cabc
 
 import numpy as np
+import tensordict as td
 import torch
 from bokeh import plotting
 from numpy import typing as npt
@@ -16,7 +18,7 @@ from brokrest.tds import TensorClass
 if typing.TYPE_CHECKING:
     from .rects import Box
 
-__all__ = ["Topo", "Shape"]
+__all__ = ["Topo"]
 
 
 class ArrayOf[T](typing.Protocol):
@@ -28,36 +30,42 @@ class ArrayOf[T](typing.Protocol):
     def __getitem__(self, idx: slice | list[int] | npt.NDArray[np.int_]) -> T: ...
 
 
-class Topo(TensorClass, abc.ABC):
+class Topo(TensorClass, Displayable, abc.ABC):
     """
     A set of topologies.
+
+    This is backed by `td.tensorclass`.
+    If `.ndim == 0`, this is a single instance and you can call `item()` on it.
     """
 
     def __post_init__(self) -> None:
-        # This is s.t. we don't need to manually set `batch_size` or `shape`.
-        self.auto_batch_size_()
+        self._setup_batch_size()
+        self._sort_by_value()
 
-        self._ensure_shapes()
-        self._sort_by_key()
+    def _setup_batch_size(self):
+        # Make all equal size.
+        _ = self.auto_batch_size_()
 
-    def _ensure_shapes(self) -> None:
         # Check if shapes are valid.
-
-        auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
-        if auto_shape != self.batch_size:
+        shapes = [t.shape for t in self.values()]
+        auto_shape = torch.broadcast_shapes(*shapes)
+        if auto_shape != self.shape:
             raise ValueError(
-                f"Discovered batch size: {self.batch_size} "
+                f"Discovered batch size: {self.shape} "
                 f"should match the broadcasted shape: {auto_shape}."
             )
 
     @typing.no_type_check
-    def _sort_by_key(self) -> None:
-        "Sort according to `argsort`."
+    def _sort_by_value(self) -> None:
+        "Sort according to `ordering`."
 
-        ordering = self.sort_key()
+        if self.ndim > 1:
+            raise NotImplementedError("Ndim > 1 is not yet supported.")
+
+        ordering = self.ordering()
 
         # Do nothing if `self.ordering() is None`, or if it's an instance not sequence.
-        if ordering is None or self.ndim == 0:
+        if ordering is NotImplemented or self.ndim == 0:
             return
 
         if len(ordering) != len(self):
@@ -75,7 +83,7 @@ class Topo(TensorClass, abc.ABC):
         for key in self.keys():
             setattr(self, key, getattr(self, key)[ordered_index])
 
-    def sort_key(self) -> torch.Tensor | None:
+    def ordering(self) -> torch.Tensor:
         """
         Return the argsort of the current `Topo`.
 
@@ -87,13 +95,7 @@ class Topo(TensorClass, abc.ABC):
             or `NotImplemented` if ordering doesn't exist.
         """
 
-        return None
-
-
-class Shape(Displayable, Topo, abc.ABC):
-    """
-    A topo set representing shapes that have clear boundaries.
-    """
+        return NotImplemented
 
     @typing.override
     def draw(self, canvas: Canvas, /) -> None:
@@ -131,9 +133,11 @@ class Shape(Displayable, Topo, abc.ABC):
             The viewport of the underlying boxes.
         """
 
-        outer = self._outer()
+        # Perhaps this is not defined.
+        if (outer := self._outer()) is NotImplemented:
+            return NotImplemented
 
-        if (ob := outer.batch_size) != (sb := self.batch_size):
+        if (ob := outer.shape) != (sb := self.shape):
             raise ValueError(
                 f"The batch size yielded from `outer`'s implementation: {ob} "
                 f"is not the same as self: {sb}."
@@ -141,14 +145,24 @@ class Shape(Displayable, Topo, abc.ABC):
 
         return outer
 
-    @abc.abstractmethod
     def _outer(self) -> "Box":
         "Implementation of `outer`."
 
-        raise NotImplementedError
+        return NotImplemented
+
+    def tensor(self) -> torch.Tensor:
+        values = list(self.values())
+        return torch.stack(values)
+
+    @classmethod
+    def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
+        broadcasted = _broadcast_tensor_dict(items)
+        return cls(**broadcasted)
 
 
-def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+def _broadcast_tensor_dict(
+    items: cabc.Mapping[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
     """
     Broadcast the tensors in a mapping from string to tensors to the same shape.
     """
@@ -156,9 +170,3 @@ def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Ten
     keys = list(items.keys())
     vals = [items[k] for k in keys]
     return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
-
-
-def _list_of_str(obj: object) -> typing.TypeIs[list[str]]:
-    "Check if `obj` is `list[str]`. Expensive."
-
-    return isinstance(obj, list) and all(isinstance(elem, str) for elem in obj)

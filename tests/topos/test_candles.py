@@ -93,7 +93,7 @@ def test_chart_index(chart: Candle):
 
 
 def test_boundary(chart: Candle):
-    convex = chart.convex_hull()
+    convex = chart.convex()
     assert convex is not None
 
 

@@ -4,7 +4,7 @@
 
 import abc
 import typing
-
+import tensordict as td
 import shapely
 import torch
 from bokeh import plotting
@@ -12,13 +12,13 @@ from bokeh import plotting
 from brokrest.plotting import Window
 from brokrest.tds import tensorclass
 
-from .topos import Shape
+from .topos import Topo
 
 __all__ = ["Rect", "Box", "Segment"]
 
 
 @tensorclass
-class Rect(Shape, abc.ABC):
+class Rect(Topo, abc.ABC):
     """
     A tuple with 4 values.
 
@@ -144,13 +144,13 @@ def _segment_visible(
     start: torch.Tensor, end: torch.Tensor, x: float, y: float
 ) -> torch.Tensor:
     """
-    Try to see if segment [start, end] is visible in viewport [x, y], vectorized.s
+    Try to see if segment [start, end] is visible in viewport [x, y], vectorized.
     """
 
     result_shape = start.shape
     assert end.shape == start.shape
 
-    def _ordered(*ordered: torch.Tensor):
+    def is_ordered(*ordered: torch.Tensor):
         "The tensors are ordered."
 
         answer = torch.ones(result_shape).bool()
@@ -166,16 +166,16 @@ def _segment_visible(
     ans = torch.zeros(result_shape).bool()
 
     # start - x - end - y
-    ans |= _ordered(start, x_tensor, end, y_tensor)
+    ans |= is_ordered(start, x_tensor, end, y_tensor)
 
     # start - x - y - end
-    ans |= _ordered(start, x_tensor, y_tensor, end)
+    ans |= is_ordered(start, x_tensor, y_tensor, end)
 
     # x - start - y - end
-    ans |= _ordered(x_tensor, start, y_tensor, end)
+    ans |= is_ordered(x_tensor, start, y_tensor, end)
 
     # x - start - end - y
-    ans |= _ordered(x_tensor, start, end, y_tensor)
+    ans |= is_ordered(x_tensor, start, end, y_tensor)
 
     return ans
 
@@ -184,20 +184,24 @@ def _segment_visible(
 class Segment(Rect):
 
     @typing.override
-    def sort_key(self) -> torch.Tensor:
-        return torch.argsort(self.x_0)
+    def ordering(self) -> torch.Tensor:
+        return self.x_0
 
     @property
-    def start(self) -> torch.Tensor:
+    def start(self):
         "The starting point of a segment."
 
-        return torch.hstack([self.x_0, self.y_0])
+        from .lines import Point
+
+        return Point(x=self.x_0, y=self.y_0)
 
     @property
-    def end(self) -> torch.Tensor:
+    def end(self):
         "The ending point of a segment."
 
-        return torch.hstack([self.x_1, self.y_1])
+        from .lines import Point
+
+        return Point(x=self.x_1, y=self.y_1)
 
     @property
     def left(self):
@@ -220,6 +224,9 @@ class Segment(Rect):
     def top(self):
         "The `max(y)`."
         return torch.maximum(self.y_0, self.y_1)
+
+    def points(self):
+        return td.cat([self.start, self.end])
 
     @typing.override
     def _outer(self):

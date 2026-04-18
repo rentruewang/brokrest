@@ -6,7 +6,6 @@ import abc
 import typing
 
 import numpy as np
-import shapely
 import torch
 from bokeh import plotting
 from numpy import typing as npt
@@ -27,18 +26,6 @@ class ArrayOf[T](typing.Protocol):
     def __getitem__(self, idx: int) -> T: ...
     @typing.overload
     def __getitem__(self, idx: slice | list[int] | npt.NDArray[np.int_]) -> T: ...
-
-
-@typing.runtime_checkable
-class ShapelyCompatible(typing.Protocol):
-    def shapely(self) -> ArrayOf[shapely.Geometry]:
-        """
-        Return an array of shapely.
-
-        By default, shapely's vectorized operations would return numpy array of shapely shapes.
-        """
-
-        ...
 
 
 class Topo(TensorClass, abc.ABC):

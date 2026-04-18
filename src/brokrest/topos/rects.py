@@ -92,13 +92,16 @@ class Box(Rect):
     def _outer(self):
         return self
 
-    def shapely(self):
+    def boundary(self):
         return shapely.box(
             xmin=self.left.numpy(),
             xmax=self.right.numpy(),
             ymin=self.bottom.numpy(),
             ymax=self.top.numpy(),
         )
+
+    def convex_hull(self):
+        return shapely.convex_hull(self.boundary())
 
     @typing.override
     def _draw(self, figure: plotting.figure):

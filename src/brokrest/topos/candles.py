@@ -8,6 +8,7 @@ import functools
 import typing
 
 import pandas as pd
+import shapely
 import torch
 from bokeh import plotting
 
@@ -142,6 +143,25 @@ class Candle(Shape, abc.ABC):
 
         return (self.exit - self.enter).sign()
 
+    @typing.no_type_check
+    def boundary(self, enter_exit: bool = True):
+        if enter_exit:
+            top = torch.where(self.inc, self.exit, self.enter)
+            bottom = torch.where(self.dec, self.exit, self.enter)
+        else:
+            top = self.high
+            bottom = self.low
+
+        top_coords = torch.stack([top, self.center]).T
+        bottom_coords = torch.stack([bottom, self.center]).T
+
+        top_line = shapely.linestrings(top_coords.numpy())
+        bottom_line = shapely.linestrings(bottom_coords.numpy())
+        return shapely.geometrycollections([top_line, bottom_line])
+
+    def convex_hull(self):
+        return shapely.convex_hull(self.boundary())
+
     @typing.override
     def _draw(self, figure: plotting.figure):
         # The center bars for the candles.
@@ -191,6 +211,26 @@ class Candle(Shape, abc.ABC):
         """
 
         return CandleLooks()
+
+    def where(self, after: float, before: float):
+        """
+        Select the candles in the range `[after, before]`.
+
+        Args:
+            after: Select the candles after this time.
+            before: Select the candles before this time.
+
+        Raises:
+            ValueError: If `before < after`.
+        """
+
+        if before < after:
+            raise ValueError(
+                f"Where selects candles in the range [{after}, {before}], but {before} < {after}."
+            )
+
+        selected = (self.center >= before) & (self.center <= after)
+        return self[selected]
 
 
 @tensorclass

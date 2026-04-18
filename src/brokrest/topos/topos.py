@@ -59,6 +59,9 @@ class Topo(TensorClass, Displayable, abc.ABC):
     def _sort_by_value(self) -> None:
         "Sort according to `ordering`."
 
+        if self.ndim > 1:
+            raise NotImplementedError("Ndim > 1 is not yet supported.")
+
         ordering = self.ordering()
 
         # Do nothing if `self.ordering() is None`, or if it's an instance not sequence.

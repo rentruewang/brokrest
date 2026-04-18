@@ -4,7 +4,7 @@
 
 import abc
 import typing
-
+import tensordict as td
 import shapely
 import torch
 from bokeh import plotting
@@ -224,6 +224,9 @@ class Segment(Rect):
     def top(self):
         "The `max(y)`."
         return torch.maximum(self.y_0, self.y_1)
+
+    def points(self):
+        return td.cat([self.start, self.end])
 
     @typing.override
     def _outer(self):

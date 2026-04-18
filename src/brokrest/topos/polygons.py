@@ -50,5 +50,5 @@ class Polygon(Topo):
         if len(vertices) == 1:
             batch = vertices[0]
         else:
-            batch = td.stack(vertices)
+            batch = td.cat(vertices)
         return cls(batch)

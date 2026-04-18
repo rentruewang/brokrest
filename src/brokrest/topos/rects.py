@@ -144,13 +144,13 @@ def _segment_visible(
     start: torch.Tensor, end: torch.Tensor, x: float, y: float
 ) -> torch.Tensor:
     """
-    Try to see if segment [start, end] is visible in viewport [x, y], vectorized.s
+    Try to see if segment [start, end] is visible in viewport [x, y], vectorized.
     """
 
     result_shape = start.shape
     assert end.shape == start.shape
 
-    def _ordered(*ordered: torch.Tensor):
+    def is_ordered(*ordered: torch.Tensor):
         "The tensors are ordered."
 
         answer = torch.ones(result_shape).bool()
@@ -166,16 +166,16 @@ def _segment_visible(
     ans = torch.zeros(result_shape).bool()
 
     # start - x - end - y
-    ans |= _ordered(start, x_tensor, end, y_tensor)
+    ans |= is_ordered(start, x_tensor, end, y_tensor)
 
     # start - x - y - end
-    ans |= _ordered(start, x_tensor, y_tensor, end)
+    ans |= is_ordered(start, x_tensor, y_tensor, end)
 
     # x - start - y - end
-    ans |= _ordered(x_tensor, start, y_tensor, end)
+    ans |= is_ordered(x_tensor, start, y_tensor, end)
 
     # x - start - end - y
-    ans |= _ordered(x_tensor, start, end, y_tensor)
+    ans |= is_ordered(x_tensor, start, end, y_tensor)
 
     return ans
 

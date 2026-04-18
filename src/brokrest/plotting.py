@@ -83,4 +83,4 @@ class Displayable(typing.Protocol):
             canvas: Canvas to invoke. Should be invoked sequentially.
         """
 
-        ...
+        raise NotImplementedError

@@ -90,3 +90,13 @@ def test_chart_index(chart: Candle):
     assert isinstance(chart[:10], Candle)
     assert chart[:10].ndim == 1
     assert len(chart[:10]) == 10
+
+
+def test_boundary(chart: Candle):
+    convex = chart.convex_hull()
+    assert convex is not None
+
+
+def test_where(chart: Candle):
+    selected = chart.where(0, 1)
+    assert isinstance(selected, Candle)

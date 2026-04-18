@@ -5,14 +5,44 @@
 import typing
 
 import torch
+from bokeh import plotting
 
 from brokrest.plotting import Canvas, Displayable
 from brokrest.tds import tensorclass
 
-from .topos import Topo
-from .vecs import Point
+from .rects import Box
+from .topos import Shape, Topo
 
-__all__ = ["Line"]
+__all__ = ["Line", "Point"]
+
+
+@tensorclass
+class Point(Shape, Topo):
+    "A collection of points."
+
+    x: torch.Tensor
+    "The x element."
+
+    y: torch.Tensor
+    "The y element."
+
+    @typing.override
+    def _outer(self) -> Box:
+        return Box(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
+
+    def unit(self) -> typing.Self:
+        return self / self.length
+
+    @property
+    def length(self) -> float:
+        return (self.x**2 + self.y**2).sum().item() ** 0.5
+
+    @typing.override
+    def _draw(self, figure: plotting.figure, /) -> None:
+        _ = figure.scatter(
+            x=self.x.numpy(),
+            y=self.y.numpy(),
+        )
 
 
 @tensorclass

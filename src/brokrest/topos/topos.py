@@ -5,8 +5,10 @@
 import abc
 import typing
 
+import numpy as np
 import torch
 from bokeh import plotting
+from numpy import typing as npt
 
 from brokrest.plotting import Canvas, Displayable
 from brokrest.tds import TensorClass
@@ -15,6 +17,15 @@ if typing.TYPE_CHECKING:
     from .rects import Box
 
 __all__ = ["Topo", "Shape"]
+
+
+class ArrayOf[T](typing.Protocol):
+    def __len__(self) -> int: ...
+
+    @typing.overload
+    def __getitem__(self, idx: int) -> T: ...
+    @typing.overload
+    def __getitem__(self, idx: slice | list[int] | npt.NDArray[np.int_]) -> T: ...
 
 
 class Topo(TensorClass, abc.ABC):
@@ -108,7 +119,7 @@ class Shape(Displayable, Topo, abc.ABC):
             figure: A `bokeh` figure.
         """
 
-        ...
+        raise NotImplementedError
 
     def outer(self) -> "Box":
         """
@@ -134,7 +145,7 @@ class Shape(Displayable, Topo, abc.ABC):
     def _outer(self) -> "Box":
         "Implementation of `outer`."
 
-        ...
+        raise NotImplementedError
 
 
 def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:

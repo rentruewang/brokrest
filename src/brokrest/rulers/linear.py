@@ -38,6 +38,7 @@ class LineReg(Ruler):
         return Line(m=m, b=b)
 
 
+@typing.no_type_check
 def pinned_linear_regression(points: Point, pins: list[int]) -> Line:
     """
     Linear regression on points, with some pins applied.

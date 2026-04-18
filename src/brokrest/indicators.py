@@ -113,7 +113,7 @@ def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     if a.ndim != 1 or b.ndim != 1:
         raise ValueError(f"Both arrays should have ndim=1. {a.ndim=}, {b.ndim=}.")
 
-    # pad only on the left (causal)
+    # Pad only on the left (causal).
     padded = torch.cat([torch.zeros([len(b) - 1, *a.shape[1:]]), a])
     # shape: (len(longer), *b.shape)
     rolling_a = padded.unfold(0, len(b), 1)

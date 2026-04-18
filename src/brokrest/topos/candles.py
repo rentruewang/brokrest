@@ -144,7 +144,7 @@ class Candle(Shape, abc.ABC):
         return (self.exit - self.enter).sign()
 
     @typing.no_type_check
-    def boundary(self, enter_exit: bool = True):
+    def convex(self, enter_exit: bool = True):
         if enter_exit:
             top = torch.where(self.inc, self.exit, self.enter)
             bottom = torch.where(self.dec, self.exit, self.enter)
@@ -157,12 +157,9 @@ class Candle(Shape, abc.ABC):
         top_coords = torch.stack([top, self.center]).T
         bottom_coords = torch.stack([bottom, self.center]).T
 
-        top_line = shapely.linestrings(top_coords.numpy())
-        bottom_line = shapely.linestrings(bottom_coords.numpy())
-        return shapely.geometrycollections([top_line, bottom_line])
-
-    def convex_hull(self):
-        return shapely.convex_hull(self.boundary())
+        top_line = shapely.LineString(top_coords.numpy())
+        bottom_line = shapely.LineString(bottom_coords.numpy())
+        return shapely.convex_hull([top_line, bottom_line])
 
     @typing.override
     def _draw(self, figure: plotting.figure):

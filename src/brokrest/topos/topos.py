@@ -16,7 +16,7 @@ from brokrest.tds import TensorClass
 if typing.TYPE_CHECKING:
     from .rects import Box
 
-__all__ = ["Topo", "Shape"]
+__all__ = ["Topo"]
 
 
 class ArrayOf[T](typing.Protocol):
@@ -28,7 +28,7 @@ class ArrayOf[T](typing.Protocol):
     def __getitem__(self, idx: slice | list[int] | npt.NDArray[np.int_]) -> T: ...
 
 
-class Topo(TensorClass, abc.ABC):
+class Topo(TensorClass, Displayable, abc.ABC):
     """
     A set of topologies.
     """
@@ -89,12 +89,6 @@ class Topo(TensorClass, abc.ABC):
 
         return None
 
-
-class Shape(Displayable, Topo, abc.ABC):
-    """
-    A topo set representing shapes that have clear boundaries.
-    """
-
     @typing.override
     def draw(self, canvas: Canvas, /) -> None:
         """
@@ -131,7 +125,9 @@ class Shape(Displayable, Topo, abc.ABC):
             The viewport of the underlying boxes.
         """
 
-        outer = self._outer()
+        # Perhaps this is not defined.
+        if (outer := self._outer()) is NotImplemented:
+            return NotImplemented
 
         if (ob := outer.batch_size) != (sb := self.batch_size):
             raise ValueError(
@@ -141,11 +137,10 @@ class Shape(Displayable, Topo, abc.ABC):
 
         return outer
 
-    @abc.abstractmethod
     def _outer(self) -> "Box":
         "Implementation of `outer`."
 
-        raise NotImplementedError
+        return NotImplemented
 
 
 def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -156,9 +151,3 @@ def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Ten
     keys = list(items.keys())
     vals = [items[k] for k in keys]
     return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
-
-
-def _list_of_str(obj: object) -> typing.TypeIs[list[str]]:
-    "Check if `obj` is `list[str]`. Expensive."
-
-    return isinstance(obj, list) and all(isinstance(elem, str) for elem in obj)

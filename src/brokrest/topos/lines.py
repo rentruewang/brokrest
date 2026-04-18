@@ -7,17 +7,16 @@ import typing
 import torch
 from bokeh import plotting
 
-from brokrest.plotting import Canvas, Displayable
 from brokrest.tds import tensorclass
 
 from .rects import Box
-from .topos import Shape, Topo
+from .topos import Topo
 
 __all__ = ["Line", "Point"]
 
 
 @tensorclass
-class Point(Shape, Topo):
+class Point(Topo):
     "A collection of points."
 
     x: torch.Tensor
@@ -46,7 +45,7 @@ class Point(Shape, Topo):
 
 
 @tensorclass
-class Line(Displayable, Topo):
+class Line(Topo):
     """
     A set of lines. Represented as `y = mx + b` (slope intercept form).
     """
@@ -70,7 +69,11 @@ class Line(Displayable, Topo):
         return self.apply(points.x) - points.y[None, ...]
 
     @typing.override
-    def draw(self, canvas: Canvas) -> None:
+    def _outer(self) -> "Box":
+        return NotImplemented
+
+    @typing.override
+    def _draw(self, canvas: plotting.figure) -> None:
         raise NotImplementedError
 
     @classmethod

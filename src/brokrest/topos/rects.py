@@ -12,13 +12,13 @@ from bokeh import plotting
 from brokrest.plotting import Window
 from brokrest.tds import tensorclass
 
-from .topos import Shape
+from .topos import Topo
 
 __all__ = ["Rect", "Box", "Segment"]
 
 
 @tensorclass
-class Rect(Shape, abc.ABC):
+class Rect(Topo, abc.ABC):
     """
     A tuple with 4 values.
 

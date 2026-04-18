@@ -15,7 +15,7 @@ from bokeh import plotting
 from brokrest.tds import tensorclass
 
 from .rects import Box
-from .topos import Shape
+from .topos import Topo
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
@@ -57,7 +57,7 @@ class CandleLooks:
 
 
 @tensorclass
-class Candle(Shape, abc.ABC):
+class Candle(Topo, abc.ABC):
     """
     A candle on the candle chart
     """

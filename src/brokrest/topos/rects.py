@@ -184,8 +184,8 @@ def _segment_visible(
 class Segment(Rect):
 
     @typing.override
-    def sort_key(self) -> torch.Tensor:
-        return torch.argsort(self.x_0)
+    def ordering(self) -> torch.Tensor:
+        return self.x_0
 
     @property
     def start(self) -> torch.Tensor:

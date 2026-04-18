@@ -4,6 +4,7 @@
 
 import abc
 import typing
+from collections import abc as cabc
 
 import numpy as np
 import torch
@@ -31,14 +32,17 @@ class ArrayOf[T](typing.Protocol):
 class Topo(TensorClass, Displayable, abc.ABC):
     """
     A set of topologies.
+
+    This is backed by `td.tensorclass`.
+    If `.ndim == 0`, this is a single instance and you can call `item()` on it.
     """
 
     def __post_init__(self) -> None:
         # This is s.t. we don't need to manually set `batch_size` or `shape`.
-        self.auto_batch_size_()
+        _ = self.auto_batch_size_()
 
         self._ensure_shapes()
-        self._sort_by_key()
+        self._sort_by_value()
 
     def _ensure_shapes(self) -> None:
         # Check if shapes are valid.
@@ -51,13 +55,13 @@ class Topo(TensorClass, Displayable, abc.ABC):
             )
 
     @typing.no_type_check
-    def _sort_by_key(self) -> None:
+    def _sort_by_value(self) -> None:
         "Sort according to `argsort`."
 
-        ordering = self.sort_key()
+        ordering = self.ordering()
 
         # Do nothing if `self.ordering() is None`, or if it's an instance not sequence.
-        if ordering is None or self.ndim == 0:
+        if ordering is NotImplemented or self.ndim == 0:
             return
 
         if len(ordering) != len(self):
@@ -75,7 +79,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
         for key in self.keys():
             setattr(self, key, getattr(self, key)[ordered_index])
 
-    def sort_key(self) -> torch.Tensor | None:
+    def ordering(self) -> torch.Tensor:
         """
         Return the argsort of the current `Topo`.
 
@@ -87,7 +91,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
             or `NotImplemented` if ordering doesn't exist.
         """
 
-        return None
+        return NotImplemented
 
     @typing.override
     def draw(self, canvas: Canvas, /) -> None:
@@ -142,8 +146,15 @@ class Topo(TensorClass, Displayable, abc.ABC):
 
         return NotImplemented
 
+    @classmethod
+    def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
+        broadcasted = _broadcast_tensor_dict(items)
+        return cls(**broadcasted)
 
-def broadcast_tensor_dict(items: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+
+def _broadcast_tensor_dict(
+    items: cabc.Mapping[str, torch.Tensor],
+) -> dict[str, torch.Tensor]:
     """
     Broadcast the tensors in a mapping from string to tensors to the same shape.
     """

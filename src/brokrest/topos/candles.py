@@ -198,10 +198,12 @@ class Candle(Topo, abc.ABC):
 
     @typing.override
     @abc.abstractmethod
-    def sort_key(self) -> torch.Tensor:
+    def ordering(self) -> torch.Tensor:
         """
         As the candles are organized by time, ordering must be present.
         """
+
+        raise NotImplementedError
 
     @functools.cached_property
     def looks(self) -> CandleLooks:
@@ -284,7 +286,7 @@ class BothCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def sort_key(self) -> torch.Tensor:
+    def ordering(self) -> torch.Tensor:
         return self.start
 
 
@@ -328,7 +330,7 @@ class LeftCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def sort_key(self) -> torch.Tensor:
+    def ordering(self) -> torch.Tensor:
         return self.start
 
 

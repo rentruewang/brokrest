@@ -188,16 +188,20 @@ class Segment(Rect):
         return self.x_0
 
     @property
-    def start(self) -> torch.Tensor:
+    def start(self):
         "The starting point of a segment."
 
-        return torch.hstack([self.x_0, self.y_0])
+        from .lines import Point
+
+        return Point(x=self.x_0, y=self.y_0)
 
     @property
-    def end(self) -> torch.Tensor:
+    def end(self):
         "The ending point of a segment."
 
-        return torch.hstack([self.x_1, self.y_1])
+        from .lines import Point
+
+        return Point(x=self.x_1, y=self.y_1)
 
     @property
     def left(self):

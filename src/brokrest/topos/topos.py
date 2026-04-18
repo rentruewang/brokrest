@@ -7,6 +7,7 @@ import typing
 from collections import abc as cabc
 
 import numpy as np
+import tensordict as td
 import torch
 from bokeh import plotting
 from numpy import typing as npt
@@ -38,25 +39,25 @@ class Topo(TensorClass, Displayable, abc.ABC):
     """
 
     def __post_init__(self) -> None:
-        # This is s.t. we don't need to manually set `batch_size` or `shape`.
-        _ = self.auto_batch_size_()
-
-        self._ensure_shapes()
+        self._setup_batch_size()
         self._sort_by_value()
 
-    def _ensure_shapes(self) -> None:
-        # Check if shapes are valid.
+    def _setup_batch_size(self):
+        # Make all equal size.
+        _ = self.auto_batch_size_()
 
-        auto_shape = torch.broadcast_shapes(*map(lambda t: t.shape, self.values()))
-        if auto_shape != self.batch_size:
+        # Check if shapes are valid.
+        shapes = [t.shape for t in self.values()]
+        auto_shape = torch.broadcast_shapes(*shapes)
+        if auto_shape != self.shape:
             raise ValueError(
-                f"Discovered batch size: {self.batch_size} "
+                f"Discovered batch size: {self.shape} "
                 f"should match the broadcasted shape: {auto_shape}."
             )
 
     @typing.no_type_check
     def _sort_by_value(self) -> None:
-        "Sort according to `argsort`."
+        "Sort according to `ordering`."
 
         ordering = self.ordering()
 
@@ -133,7 +134,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
         if (outer := self._outer()) is NotImplemented:
             return NotImplemented
 
-        if (ob := outer.batch_size) != (sb := self.batch_size):
+        if (ob := outer.shape) != (sb := self.shape):
             raise ValueError(
                 f"The batch size yielded from `outer`'s implementation: {ob} "
                 f"is not the same as self: {sb}."
@@ -145,6 +146,10 @@ class Topo(TensorClass, Displayable, abc.ABC):
         "Implementation of `outer`."
 
         return NotImplemented
+
+    def tensor(self) -> torch.Tensor:
+        values = list(self.values())
+        return torch.stack(values)
 
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:

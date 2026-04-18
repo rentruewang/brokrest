@@ -153,6 +153,7 @@ class Candle(Shape, abc.ABC):
             bottom = self.low
 
         assert (top >= bottom).all()
+
         top_coords = torch.stack([top, self.center]).T
         bottom_coords = torch.stack([bottom, self.center]).T
 

@@ -3,16 +3,15 @@
 "Topologies API `Topo`, representing a set of shapes."
 
 import abc
+import contextlib as ctxl
 import typing
 from collections import abc as cabc
 
-import numpy as np
 import torch
 from bokeh import plotting
-from numpy import typing as npt
 
 from brokrest.plotting import Canvas, Displayable
-from brokrest.tds import TensorClass
+from brokrest.tds import TensorClass, tensorclass
 
 if typing.TYPE_CHECKING:
     from .rects import Box
@@ -20,15 +19,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["Topo"]
 
 
-class ArrayOf[T](typing.Protocol):
-    def __len__(self) -> int: ...
-
-    @typing.overload
-    def __getitem__(self, idx: int) -> T: ...
-    @typing.overload
-    def __getitem__(self, idx: slice | list[int] | npt.NDArray[np.int_]) -> T: ...
-
-
+@tensorclass
 class Topo(TensorClass, Displayable, abc.ABC):
     """
     A set of topologies.
@@ -37,9 +28,22 @@ class Topo(TensorClass, Displayable, abc.ABC):
     If `.ndim == 0`, this is a single instance and you can call `item()` on it.
     """
 
+    def __init_subclass__(cls) -> None:
+        # We do not want subclasses to define their `__post_init__`,
+        # to ensure that `_TOPO_HANDLERS` have the initialized `Topo`.
+        if "__post_init__" in cls.__dict__:
+            raise ValueError(
+                f"Sublcass should not define `__post_init__`, but {cls=} has it."
+            )
+
+    @typing.final
     def __post_init__(self) -> None:
         self._setup_batch_size()
         self._sort_by_value()
+        self._checks()
+
+        # This is done last for sure, since subclasses cannot have `__post_init__` defined.
+        self._call_handlers()
 
     def _setup_batch_size(self):
         # Make all equal size.
@@ -53,6 +57,13 @@ class Topo(TensorClass, Displayable, abc.ABC):
                 f"Discovered batch size: {self.shape} "
                 f"should match the broadcasted shape: {auto_shape}."
             )
+
+    def _checks(self) -> None:
+        return
+
+    def _call_handlers(self):
+        for handler in _TOPO_HANDLERS:
+            handler(self)
 
     @typing.no_type_check
     def _sort_by_value(self) -> None:
@@ -160,6 +171,25 @@ class Topo(TensorClass, Displayable, abc.ABC):
     def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
         broadcasted = _broadcast_tensor_dict(items)
         return cls(**broadcasted)
+
+
+class TopoHandler(typing.Protocol):
+    def __call__(self, topo: Topo, /) -> None: ...
+
+
+def register_topo_handler(handler: TopoHandler, /):
+    @ctxl.contextmanager
+    def handler_context():
+        try:
+            _TOPO_HANDLERS.append(handler)
+            yield
+        finally:
+            _ = _TOPO_HANDLERS.pop()
+
+    return handler_context
+
+
+_TOPO_HANDLERS: list[TopoHandler] = []
 
 
 def _broadcast_tensor_dict(

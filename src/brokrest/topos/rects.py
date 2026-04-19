@@ -45,8 +45,9 @@ class Box(Rect):
     A box with 4 sides.
     """
 
-    def __post_init__(self):
-        super().__post_init__()
+    @typing.override
+    def _checks(self) -> None:
+        super()._checks()
 
         if not torch.all(self.width >= 0):
             raise ValueError("Box should not have negative width.")

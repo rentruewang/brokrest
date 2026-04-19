@@ -20,9 +20,6 @@ __all__ = ["Polygon"]
 class Polygon(Topo):
     vertices: Point
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-
     @typing.override
     def _setup_batch_size(self) -> None:
         if self.vertices.ndim == 0:

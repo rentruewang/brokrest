@@ -12,6 +12,7 @@ from brokrest.tds import tensorclass
 
 from .rects import Box
 from .topos import Topo
+from .probs import Importance
 
 __all__ = ["Line", "Point"]
 
@@ -94,9 +95,7 @@ class Line(Topo):
         return result
 
     def dist_loss_score(
-        self,
-        points: Point,
-        dist_loss: cabc.Callable[[torch.Tensor], torch.Tensor] = _mean_squared_error,
+        self, points: Point, dist_loss: Importance = _mean_squared_error
     ) -> torch.Tensor:
         """
         Convert the distance into a loss (larger = farther).

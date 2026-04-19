@@ -81,7 +81,7 @@ class Line(Topo):
         Compute the distance of each points to a line.
         """
 
-        dist_mat = self.flatten()._dist_prod(points.flatten())
+        dist_mat = self.flatten()._dist_prod_flat(points.flatten())
         assert dist_mat.ndim == 2, dist_mat.shape
 
         # Cast it to [*self.shape, *self.points] dims.
@@ -108,8 +108,12 @@ class Line(Topo):
         assert score.positive().item(), score
         return score
 
-    def _dist_prod(self, points: Point) -> torch.Tensor:
-        "The distance product. `self` and `points` are both 1D."
+    def _dist_prod_flat(self, points: Point) -> torch.Tensor:
+        """
+        The distance product. `self` and `points` are both 1D (`flatten()`-ed).
+
+        Note that this uses + and - values to show the sides at which the points are.
+        """
 
         if self.ndim != 1 or points.ndim != 1:
             raise ValueError("Only supports 1d lines and points.")
@@ -118,7 +122,7 @@ class Line(Topo):
         ss = self[:, torch.newaxis]
         ps = points[torch.newaxis, :]
 
-        return (ss.m * ps.x - ps.y + ss.b).abs() / (ss.m**2 + 1)
+        return (ss.m * ps.x - ps.y + ss.b) / (ss.m**2 + 1)
 
     @typing.override
     def _outer(self) -> "Box":

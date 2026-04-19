@@ -7,7 +7,6 @@ import typing
 from collections import abc as cabc
 
 import numpy as np
-import tensordict as td
 import torch
 from bokeh import plotting
 from numpy import typing as npt

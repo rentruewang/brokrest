@@ -4,10 +4,11 @@
 
 import typing
 
+import tensordict as td
 from bokeh import plotting
 
 from brokrest.tds import tensorclass
-import tensordict as td
+
 from .lines import Point
 from .rects import Segment
 from .topos import Topo

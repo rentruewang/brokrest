@@ -1,10 +1,9 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-from ast import ParamSpec
 import pytest
-from brokrest.topos import Point, Segment
-from brokrest.topos import Polygon
 import torch
+
+from brokrest.topos import Point, Polygon, Segment
 
 
 def _segments():

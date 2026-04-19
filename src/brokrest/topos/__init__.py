@@ -3,5 +3,6 @@
 from .candles import *
 from .lines import *
 from .polygons import *
+from .probs import *
 from .rects import *
 from .topos import *

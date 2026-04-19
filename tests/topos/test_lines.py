@@ -7,7 +7,7 @@ import typing
 import pytest
 import torch
 
-from brokrest.topos import Line, Point
+from brokrest.topos import Line, Point, Window
 
 
 class _LinearEqSolve(typing.NamedTuple):
@@ -101,5 +101,5 @@ def test_distance(dist_case: DistTestCase):
     assert dist.shape == shape
     assert (dist >= 0).all()
 
-    score = line.dist_loss_score(point)
+    score = line.dist_loss_score(point, Window(-1.0, 1.0))
     assert score >= 0

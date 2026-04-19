@@ -4,6 +4,7 @@
 
 import abc
 import contextlib as ctxl
+import dataclasses as dcls
 import typing
 from collections import abc as cabc
 
@@ -16,7 +17,7 @@ from brokrest.tds import TensorClass, tensorclass
 if typing.TYPE_CHECKING:
     from .rects import Box
 
-__all__ = ["Topo"]
+__all__ = ["Topo", "TopoHandler", "register_topo_handler", "enabled_topo_handlers"]
 
 
 @tensorclass
@@ -174,19 +175,34 @@ class Topo(TensorClass, Displayable, abc.ABC):
 
 
 class TopoHandler(typing.Protocol):
+    __name__: str
+
     def __call__(self, topo: Topo, /) -> None: ...
 
 
-def register_topo_handler(handler: TopoHandler, /):
+@dcls.dataclass(frozen=True)
+class TopoHandlerProxy:
+    handler: TopoHandler
+
+    @typing.override
+    def __repr__(self) -> str:
+        return f"TopoHandler<{self.handler.__name__}>"
+
     @ctxl.contextmanager
-    def handler_context():
+    def __call__(self) -> cabc.Generator[typing.Self]:
         try:
-            _TOPO_HANDLERS.append(handler)
-            yield
+            _TOPO_HANDLERS.append(self.handler)
+            yield self
         finally:
             _ = _TOPO_HANDLERS.pop()
 
-    return handler_context
+
+def register_topo_handler(handler: TopoHandler, /):
+    return TopoHandlerProxy(handler)
+
+
+def enabled_topo_handlers():
+    return [TopoHandlerProxy(handler) for handler in _TOPO_HANDLERS]
 
 
 _TOPO_HANDLERS: list[TopoHandler] = []

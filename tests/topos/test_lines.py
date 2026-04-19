@@ -97,6 +97,9 @@ def dist_case(request: pytest.FixtureRequest):
 def test_distance(dist_case: DistTestCase):
     line, point, shape = dist_case
 
-    dist = line.distance(point)
+    dist = line.dist(point)
     assert dist.shape == shape
     assert (dist >= 0).all()
+
+    score = line.dist_loss_score(point)
+    assert score >= 0

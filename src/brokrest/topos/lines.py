@@ -8,7 +8,7 @@ import torch
 from bokeh import plotting
 
 from brokrest.tds import tensorclass
-
+from collections import abc as cabc
 from .rects import Box
 from .topos import Topo
 
@@ -44,6 +44,10 @@ class Point(Topo):
         )
 
 
+def _mean_squared_error(x: torch.Tensor):
+    return (x**2).mean()
+
+
 @tensorclass
 class Line(Topo):
     """
@@ -71,7 +75,11 @@ class Line(Topo):
 
         return self.apply(points.x) - points.y[None, ...]
 
-    def distance(self, points: Point) -> torch.Tensor:
+    def dist(self, points: Point) -> torch.Tensor:
+        """
+        Compute the distance of each points to a line.
+        """
+
         dist_mat = self.flatten()._dist_prod(points.flatten())
         assert dist_mat.ndim == 2, dist_mat.shape
 
@@ -83,6 +91,21 @@ class Line(Topo):
         assert isinstance(result, torch.Tensor)
         assert result.shape == (*self.shape, *points.shape)
         return result
+
+    def dist_loss_score(
+        self,
+        points: Point,
+        dist_loss: cabc.Callable[[torch.Tensor], torch.Tensor] = _mean_squared_error,
+    ) -> torch.Tensor:
+        """
+        Convert the distance into a loss (larger = farther).
+        """
+
+        dist = self.dist(points)
+        score = dist_loss(dist)
+        assert score.ndim == 0
+        assert score.positive().item(), score
+        return score
 
     def _dist_prod(self, points: Point) -> torch.Tensor:
         "The distance product. `self` and `points` are both 1D."

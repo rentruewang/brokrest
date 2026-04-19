@@ -71,6 +71,30 @@ class Line(Topo):
 
         return self.apply(points.x) - points.y[None, ...]
 
+    def distance(self, points: Point) -> torch.Tensor:
+        dist_mat = self.flatten()._dist_prod(points.flatten())
+        assert dist_mat.ndim == 2, dist_mat.shape
+
+        # Cast it to [*self.shape, *self.points] dims.
+        result = dist_mat
+        result = unflatten(result, -1, points.shape)
+        result = unflatten(result, 0, self.shape)
+
+        assert isinstance(result, torch.Tensor)
+        assert result.shape == (*self.shape, *points.shape)
+        return result
+
+    def _dist_prod(self, points: Point) -> torch.Tensor:
+        "The distance product. `self` and `points` are both 1D."
+        if self.ndim != 1 or points.ndim != 1:
+            raise ValueError("Only supports 1d lines and points.")
+
+        # The broadcasted dimensions would be [num_lines, num_points].
+        ss = self[:, torch.newaxis]
+        ps = points[torch.newaxis, :]
+
+        return (ss.m * ps.x - ps.y + ss.b).abs() / (ss.m**2 + 1)
+
     @typing.override
     def _outer(self) -> "Box":
         return NotImplemented
@@ -98,3 +122,11 @@ class Line(Topo):
         "Create a line in the `y = mx + b` form."
 
         return cls(m=m, b=b)
+
+
+def unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
+    if not sizes:
+        return item.squeeze(dim)
+
+    else:
+        return item.unflatten(dim, sizes)

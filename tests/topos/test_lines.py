@@ -4,8 +4,11 @@
 
 import typing
 
+from networkx.algorithms import distance_measures
+from nox import param
 import pytest
 import torch
+from torch._inductor.shape_propagation import ShapeArg
 
 from brokrest.topos import Line, Point
 
@@ -49,3 +52,54 @@ def test_sub_cases_solved(case: _LinearEqSolve):
         case.eq.subs(case.point).float(),
         torch.zeros([case.eq.numel(), case.point.numel()]).float(),
     )
+
+
+@pytest.fixture
+def line():
+    return Line(1, 2)
+
+
+@pytest.fixture
+def lines():
+    return Line(torch.randn(5), torch.randn(5))
+
+
+@pytest.fixture
+def point():
+    return Point(1, 2)
+
+
+@pytest.fixture
+def points():
+    return Point(torch.randn(5), torch.randn(5))
+
+
+class DistTestCase(typing.NamedTuple):
+    lines: Line
+    points: Point
+    shape: tuple[int, ...]
+
+
+def _distance_cases():
+    line = Line(1, 2)
+    point = Point(3, 4)
+    lines = Line(torch.randn(5), torch.randn(5))
+    points = Point(torch.randn(6), torch.randn(6))
+
+    yield DistTestCase(line, point, ())
+    yield DistTestCase(lines, point, (5,))
+    yield DistTestCase(line, points, (6,))
+    yield DistTestCase(lines, points, (5, 6))
+
+
+@pytest.fixture(params=_distance_cases())
+def dist_case(request: pytest.FixtureRequest):
+    return request.param
+
+
+def test_distance(dist_case: DistTestCase):
+    line, point, shape = dist_case
+
+    dist = line.distance(point)
+    assert dist.shape == shape
+    assert (dist >= 0).all()

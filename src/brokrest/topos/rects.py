@@ -4,12 +4,13 @@
 
 import abc
 import typing
-import tensordict as td
+
 import shapely
+import tensordict as td
 import torch
 from bokeh import plotting
 
-from brokrest.plotting import Window
+from brokrest.plotting import ViewPort
 from brokrest.tds import tensorclass
 
 from .topos import Topo
@@ -112,7 +113,7 @@ class Box(Rect):
             height=self.height.numpy(),
         )
 
-    def visible(self, window: Window) -> torch.Tensor:
+    def visible(self, window: ViewPort) -> torch.Tensor:
         """
         Return a boolean tensor, of whether `self` is visible in the view box or not.
 

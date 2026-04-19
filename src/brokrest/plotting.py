@@ -8,13 +8,13 @@ import typing
 
 from bokeh import plotting
 
-__all__ = ["Canvas", "Window", "Displayable"]
+__all__ = ["Canvas", "ViewPort", "Displayable"]
 
 
 @dcls.dataclass(frozen=True)
-class Window:
+class ViewPort:
     """
-    `Window` specifies the region where `Canvas` is plotting
+    `ViewPort` specifies the region where `Canvas` is plotting
     """
 
     left: float = -float("inf")
@@ -55,7 +55,7 @@ class Canvas:
     The canvas to plot on.
     """
 
-    window: Window
+    window: ViewPort
     """
     The viewport to use.
     """

@@ -7,7 +7,6 @@ import typing
 from collections import abc as cabc
 
 import numpy as np
-import tensordict as td
 import torch
 from bokeh import plotting
 from numpy import typing as npt
@@ -59,14 +58,17 @@ class Topo(TensorClass, Displayable, abc.ABC):
     def _sort_by_value(self) -> None:
         "Sort according to `ordering`."
 
-        if self.ndim > 1:
-            raise NotImplementedError("Ndim > 1 is not yet supported.")
-
-        ordering = self.ordering()
-
-        # Do nothing if `self.ordering() is None`, or if it's an instance not sequence.
-        if ordering is NotImplemented or self.ndim == 0:
+        if (ordering := self.ordering()) is NotImplemented:
             return
+
+        # This is OK. Both are scalars.
+        if self.ndim == ordering.ndim == 0:
+            return
+
+        if not (self.ndim == ordering.ndim == 1):
+            raise NotImplementedError(
+                f"Ndim != 1 is not yet supported {self.ndim=}, {ordering.ndim=}."
+            )
 
         if len(ordering) != len(self):
             raise ValueError(

@@ -9,6 +9,7 @@ from bokeh import plotting
 
 from brokrest.tds import tensorclass
 
+from .probs import Importance
 from .rects import Box
 from .topos import Topo
 
@@ -44,6 +45,10 @@ class Point(Topo):
         )
 
 
+def mean_squared_error(x: torch.Tensor):
+    return (x**2).mean()
+
+
 @tensorclass
 class Line(Topo):
     """
@@ -51,7 +56,10 @@ class Line(Topo):
     """
 
     m: torch.Tensor
+    "The slope of the line."
+
     b: torch.Tensor
+    "The bias of the line."
 
     def apply(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -67,6 +75,59 @@ class Line(Topo):
         """
 
         return self.apply(points.x) - points.y[None, ...]
+
+    def dist(self, points: Point) -> torch.Tensor:
+        """
+        Compute the distance of each points to a line.
+        """
+
+        dist_mat = self.flatten()._dist_prod_flat(points.flatten())
+        assert dist_mat.ndim == 2, dist_mat.shape
+
+        # Cast it to [*self.shape, *self.points] dims.
+        result = dist_mat
+        result = _unflatten(result, -1, points.shape)
+        result = _unflatten(result, 0, self.shape)
+
+        assert isinstance(result, torch.Tensor)
+        assert result.shape == (*self.shape, *points.shape)
+        return result
+
+    def dist_loss_score(
+        self,
+        points: Point,
+        resample: Importance = NotImplemented,
+    ) -> torch.Tensor:
+        """
+        Convert the distance into a loss (larger = farther).
+        """
+
+        dist = self.dist(points)
+
+        if resample is not NotImplemented:
+            dist = resample(dist)
+
+        score = mean_squared_error(dist)
+
+        assert score.ndim == 0, score.shape
+        assert (score >= 0).item(), score
+        return score
+
+    def _dist_prod_flat(self, points: Point) -> torch.Tensor:
+        """
+        The distance product. `self` and `points` are both 1D (`flatten()`-ed).
+
+        Note that this uses + and - values to show the sides at which the points are.
+        """
+
+        if self.ndim != 1 or points.ndim != 1:
+            raise ValueError("Only supports 1d lines and points.")
+
+        # The broadcasted dimensions would be [num_lines, num_points].
+        ss = self[:, torch.newaxis]
+        ps = points[torch.newaxis, :]
+
+        return (ss.m * ps.x - ps.y + ss.b) / (ss.m**2 + 1)
 
     @typing.override
     def _outer(self) -> "Box":
@@ -95,3 +156,11 @@ class Line(Topo):
         "Create a line in the `y = mx + b` form."
 
         return cls(m=m, b=b)
+
+
+def _unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
+    if not sizes:
+        return item.squeeze(dim)
+
+    else:
+        return item.unflatten(dim, sizes)

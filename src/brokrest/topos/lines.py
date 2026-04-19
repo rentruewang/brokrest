@@ -3,16 +3,15 @@
 "A set of linear equations."
 
 import typing
-from collections import abc as cabc
 
 import torch
 from bokeh import plotting
 
 from brokrest.tds import tensorclass
 
+from .probs import Importance
 from .rects import Box
 from .topos import Topo
-from .probs import Importance
 
 __all__ = ["Line", "Point"]
 
@@ -46,7 +45,7 @@ class Point(Topo):
         )
 
 
-def _mean_squared_error(x: torch.Tensor):
+def mean_squared_error(x: torch.Tensor):
     return (x**2).mean()
 
 
@@ -95,16 +94,23 @@ class Line(Topo):
         return result
 
     def dist_loss_score(
-        self, points: Point, dist_loss: Importance = _mean_squared_error
+        self,
+        points: Point,
+        resample: Importance = NotImplemented,
     ) -> torch.Tensor:
         """
         Convert the distance into a loss (larger = farther).
         """
 
         dist = self.dist(points)
-        score = dist_loss(dist)
-        assert score.ndim == 0
-        assert score.positive().item(), score
+
+        if resample is not NotImplemented:
+            dist = resample(dist)
+
+        score = mean_squared_error(dist)
+
+        assert score.ndim == 0, score.shape
+        assert (score >= 0).item(), score
         return score
 
     def _dist_prod_flat(self, points: Point) -> torch.Tensor:

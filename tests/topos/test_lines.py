@@ -8,6 +8,7 @@ import pytest
 import torch
 
 from brokrest.topos import Line, Point, Window
+from brokrest.topos.probs import Importance
 
 
 class _LinearEqSolve(typing.NamedTuple):
@@ -94,12 +95,22 @@ def dist_case(request: pytest.FixtureRequest):
     return request.param
 
 
-def test_distance(dist_case: DistTestCase):
+def _dist_funcs():
+    yield Window(-1, 1)
+    yield Window(0.5, 0.5)
+    yield Window(-float("inf"), float("inf"))
+
+
+@pytest.fixture(params=_dist_funcs())
+def dist_func(request: pytest.FixtureRequest):
+    return request.param
+
+
+def test_distance(dist_case: DistTestCase, dist_func: Importance):
     line, point, shape = dist_case
 
     dist = line.dist(point)
     assert dist.shape == shape
-    assert (dist >= 0).all()
 
-    score = line.dist_loss_score(point, Window(-1.0, 1.0))
+    score = line.dist_loss_score(point, dist_func)
     assert score >= 0

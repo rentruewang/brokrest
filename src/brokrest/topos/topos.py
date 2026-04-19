@@ -17,7 +17,13 @@ from brokrest.tds import TensorClass, tensorclass
 if typing.TYPE_CHECKING:
     from .rects import Box
 
-__all__ = ["Topo", "TopoHandler", "register_topo_handler", "enabled_topo_handlers"]
+__all__ = [
+    "Topo",
+    "TopoHandler",
+    "TopoHandlerProxy",
+    "register_topo_handler",
+    "enabled_topo_handlers",
+]
 
 
 @tensorclass
@@ -182,7 +188,13 @@ class TopoHandler(typing.Protocol):
 
 @dcls.dataclass(frozen=True)
 class TopoHandlerProxy:
+    """
+    The proxy object for handler, s.t. we can make priting easier,
+    compared to using a `ctxl.contextmanager` closure directly.
+    """
+
     handler: TopoHandler
+    "The handler that is wrapped."
 
     @typing.override
     def __repr__(self) -> str:
@@ -190,18 +202,27 @@ class TopoHandlerProxy:
 
     @ctxl.contextmanager
     def __call__(self) -> cabc.Generator[typing.Self]:
+        _TOPO_HANDLERS.append(self.handler)
         try:
-            _TOPO_HANDLERS.append(self.handler)
             yield self
         finally:
             _ = _TOPO_HANDLERS.pop()
 
 
 def register_topo_handler(handler: TopoHandler, /):
+    """
+    Register a `TopoHandler` to call on `Topo` once initialization is done.
+    """
+
     return TopoHandlerProxy(handler)
 
 
 def enabled_topo_handlers():
+    """
+    Get all the currently enabled handlers (under the context managers) in a list,
+    wrapped in their proxies. Modifying this list doesn't change global handlers stack.
+    """
+
     return [TopoHandlerProxy(handler) for handler in _TOPO_HANDLERS]
 
 

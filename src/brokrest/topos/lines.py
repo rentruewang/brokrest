@@ -51,7 +51,10 @@ class Line(Topo):
     """
 
     m: torch.Tensor
+    "The slope of the line."
+
     b: torch.Tensor
+    "The bias of the line."
 
     def apply(self, x: torch.Tensor) -> torch.Tensor:
         """

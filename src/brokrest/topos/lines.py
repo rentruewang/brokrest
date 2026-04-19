@@ -77,8 +77,8 @@ class Line(Topo):
 
         # Cast it to [*self.shape, *self.points] dims.
         result = dist_mat
-        result = unflatten(result, -1, points.shape)
-        result = unflatten(result, 0, self.shape)
+        result = _unflatten(result, -1, points.shape)
+        result = _unflatten(result, 0, self.shape)
 
         assert isinstance(result, torch.Tensor)
         assert result.shape == (*self.shape, *points.shape)
@@ -86,6 +86,7 @@ class Line(Topo):
 
     def _dist_prod(self, points: Point) -> torch.Tensor:
         "The distance product. `self` and `points` are both 1D."
+
         if self.ndim != 1 or points.ndim != 1:
             raise ValueError("Only supports 1d lines and points.")
 
@@ -124,7 +125,7 @@ class Line(Topo):
         return cls(m=m, b=b)
 
 
-def unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
+def _unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
     if not sizes:
         return item.squeeze(dim)
 

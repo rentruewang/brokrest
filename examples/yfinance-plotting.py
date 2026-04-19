@@ -34,6 +34,6 @@ candle = topos.LeftCandle(
     high=np.array(df.high),
     start=np.array(_dates),
 )
-cv = P.Canvas(P.Window(), figure=p)
+cv = P.Canvas(P.ViewPort(), figure=p)
 candle.draw(cv)
 plotting.show(p)

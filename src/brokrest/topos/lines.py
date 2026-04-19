@@ -3,12 +3,13 @@
 "A set of linear equations."
 
 import typing
+from collections import abc as cabc
 
 import torch
 from bokeh import plotting
 
 from brokrest.tds import tensorclass
-from collections import abc as cabc
+
 from .rects import Box
 from .topos import Topo
 

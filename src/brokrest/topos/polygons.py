@@ -7,7 +7,7 @@ import typing
 import tensordict as td
 from bokeh import plotting
 
-from brokrest.tds import tensorclass
+from brokrest.tds import TensorClass, tensorclass
 
 from .lines import Point
 from .rects import Segment
@@ -25,7 +25,7 @@ class Polygon(Topo):
         if self.vertices.ndim == 0:
             raise ValueError("A single vertex cannot make a polygon.")
 
-        self.batch_size = self.vertices.shape[:-1]
+        self.batch_size = self.vertices.shape[1:]
 
     def segments(self) -> Segment:
         starts = self.vertices
@@ -38,20 +38,18 @@ class Polygon(Topo):
 
     @classmethod
     def from_segments(cls, *segments: Segment) -> typing.Self:
-        starts = [seg.start for seg in segments]
-        ends = [seg.end for seg in segments]
-
-        assert len(starts) == len(ends)
-
-        if not all((start == end).all() for start, end in zip(starts[1:], ends)):
-            raise ValueError("Segments are not connected.")
-
-        return cls.from_vertices(*starts, ends[-1])
+        batch = _maybe_stack_input(*segments)
+        points = batch.points()
+        return cls.from_vertices(points)
 
     @classmethod
     def from_vertices(cls, *vertices: Point):
-        if len(vertices) == 1:
-            batch = vertices[0]
-        else:
-            batch = td.stack(vertices)
+        batch = _maybe_stack_input(*vertices)
         return cls(batch)
+
+
+def _maybe_stack_input[T: TensorClass](*items: T) -> T:
+    if len(items) == 1:
+        return items[0]
+    else:
+        return td.stack(items)

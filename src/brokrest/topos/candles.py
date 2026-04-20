@@ -74,9 +74,8 @@ class Candle(Topo, abc.ABC):
     high: torch.Tensor
     "The maximum value of the candle."
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
-
+    @typing.override
+    def _checks(self) -> None:
         if torch.any(self.low > self.high):
             raise ValueError(
                 f"Min value: {self.low} must be smaller than max value: {self.high}."
@@ -162,7 +161,7 @@ class Candle(Topo, abc.ABC):
         return shapely.convex_hull([top_line, bottom_line])
 
     @typing.override
-    def _draw(self, figure: plotting.figure):
+    def _draw(self, figure: plotting.figure) -> None:
         # The center bars for the candles.
         _ = figure.segment(
             x0=self.center.numpy(),
@@ -246,8 +245,9 @@ class BothCandle(Candle):
     end: torch.Tensor
     "The ending time of the candle."
 
-    def __post_init__(self) -> None:
-        super().__post_init__()
+    @typing.override
+    def _checks(self) -> None:
+        super()._checks()
 
         if torch.any(self.start > self.end):
             raise ValueError(

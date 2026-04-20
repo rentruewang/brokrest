@@ -6,7 +6,6 @@ import abc
 import typing
 
 import shapely
-import tensordict as td
 import torch
 from bokeh import plotting
 
@@ -14,6 +13,9 @@ from brokrest.plotting import ViewPort
 from brokrest.tds import tensorclass
 
 from .topos import Topo
+
+if typing.TYPE_CHECKING:
+    from .lines import Point
 
 __all__ = ["Rect", "Box", "Segment"]
 
@@ -45,8 +47,9 @@ class Box(Rect):
     A box with 4 sides.
     """
 
-    def __post_init__(self):
-        super().__post_init__()
+    @typing.override
+    def _checks(self) -> None:
+        super()._checks()
 
         if not torch.all(self.width >= 0):
             raise ValueError("Box should not have negative width.")
@@ -105,7 +108,7 @@ class Box(Rect):
         return shapely.convex_hull(self.boundary())
 
     @typing.override
-    def _draw(self, figure: plotting.figure):
+    def _draw(self, figure: plotting.figure) -> None:
         _ = figure.rect(
             x=self.x_0.numpy(),
             y=self.y_0.numpy(),
@@ -227,17 +230,30 @@ class Segment(Rect):
         return torch.maximum(self.y_0, self.y_1)
 
     def points(self):
-        return td.cat([self.start, self.end])
+        """
+        Flatten the segment, then convert to points.
+        """
+
+        from .lines import Point
+
+        # Shape: [*self.shapes, 2]
+        start, end = self.start.tensor(), self.end.tensor()
+        unique = torch.stack([start, end]).view(2, -1).unique(dim=0)
+        return Point(unique[0], unique[1])
 
     @typing.override
     def _outer(self):
         return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
-    def _draw(self, figure: plotting.figure):
+    def _draw(self, figure: plotting.figure) -> None:
         _ = figure.segment(
             x0=self.x_0.numpy(),
             x1=self.x_1.numpy(),
             y0=self.y_0.numpy(),
             y1=self.y_1.numpy(),
         )
+
+    @classmethod
+    def from_start_end(cls, start: "Point", end: "Point") -> typing.Self:
+        return cls(x_0=start.x, y_0=start.y, x_1=end.x, y_1=end.y)

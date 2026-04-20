@@ -133,9 +133,7 @@ class Line(Topo):
     def _outer(self) -> "Box":
         return NotImplemented
 
-    @typing.override
-    def _draw(self, canvas: plotting.figure) -> None:
-        raise NotImplementedError
+    _draw = NotImplemented
 
     @classmethod
     def standard(cls, a: torch.Tensor, b: torch.Tensor, c: torch.Tensor) -> typing.Self:

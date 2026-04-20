@@ -19,7 +19,8 @@ if typing.TYPE_CHECKING:
 
 __all__ = [
     "Topo",
-    "TopoHandler",
+    "TopoHandlerFunc",
+    "TopoHandlerBase",
     "TopoHandlerProxy",
     "register_topo_handler",
     "enabled_topo_handlers",
@@ -180,36 +181,54 @@ class Topo(TensorClass, Displayable, abc.ABC):
         return cls(**broadcasted)
 
 
-class TopoHandler(typing.Protocol):
-    __name__: str
-
+@typing.runtime_checkable
+class TopoHandlerFunc(typing.Protocol):
+    def __repr__(self) -> str: ...
     def __call__(self, topo: Topo, /) -> None: ...
 
 
-@dcls.dataclass(frozen=True)
-class TopoHandlerProxy:
-    """
-    The proxy object for handler, s.t. we can make priting easier,
-    compared to using a `ctxl.contextmanager` closure directly.
-    """
-
-    handler: TopoHandler
-    "The handler that is wrapped."
-
-    @typing.override
+class TopoHandlerBase(TopoHandlerFunc, abc.ABC):
+    @abc.abstractmethod
     def __repr__(self) -> str:
-        return f"TopoHandler<{self.handler.__name__}>"
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __call__(self, topo: Topo, /) -> None:
+        raise NotImplementedError
 
     @ctxl.contextmanager
-    def __call__(self) -> cabc.Generator[typing.Self]:
-        _TOPO_HANDLERS.append(self.handler)
+    def enable(self) -> cabc.Generator[typing.Self]:
+        """
+        Enable the handler in the scope under this context manager.
+        """
+
+        _TOPO_HANDLERS.append(self)
         try:
             yield self
         finally:
             _ = _TOPO_HANDLERS.pop()
 
 
-def register_topo_handler(handler: TopoHandler, /):
+@dcls.dataclass(frozen=True)
+class TopoHandlerProxy(TopoHandlerBase):
+    """
+    The proxy object for handler, s.t. we can make priting easier,
+    compared to using a `ctxl.contextmanager` closure directly.
+    """
+
+    handler: cabc.Callable[[Topo], None]
+    "The handler that is wrapped."
+
+    @typing.override
+    def __repr__(self) -> str:
+        return f"TopoHandler<{self.handler.__name__}>"
+
+    @typing.override
+    def __call__(self, topo: Topo, /):
+        self.handler(topo)
+
+
+def register_topo_handler(handler: TopoHandlerFunc, /):
     """
     Register a `TopoHandler` to call on `Topo` once initialization is done.
     """
@@ -219,14 +238,13 @@ def register_topo_handler(handler: TopoHandler, /):
 
 def enabled_topo_handlers():
     """
-    Get all the currently enabled handlers (under the context managers) in a list,
-    wrapped in their proxies. Modifying this list doesn't change global handlers stack.
+    Get all the currently enabled handlers (under the context managers) in a tuple.
     """
 
-    return [TopoHandlerProxy(handler) for handler in _TOPO_HANDLERS]
+    return tuple(_TOPO_HANDLERS)
 
 
-_TOPO_HANDLERS: list[TopoHandler] = []
+_TOPO_HANDLERS: list[TopoHandlerFunc] = []
 
 
 def _broadcast_tensor_dict(

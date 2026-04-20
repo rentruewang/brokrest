@@ -7,7 +7,6 @@ from collections import abc as cabc
 
 import tensordict as td
 import torch
-from numpy import typing as npt
 
 __all__ = ["TensorClass", "tensorclass"]
 
@@ -29,18 +28,7 @@ class TensorClass:
         def __str__(self) -> str: ...
 
         def __len__(self) -> int: ...
-
-        @typing.overload
-        def __getitem__(self, key: str) -> torch.Tensor: ...
-
-        @typing.overload
-        @typing.overload
-        def __getitem__(
-            self, key: int | slice | list[int] | tuple | npt.NDArray | torch.Tensor
-        ) -> typing.Self: ...
-
-        def __getitem__(self, key):
-            raise NotImplementedError
+        def __getitem__(self, key) -> typing.Any: ...
 
         def __add__(self, other, /) -> typing.Any: ...
         def __sub__(self, other, /) -> typing.Any: ...

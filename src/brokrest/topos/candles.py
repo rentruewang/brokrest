@@ -9,11 +9,13 @@ import typing
 
 import pandas as pd
 import shapely
+import tensordict as td
 import torch
 from bokeh import plotting
 
 from brokrest.tds import tensorclass
 
+from .lines import Point
 from .polygons import Polygon
 from .rects import Box
 from .topos import Topo
@@ -143,8 +145,7 @@ class Candle(Topo, abc.ABC):
 
         return (self.exit - self.enter).sign()
 
-    @typing.no_type_check
-    def convex(self, enter_exit: bool = True):
+    def coords(self, enter_exit: bool = True):
         if enter_exit:
             top = torch.where(self.inc, self.exit, self.enter)
             bottom = torch.where(self.dec, self.exit, self.enter)
@@ -154,11 +155,15 @@ class Candle(Topo, abc.ABC):
 
         assert (top >= bottom).all()
 
-        top_coords = torch.stack([self.center, top]).T
-        bottom_coords = torch.stack([self.center, bottom]).T
-        coords = torch.cat([top_coords, bottom_coords])
+        top_coords = Point(x=self.center, y=top)
+        bottom_coords = Point(x=self.center, y=bottom)
 
-        point_set = shapely.MultiPoint(coords.numpy())
+        return td.cat([top_coords, bottom_coords])
+
+    @typing.no_type_check
+    def convex(self, enter_exit: bool = True):
+        coords = self.coords(enter_exit=enter_exit)
+        point_set = shapely.MultiPoint(coords.tensor().view(-1, 2).numpy())
 
         if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
             raise RuntimeError("Did not return a polygon.")

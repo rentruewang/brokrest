@@ -26,6 +26,22 @@ class Point(Topo):
     y: torch.Tensor
     "The y element."
 
+    @typing.no_type_check
+    def cross_eq_1d(self, points: typing.Self) -> torch.Tensor:
+        """
+        Find self == points, using cross product.
+        The result would be in a `[len(self), len(points)]` boolean matrix.
+        """
+
+        if not (self.ndim == points.ndim == 1):
+            raise ValueError(
+                f"Only supports when both {self.ndim=} = {points.ndim=} = 1."
+            )
+        eq: Point = self[:, torch.newaxis] == points[torch.newaxis, :]
+        result = eq.x & eq.y
+        assert result.shape == (len(self), len(points)), result.shape
+        return result
+
     @typing.override
     def _outer(self) -> Box:
         return Box(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
@@ -39,10 +55,7 @@ class Point(Topo):
 
     @typing.override
     def _draw(self, figure: plotting.figure, /) -> None:
-        _ = figure.scatter(
-            x=self.x.numpy(),
-            y=self.y.numpy(),
-        )
+        _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
 
 
 def mean_squared_error(x: torch.Tensor):

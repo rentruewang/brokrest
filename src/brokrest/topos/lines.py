@@ -13,6 +13,9 @@ from .probs import Importance
 from .rects import Box
 from .topos import Topo
 
+if typing.TYPE_CHECKING:
+    from .polygons import Polygon
+
 __all__ = ["Line", "Point"]
 
 
@@ -40,6 +43,13 @@ class Point(Topo):
         eq: Point = self[:, torch.newaxis] == points[torch.newaxis, :]
         result = eq.x & eq.y
         assert result.shape == (len(self), len(points)), result.shape
+        return result
+
+    def is_vertex_of(self, polygon: "Polygon") -> torch.Tensor:
+        "Find if `self` is a polygon vertex of `polygon`. Return a boolean tensor."
+        result = self.cross_eq_1d(polygon.vertices).any(dim=1)
+        assert result.ndim == 1
+        assert result.shape == (len(self),)
         return result
 
     @typing.override

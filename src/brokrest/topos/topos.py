@@ -178,7 +178,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
 
     def tensor(self) -> torch.Tensor:
         values = list(self.values())
-        return torch.stack(values)
+        return torch.stack(values, dim=-1)
 
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:

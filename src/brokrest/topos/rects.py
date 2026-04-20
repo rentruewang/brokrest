@@ -6,7 +6,6 @@ import abc
 import typing
 
 import shapely
-import tensordict as td
 import torch
 from bokeh import plotting
 
@@ -231,7 +230,16 @@ class Segment(Rect):
         return torch.maximum(self.y_0, self.y_1)
 
     def points(self):
-        return td.cat([self.start, self.end])
+        """
+        Flatten the segment, then convert to points.
+        """
+
+        from .lines import Point
+
+        # Shape: [*self.shapes, 2]
+        start, end = self.start.tensor(), self.end.tensor()
+        unique = torch.stack([start, end]).view(2, -1).unique(dim=0)
+        return Point(unique[0], unique[1])
 
     @typing.override
     def _outer(self):

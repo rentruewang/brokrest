@@ -9,7 +9,7 @@ import torch
 from numpy import random
 
 from brokrest.topos import BothCandle, Candle, LeftCandle
-from brokrest.topos.candles import dataframe_factory
+from brokrest.topos.candles import dataframe_to_candles
 
 
 def _tensor_chart():
@@ -34,7 +34,7 @@ def _dataframe_chart():
     low = np.zeros(100)
     high = np.ones(100)
 
-    yield dataframe_factory(
+    yield dataframe_to_candles(
         pd.DataFrame(
             {
                 "enter": enter,
@@ -46,7 +46,7 @@ def _dataframe_chart():
             }
         )
     )
-    yield dataframe_factory(
+    yield dataframe_to_candles(
         pd.DataFrame(
             {
                 "enter": enter,
@@ -95,6 +95,7 @@ def test_chart_index(chart: Candle):
 def test_boundary(chart: Candle):
     convex = chart.convex()
     assert convex is not None
+    assert convex.ndim == 0
 
 
 def test_where(chart: Candle):

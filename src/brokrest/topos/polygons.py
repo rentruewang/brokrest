@@ -4,6 +4,8 @@
 
 import typing
 
+import numpy as np
+import shapely
 import tensordict as td
 from bokeh import plotting
 
@@ -43,9 +45,15 @@ class Polygon(Topo):
         return cls.from_vertices(points)
 
     @classmethod
-    def from_vertices(cls, *vertices: Point):
+    def from_vertices(cls, *vertices: Point) -> typing.Self:
         batch = _maybe_stack_input(*vertices)
         return cls(batch)
+
+    @classmethod
+    def from_shapely_polygon(cls, pg: shapely.Polygon) -> typing.Self:
+        coords = np.array(pg.exterior.coords)
+        points = Point(*coords.T)
+        return cls.from_vertices(points)
 
 
 def _maybe_stack_input[T: TensorClass](*items: T) -> T:

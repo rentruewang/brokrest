@@ -52,8 +52,13 @@ module = [
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-addopts = ["-v", "--import-mode=importlib"]
-
+addopts = [
+    "-v",
+    "--ff",
+    "--nf",
+    "--import-mode=importlib",
+    "--dist=loadgroup",
+]
 [dependency-groups]
 checks = [
     "pre-commit>=4.2.0",

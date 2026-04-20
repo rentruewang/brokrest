@@ -92,3 +92,9 @@ class TensorClass:
         def all(self) -> bool: ...
 
         def view(self, *dims) -> typing.Self: ...
+
+        def roll(
+            self,
+            shifts: int | tuple[int, ...],
+            dims: int | tuple[int, ...] | None = None,
+        ) -> typing.Self: ...

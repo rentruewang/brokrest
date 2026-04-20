@@ -154,8 +154,8 @@ class Candle(Topo, abc.ABC):
 
         assert (top >= bottom).all()
 
-        top_coords = torch.stack([top, self.center]).T
-        bottom_coords = torch.stack([bottom, self.center]).T
+        top_coords = torch.stack([self.center, top]).T
+        bottom_coords = torch.stack([self.center, bottom]).T
         coords = torch.cat([top_coords, bottom_coords])
 
         point_set = shapely.MultiPoint(coords.numpy())

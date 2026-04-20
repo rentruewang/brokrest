@@ -8,7 +8,7 @@ import yahooquery as yq
 
 from brokrest.topos import LeftCandle
 
-__all__ = ["load"]
+__all__ = ["load_yahooquery"]
 
 _MINUTE = "m"
 _HOUR = "h"
@@ -25,7 +25,7 @@ Period = typing.Literal[
 ]
 
 
-def load(
+def load_yahooquery(
     symbol: str = "btc", *, interval: Interval = "1d", period: Period = "ytd"
 ) -> LeftCandle:
     if interval not in (ok := typing.get_args(Interval)):
@@ -45,10 +45,12 @@ def _yq_load(symbol: str, interval: Interval, period: Period) -> LeftCandle:
     if isinstance(df.index, pd.MultiIndex):
         df = df.reset_index(level=0, drop=True)
 
-    return LeftCandle(
+    lc = LeftCandle(
         enter=torch.from_numpy(df["open"].values.astype("float32")),
         exit=torch.from_numpy(df["close"].values.astype("float32")),
         low=torch.from_numpy(df["low"].values.astype("float32")),
         high=torch.from_numpy(df["high"].values.astype("float32")),
         start=torch.from_numpy(df.index.values.astype("datetime64[s]").astype("int64")),
     )
+    lc.start -= lc.start.min()
+    return lc

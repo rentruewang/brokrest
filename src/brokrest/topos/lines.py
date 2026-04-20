@@ -64,7 +64,7 @@ class Point(Topo):
         return (self.x**2 + self.y**2).sum().item() ** 0.5
 
     @typing.override
-    def _draw(self, figure: plotting.figure, /) -> None:
+    def plot(self, figure: plotting.figure, /) -> None:
         _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
 
 
@@ -201,7 +201,7 @@ class Line(Topo):
     def _outer(self) -> "Box":
         return NotImplemented
 
-    _draw = NotImplemented
+    plot = NotImplemented
 
     @classmethod
     def standard(cls, a: torch.Tensor, b: torch.Tensor, c: torch.Tensor) -> typing.Self:

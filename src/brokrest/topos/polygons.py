@@ -4,16 +4,16 @@
 
 import typing
 
-import numpy as np, torch
+import numpy as np
 import shapely
 import tensordict as td
+import torch
 from bokeh import plotting
 
 from brokrest.tds import TensorClass, tensorclass
 
-from .lines import Point, Line
+from .lines import Line, Point
 from .rects import Segment
-
 from .topos import Topo
 
 __all__ = ["Polygon"]
@@ -39,11 +39,19 @@ class Polygon(Topo):
 
     @property
     def segments(self) -> Segment:
-        starts = self.vertices
-        ends = self.vertices.roll(1, 0)
-        return Segment.from_start_end(starts, ends)
+        ub = Segment.from_points(self.upper_bound)
+        lb = Segment.from_points(self.lower_bound)
+        return td.cat([ub, lb])
 
-    def merge_segments(self, tolerance: float = 0.05) -> Segment:
+    @property
+    def upper_bound(self) -> Point:
+        return td.cat([self.left[None], self.upper, self.right[None]])
+
+    @property
+    def lower_bound(self) -> Point:
+        return td.cat([self.left[None], self.lower, self.right[None]])
+
+    def merge_segments(self, radian: float = 0.1) -> Segment:
         """
         Either merge consecutive segments, or drop segments that cannot be merged.
         """
@@ -54,7 +62,7 @@ class Polygon(Topo):
         slopes = segments.slope
         shifted = slopes.roll(1, 0)
 
-        merge = (shifted - slopes).abs() <= tolerance
+        merge = (shifted - slopes).abs() <= radian
         idx_of_first_0 = [i for i, x in enumerate(merge) if not x][0]
 
         # Move the breaking point to the start s.t. we don't need to handle breakage.
@@ -84,8 +92,8 @@ class Polygon(Topo):
         return td.stack(results)
 
     @typing.override
-    def _draw(self, figure: plotting.figure, /) -> None:
-        _ = self.segments._draw(figure)
+    def plot(self, figure: plotting.figure, /) -> None:
+        _ = self.segments.plot(figure)
 
     @classmethod
     def from_vertices(cls, *vertices: Point) -> typing.Self:

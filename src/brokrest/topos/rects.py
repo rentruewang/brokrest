@@ -108,7 +108,7 @@ class Box(Rect):
         return shapely.convex_hull(self.boundary())
 
     @typing.override
-    def _draw(self, figure: plotting.figure) -> None:
+    def plot(self, figure: plotting.figure) -> None:
         _ = figure.rect(
             x=self.x_0.numpy(),
             y=self.y_0.numpy(),
@@ -256,7 +256,7 @@ class Segment(Rect):
         return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
-    def _draw(self, figure: plotting.figure) -> None:
+    def plot(self, figure: plotting.figure) -> None:
         _ = figure.segment(
             x0=self.x_0.numpy(),
             x1=self.x_1.numpy(),
@@ -267,3 +267,7 @@ class Segment(Rect):
     @classmethod
     def from_start_end(cls, start: "Point", end: "Point") -> typing.Self:
         return cls(x_0=start.x, y_0=start.y, x_1=end.x, y_1=end.y)
+
+    @classmethod
+    def from_points(cls, points: "Point") -> typing.Self:
+        return cls.from_start_end(points[1:], points[:-1])

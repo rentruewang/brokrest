@@ -171,7 +171,7 @@ class Candle(Topo, abc.ABC):
         return Polygon.from_shapely_polygon(cvx)
 
     @typing.override
-    def _draw(self, figure: plotting.figure) -> None:
+    def plot(self, figure: plotting.figure) -> None:
         # The center bars for the candles.
         _ = figure.segment(
             x0=self.center.numpy(),

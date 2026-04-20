@@ -125,7 +125,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
         Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
 
-        if self._draw is NotImplemented:
+        if self.plot is NotImplemented:
             return
 
         selected = self
@@ -135,13 +135,13 @@ class Topo(TensorClass, Displayable, abc.ABC):
             visible_idx = box.visible(vp)
             selected = selected[visible_idx]
 
-        selected._draw(vp.figure)
+        selected.plot(vp.figure)
 
     @abc.abstractmethod
-    def _draw(self, figure: plotting.figure, /) -> None:
+    def plot(self, figure: plotting.figure, /) -> None:
         """
         The implementation of `draw`.
-        Subclass can choose to completely disable it by setting `_draw = NotImplemented`.
+        Subclass can choose to completely disable it by setting `plot = NotImplemented`.
 
         Args:
             figure: A `bokeh` figure.

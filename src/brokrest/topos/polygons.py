@@ -39,8 +39,8 @@ class Polygon(Topo):
 
     @property
     def segments(self) -> Segment:
-        ub = Segment.from_points(self.upper_bound).point_right()
-        lb = Segment.from_points(self.lower_bound).point_right()
+        ub = Segment.from_points(self.upper_bound).face_right()
+        lb = Segment.from_points(self.lower_bound).face_right()
         return td.cat([ub, lb])
 
     @property

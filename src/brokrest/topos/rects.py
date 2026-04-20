@@ -211,7 +211,7 @@ class Segment(Rect):
     def flip(self):
         return type(self)(x_0=self.x_1, y_0=self.y_1, x_1=self.x_0, y_1=self.y_0)
 
-    def point_right(self) -> typing.Self:
+    def face_right(self) -> typing.Self:
         self = self.flatten()
         needs_flipping = self.x_0 > self.x_1
         return td.cat([self[~needs_flipping], self[needs_flipping].flip()])
@@ -238,8 +238,8 @@ class Segment(Rect):
         shifted = angles.roll(-1, 0)
         merge_at = (shifted - angles).abs() <= radian
 
-        results: list[typing.Self] = []
-        to_merge: list[typing.Self] = []
+        results: list[Segment] = []
+        to_merge: list[Segment] = []
         for segment, do_merge in zip(self, merge_at):
             if do_merge:
                 to_merge.append(segment)

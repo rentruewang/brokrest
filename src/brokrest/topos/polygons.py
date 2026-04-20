@@ -4,15 +4,16 @@
 
 import typing
 
-import numpy as np
+import numpy as np, torch
 import shapely
 import tensordict as td
 from bokeh import plotting
 
 from brokrest.tds import TensorClass, tensorclass
 
-from .lines import Point
+from .lines import Point, Line
 from .rects import Segment
+
 from .topos import Topo
 
 __all__ = ["Polygon"]
@@ -20,7 +21,10 @@ __all__ = ["Polygon"]
 
 @tensorclass
 class Polygon(Topo):
-    vertices: Point
+    upper: Point
+    lower: Point
+    left: Point
+    right: Point
 
     @typing.override
     def _setup_batch_size(self) -> None:
@@ -28,6 +32,10 @@ class Polygon(Topo):
             raise ValueError("A single vertex cannot make a polygon.")
 
         self.batch_size = self.vertices.shape[1:]
+
+    @property
+    def vertices(self) -> Point:
+        return td.cat([self.upper, self.lower, td.stack([self.left, self.right])])
 
     @property
     def segments(self) -> Segment:
@@ -80,15 +88,23 @@ class Polygon(Topo):
         _ = self.segments._draw(figure)
 
     @classmethod
-    def from_segments(cls, *segments: Segment) -> typing.Self:
-        batch = _maybe_stack_input(*segments)
-        points = batch.points()
-        return cls.from_vertices(points)
-
-    @classmethod
     def from_vertices(cls, *vertices: Point) -> typing.Self:
         batch = _maybe_stack_input(*vertices)
-        return cls(batch)
+
+        point_list = td.stack(sorted(batch, key=lambda p: p.x))
+        left, right = point_list[0], point_list[-1]
+
+        line = Line.from_segment(Segment.from_start_end(left, right))
+
+        val = line.subs(point_list).flatten()
+
+        lr = torch.isclose(val, torch.zeros_like(val), atol=1e-5)
+        assert lr.sum() == 2
+
+        upper: Point = point_list[val > 0 & ~lr]
+        lower: Point = point_list[val < 0 & ~lr]
+
+        return cls(left=left, right=right, upper=upper, lower=lower)
 
     @classmethod
     def from_shapely_polygon(cls, pg: shapely.Polygon) -> typing.Self:

@@ -33,7 +33,6 @@ def _polygons():
     segments = _segments()
     points = _points(segments)
     yield Polygon.from_vertices(points)
-    yield Polygon.from_segments(segments)
 
 
 def test_segments_shape(segments: Segment):

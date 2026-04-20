@@ -13,6 +13,9 @@ from .probs import Importance
 from .rects import Box
 from .topos import Topo
 
+if typing.TYPE_CHECKING:
+    from .polygons import Polygon
+
 __all__ = ["Line", "Point"]
 
 
@@ -25,6 +28,29 @@ class Point(Topo):
 
     y: torch.Tensor
     "The y element."
+
+    @typing.no_type_check
+    def cross_eq_1d(self, points: typing.Self) -> torch.Tensor:
+        """
+        Find self == points, using cross product.
+        The result would be in a `[len(self), len(points)]` boolean matrix.
+        """
+
+        if not (self.ndim == points.ndim == 1):
+            raise ValueError(
+                f"Only supports when both {self.ndim=} = {points.ndim=} = 1."
+            )
+        eq: Point = self[:, torch.newaxis] == points[torch.newaxis, :]
+        result = eq.x & eq.y
+        assert result.shape == (len(self), len(points)), result.shape
+        return result
+
+    def is_vertex_of(self, polygon: "Polygon") -> torch.Tensor:
+        "Find if `self` is a polygon vertex of `polygon`. Return a boolean tensor."
+        result = self.cross_eq_1d(polygon.vertices).any(dim=1)
+        assert result.ndim == 1
+        assert result.shape == (len(self),)
+        return result
 
     @typing.override
     def _outer(self) -> Box:
@@ -39,10 +65,7 @@ class Point(Topo):
 
     @typing.override
     def _draw(self, figure: plotting.figure, /) -> None:
-        _ = figure.scatter(
-            x=self.x.numpy(),
-            y=self.y.numpy(),
-        )
+        _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
 
 
 def mean_squared_error(x: torch.Tensor):

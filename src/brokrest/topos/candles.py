@@ -9,11 +9,14 @@ import typing
 
 import pandas as pd
 import shapely
+import tensordict as td
 import torch
 from bokeh import plotting
 
 from brokrest.tds import tensorclass
 
+from .lines import Point
+from .polygons import Polygon
 from .rects import Box
 from .topos import Topo
 
@@ -142,8 +145,7 @@ class Candle(Topo, abc.ABC):
 
         return (self.exit - self.enter).sign()
 
-    @typing.no_type_check
-    def convex(self, enter_exit: bool = True):
+    def coords(self, enter_exit: bool = True):
         if enter_exit:
             top = torch.where(self.inc, self.exit, self.enter)
             bottom = torch.where(self.dec, self.exit, self.enter)
@@ -153,12 +155,20 @@ class Candle(Topo, abc.ABC):
 
         assert (top >= bottom).all()
 
-        top_coords = torch.stack([top, self.center]).T
-        bottom_coords = torch.stack([bottom, self.center]).T
+        top_coords = Point(x=self.center, y=top)
+        bottom_coords = Point(x=self.center, y=bottom)
 
-        top_line = shapely.LineString(top_coords.numpy())
-        bottom_line = shapely.LineString(bottom_coords.numpy())
-        return shapely.convex_hull([top_line, bottom_line])
+        return td.cat([top_coords, bottom_coords])
+
+    @typing.no_type_check
+    def convex(self, enter_exit: bool = True):
+        coords = self.coords(enter_exit=enter_exit)
+        point_set = shapely.MultiPoint(coords.tensor().view(-1, 2).numpy())
+
+        if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
+            raise RuntimeError("Did not return a polygon.")
+
+        return Polygon.from_shapely_polygon(cvx)
 
     @typing.override
     def _draw(self, figure: plotting.figure) -> None:
@@ -334,7 +344,7 @@ class LeftCandle(Candle):
         return self.start
 
 
-def dataframe_factory(df: pd.DataFrame, /) -> Candle:
+def dataframe_to_candles(df: pd.DataFrame, /) -> Candle:
     """
     Parse an input dataframe into corresponding `Candle`.
 

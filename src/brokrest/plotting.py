@@ -12,6 +12,13 @@ from bokeh import plotting
 __all__ = ["ViewPort", "Displayable"]
 
 
+@typing.no_type_check
+def default_bokeh_figure():
+    return plotting.figure(
+        tools="pan,wheel_zoom,box_zoom,reset,ywheel_zoom", toolbar_location="below"
+    )
+
+
 @dcls.dataclass(frozen=True)
 class ViewPort:
     """
@@ -51,10 +58,10 @@ class ViewPort:
 
     @functools.cached_property
     def figure(self):
-        return plotting.figure()
+        return default_bokeh_figure()
 
     def display(self, display: "Displayable"):
-        display.draw(self)
+        display.draw_on(self)
         return self
 
     def show(self):
@@ -68,7 +75,7 @@ class Displayable(typing.Protocol):
     """
 
     @abc.abstractmethod
-    def draw(self, vp: ViewPort, /) -> None:
+    def draw_on(self, vp: ViewPort, /) -> None:
         """
         Each painter should decide how to paint on `Canvas`,
         with the supported methods.

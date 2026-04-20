@@ -120,7 +120,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
         return NotImplemented
 
     @typing.override
-    def draw(self, vp: ViewPort) -> None:
+    def draw_on(self, vp: ViewPort) -> None:
         """
         Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
@@ -273,9 +273,9 @@ class TopoInScope(TopoHandlerBase, Displayable):
         self.topo_list.append(topo)
 
     @typing.override
-    def draw(self, vp: ViewPort, /) -> None:
+    def draw_on(self, vp: ViewPort, /) -> None:
         for topo in self.topo_list:
-            topo.draw(vp)
+            topo.draw_on(vp)
 
 
 _TOPO_HANDLERS: list[TopoHandlerFunc] = []

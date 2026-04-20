@@ -192,6 +192,11 @@ class Segment(Rect):
         return self.x_0
 
     @property
+    def slope(self) -> torch.Tensor:
+        point: Point = self.end - self.start
+        return point.y / point.x
+
+    @property
     def start(self):
         "The starting point of a segment."
 
@@ -240,6 +245,11 @@ class Segment(Rect):
         start, end = self.start.tensor(), self.end.tensor()
         unique = torch.stack([start, end]).view(2, -1).unique(dim=0)
         return Point(unique[0], unique[1])
+
+    def line(self):
+        from .lines import Line
+
+        return Line.from_segment(self)
 
     @typing.override
     def _outer(self):

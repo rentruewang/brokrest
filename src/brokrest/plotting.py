@@ -54,7 +54,7 @@ class ViewPort:
         return plotting.figure()
 
     def display(self, display: "Displayable"):
-        display.draw(self)
+        display.draw_on(self)
         return self
 
     def show(self):
@@ -68,7 +68,7 @@ class Displayable(typing.Protocol):
     """
 
     @abc.abstractmethod
-    def draw(self, vp: ViewPort, /) -> None:
+    def draw_on(self, vp: ViewPort, /) -> None:
         """
         Each painter should decide how to paint on `Canvas`,
         with the supported methods.

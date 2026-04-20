@@ -14,6 +14,7 @@ from bokeh import plotting
 
 from brokrest.tds import tensorclass
 
+from .polygons import Polygon
 from .rects import Box
 from .topos import Topo
 
@@ -155,10 +156,14 @@ class Candle(Topo, abc.ABC):
 
         top_coords = torch.stack([top, self.center]).T
         bottom_coords = torch.stack([bottom, self.center]).T
+        coords = torch.cat([top_coords, bottom_coords])
 
-        top_line = shapely.LineString(top_coords.numpy())
-        bottom_line = shapely.LineString(bottom_coords.numpy())
-        return shapely.convex_hull([top_line, bottom_line])
+        point_set = shapely.MultiPoint(coords.numpy())
+
+        if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
+            raise RuntimeError("Did not return a polygon.")
+
+        return Polygon.from_shapely_polygon(cvx)
 
     @typing.override
     def _draw(self, figure: plotting.figure) -> None:

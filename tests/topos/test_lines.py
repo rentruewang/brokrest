@@ -54,12 +54,12 @@ def test_sub_cases_solved(case: _LinearEqSolve):
 
 @pytest.fixture
 def line():
-    return Line(1, 2)
+    return Line.slope_intercept(1, 2)
 
 
 @pytest.fixture
 def lines():
-    return Line(torch.randn(5), torch.randn(5))
+    return Line.slope_intercept(torch.randn(5), torch.randn(5))
 
 
 @pytest.fixture
@@ -79,9 +79,9 @@ class DistTestCase(typing.NamedTuple):
 
 
 def _distance_cases():
-    line = Line(1, 2)
+    line = Line.slope_intercept(1, 2)
     point = Point(3, 4)
-    lines = Line(torch.randn(5), torch.randn(5))
+    lines = Line.slope_intercept(torch.randn(5), torch.randn(5))
     points = Point(torch.randn(6), torch.randn(6))
 
     yield DistTestCase(line, point, ())

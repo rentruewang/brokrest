@@ -6,6 +6,7 @@ import abc
 import typing
 
 import shapely
+import tensordict as td
 import torch
 from bokeh import plotting
 
@@ -108,7 +109,7 @@ class Box(Rect):
         return shapely.convex_hull(self.boundary())
 
     @typing.override
-    def _draw(self, figure: plotting.figure) -> None:
+    def plot(self, figure: plotting.figure) -> None:
         _ = figure.rect(
             x=self.x_0.numpy(),
             y=self.y_0.numpy(),
@@ -192,6 +193,76 @@ class Segment(Rect):
         return self.x_0
 
     @property
+    def dx(self):
+        return self.x_1 - self.x_0
+
+    @property
+    def dy(self):
+        return self.y_1 - self.y_0
+
+    @property
+    def slope(self) -> torch.Tensor:
+        return self.dy / self.dx
+
+    @property
+    def angle(self):
+        return (self.dx + self.dy * 1j).angle()
+
+    def flip(self):
+        return type(self)(x_0=self.x_1, y_0=self.y_1, x_1=self.x_0, y_1=self.y_0)
+
+    def face_right(self) -> typing.Self:
+        self = self.flatten()
+        needs_flipping = self.x_0 > self.x_1
+        return td.cat([self[~needs_flipping], self[needs_flipping].flip()])
+
+    @property
+    def is_ltr_1d(self):
+        "Is left to right."
+
+        if self.ndim != 1:
+            raise RuntimeError(f"Left to right only makes sense for 1D. {self.ndim=}.")
+
+        return (self.x_0[1:] >= self.x_0[:-1]).all()
+
+    def merge_similar_mono(self, radian: float = 0.1) -> typing.Self:
+        """
+        Merge consecutive segments with angle diff under `radian`.
+        """
+
+        # No need to update.
+        if not self.is_ltr_1d:
+            raise ValueError(f"{self} is not left to right.")
+
+        angles = self.angle
+        shifted = angles.roll(-1, 0)
+        merge_at = (shifted - angles).abs() <= radian
+
+        results: list[Segment] = []
+        to_merge: list[Segment] = []
+        for segment, do_merge in zip(self, merge_at):
+            if do_merge:
+                to_merge.append(segment)
+
+            elif to_merge:
+                assert segment.x_0 == to_merge[-1].x_1
+                assert segment.y_0 == to_merge[-1].y_1
+                results.append(
+                    type(self)(
+                        x_0=to_merge[0].x_0,
+                        y_0=to_merge[0].y_0,
+                        x_1=segment.x_1,
+                        y_1=segment.y_1,
+                    )
+                )
+                to_merge.clear()
+
+            else:
+                results.append(segment)
+
+        return td.stack(results)
+
+    @property
     def start(self):
         "The starting point of a segment."
 
@@ -241,12 +312,17 @@ class Segment(Rect):
         unique = torch.stack([start, end]).view(2, -1).unique(dim=0)
         return Point(unique[0], unique[1])
 
+    def line(self):
+        from .lines import Line
+
+        return Line.from_segment(self)
+
     @typing.override
     def _outer(self):
         return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
-    def _draw(self, figure: plotting.figure) -> None:
+    def plot(self, figure: plotting.figure) -> None:
         _ = figure.segment(
             x0=self.x_0.numpy(),
             x1=self.x_1.numpy(),
@@ -257,3 +333,7 @@ class Segment(Rect):
     @classmethod
     def from_start_end(cls, start: "Point", end: "Point") -> typing.Self:
         return cls(x_0=start.x, y_0=start.y, x_1=end.x, y_1=end.y)
+
+    @classmethod
+    def from_points(cls, points: "Point") -> typing.Self:
+        return cls.from_start_end(points[1:], points[:-1])

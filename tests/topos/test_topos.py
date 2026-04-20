@@ -16,7 +16,7 @@ def test_topo_handler():
     with TopoInScope([]).enable() as topos:
         Segment(1, 2, 3, 4)
         Point(1, 2)
-        Line(torch.randn(5), torch.randn(5))
+        Line.slope_intercept(torch.randn(5), torch.randn(5))
 
         assert len(enabled_topo_handlers()) == 1
         assert enabled_topo_handlers()[0] is topos

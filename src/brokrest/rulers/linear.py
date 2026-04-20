@@ -35,7 +35,7 @@ class LineReg(Ruler):
         x = expand(points.x)
         sol: torch.Tensor = linalg.lstsq(x, points.y).solution
         m, b = parse(sol)
-        return Line(m=m, b=b)
+        return Line.slope_intercept(m=m, b=b)
 
 
 @typing.no_type_check
@@ -55,10 +55,10 @@ def pinned_linear_regression(points: Point, pins: list[int]) -> Line:
 def shift_line_on(line: Line, point: Point) -> Line:
     "Shift the line to fit a point. The output would have a new dimension matching points."
 
-    shifts = (point.y - line.apply(point.x)).flatten()
-    m = line.m[..., None]
-    b = line.b[..., None] + shifts
-    return Line(m=m, b=b)
+    shifts = (point.y - line.solve_y(point.x)).flatten()
+    m = line.slope[..., None]
+    b = line.y_intercept[..., None] + shifts
+    return Line.slope_intercept(m=m, b=b)
 
 
 def shift_line_percentage(line: Line, point: Point, ratio: float) -> Line:

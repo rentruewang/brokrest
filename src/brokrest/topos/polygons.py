@@ -7,11 +7,12 @@ import typing
 import numpy as np
 import shapely
 import tensordict as td
+import torch
 from bokeh import plotting
 
 from brokrest.tds import TensorClass, tensorclass
 
-from .lines import Point
+from .lines import Line, Point
 from .rects import Segment
 from .topos import Topo
 
@@ -20,7 +21,10 @@ __all__ = ["Polygon"]
 
 @tensorclass
 class Polygon(Topo):
-    vertices: Point
+    upper: Point
+    lower: Point
+    left: Point
+    right: Point
 
     @typing.override
     def _setup_batch_size(self) -> None:
@@ -29,25 +33,46 @@ class Polygon(Topo):
 
         self.batch_size = self.vertices.shape[1:]
 
+    @property
+    def vertices(self) -> Point:
+        return td.cat([self.upper, self.lower, td.stack([self.left, self.right])])
+
+    @property
     def segments(self) -> Segment:
-        starts = self.vertices
-        ends = self.vertices.roll(1, 0)
-        return Segment.from_start_end(starts, ends)
+        ub = Segment.from_points(self.upper_bound).face_right()
+        lb = Segment.from_points(self.lower_bound).face_right()
+        return td.cat([ub, lb])
+
+    @property
+    def upper_bound(self) -> Point:
+        return td.cat([self.left[None], self.upper, self.right[None]])
+
+    @property
+    def lower_bound(self) -> Point:
+        return td.cat([self.left[None], self.lower, self.right[None]])
 
     @typing.override
-    def _draw(self, figure: plotting.figure, /) -> None:
-        _ = self.segments()._draw(figure)
-
-    @classmethod
-    def from_segments(cls, *segments: Segment) -> typing.Self:
-        batch = _maybe_stack_input(*segments)
-        points = batch.points()
-        return cls.from_vertices(points)
+    def plot(self, figure: plotting.figure, /) -> None:
+        _ = self.segments.plot(figure)
 
     @classmethod
     def from_vertices(cls, *vertices: Point) -> typing.Self:
         batch = _maybe_stack_input(*vertices)
-        return cls(batch)
+
+        point_list = td.stack(sorted(batch, key=lambda p: p.x))
+        left, right = point_list[0], point_list[-1]
+
+        line = Line.from_segment(Segment.from_start_end(left, right))
+
+        val = line.subs(point_list).flatten()
+
+        lr = torch.isclose(val, torch.zeros_like(val), atol=1e-5)
+        assert lr.sum() == 2
+
+        upper: Point = point_list[val > 0 & ~lr]
+        lower: Point = point_list[val < 0 & ~lr]
+
+        return cls(left=left, right=right, upper=upper, lower=lower)
 
     @classmethod
     def from_shapely_polygon(cls, pg: shapely.Polygon) -> typing.Self:

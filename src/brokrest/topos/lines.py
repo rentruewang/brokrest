@@ -10,7 +10,7 @@ from bokeh import plotting
 from brokrest.tds import tensorclass
 
 from .probs import Importance
-from .rects import Box
+from .rects import Box, Segment
 from .topos import Topo
 
 if typing.TYPE_CHECKING:
@@ -40,7 +40,7 @@ class Point(Topo):
             raise ValueError(
                 f"Only supports when both {self.ndim=} = {points.ndim=} = 1."
             )
-        eq: Point = self[:, torch.newaxis] == points[torch.newaxis, :]
+        eq: Point = self[:, None] == points[None, :]
         result = eq.x & eq.y
         assert result.shape == (len(self), len(points)), result.shape
         return result
@@ -64,7 +64,7 @@ class Point(Topo):
         return (self.x**2 + self.y**2).sum().item() ** 0.5
 
     @typing.override
-    def _draw(self, figure: plotting.figure, /) -> None:
+    def plot(self, figure: plotting.figure, /) -> None:
         _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
 
 
@@ -75,29 +75,74 @@ def mean_squared_error(x: torch.Tensor):
 @tensorclass
 class Line(Topo):
     """
-    A set of lines. Represented as `y = mx + b` (slope intercept form).
+    A set of lines. Represented as `ax + by + c = 0` (standard form).
     """
 
-    m: torch.Tensor
-    "The slope of the line."
+    a: torch.Tensor
+    "The x coefficient."
 
     b: torch.Tensor
-    "The bias of the line."
+    "The y coefficient."
 
-    def apply(self, x: torch.Tensor) -> torch.Tensor:
+    c: torch.Tensor
+    "The constant term."
+
+    @typing.override
+    def _setup_batch_size(self):
+        sizes = {s for s in [self.a.shape, self.b.shape, self.c.shape] if len(s)}
+
+        if len(sizes) == 0:
+            return
+
+        if len(sizes) != 1:
+            raise ValueError(f"Too many sizes: {sizes=}.")
+
+        target_size = list(sizes)[0]
+
+        def _cast_to_target_size(item: torch.Tensor):
+            if item.shape == target_size:
+                return item
+
+            assert item.shape == ()
+            return item * torch.ones(target_size)
+
+        self.a = _cast_to_target_size(self.a)
+        self.b = _cast_to_target_size(self.b)
+        self.c = _cast_to_target_size(self.c)
+
+        self.auto_batch_size_()
+
+    @property
+    def slope(self) -> torch.Tensor:
+        return -self.a / self.b
+
+    @property
+    def x_intercept(self) -> torch.Tensor:
+        return self.b
+
+    @property
+    def y_intercept(self) -> torch.Tensor:
+        return self.b
+
+    def solve_y(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Returns mx + b as a self.ndim + 1 matrix `R`. `R_ij = m_i x_j + b_i.`
+        Returns y = mx + b as a self.ndim + 1 matrix `R`. `R_ij = m_i x_j + b_i.`
         """
 
-        return self.m[..., None] * x[None, ...] + self.b[..., None]
+        return self.slope[..., None] * x[None, ...] + self.y_intercept[..., None]
 
     def subs(self, points: Point) -> torch.Tensor:
         """
-        Returns mx + b as a self.ndim + 1 matrix `R`.
-        `R_ij = m_i x_j + b_i - y_j.`
+        Returns ax + by + c.
         """
 
-        return self.apply(points.x) - points.y[None, ...]
+        a = self.a[..., None]
+        b = self.b[..., None]
+        c = self.c[..., None]
+        x = points.x[None, ...]
+        y = points.y[None, ...]
+
+        return a * x + b * y + c
 
     def dist(self, points: Point) -> torch.Tensor:
         """
@@ -147,36 +192,42 @@ class Line(Topo):
             raise ValueError("Only supports 1d lines and points.")
 
         # The broadcasted dimensions would be [num_lines, num_points].
-        ss = self[:, torch.newaxis]
-        ps = points[torch.newaxis, :]
+        ss: typing.Self = self[:, None]
+        ps: Point = points[None, :]
 
-        return (ss.m * ps.x - ps.y + ss.b) / (ss.m**2 + 1)
+        return ss.a * ps.x + ss.b * ps.y + ss.c
 
     @typing.override
     def _outer(self) -> "Box":
         return NotImplemented
 
-    _draw = NotImplemented
+    plot = NotImplemented
 
     @classmethod
     def standard(cls, a: torch.Tensor, b: torch.Tensor, c: torch.Tensor) -> typing.Self:
         "Create a line in the `ax + by + c = 0` form."
 
-        # y = -a/b x - c/b
-        return cls(m=-a / b, b=-c / b)
+        return cls(a=a, b=b, c=c)
 
     @classmethod
     def intercept(cls, a: torch.Tensor, b: torch.Tensor) -> typing.Self:
         "Create a line in the `x/a + y/b = 1` form."
 
-        # y = b - b/a x
-        return cls(m=-b / a, b=b)
+        return cls(a=1 / a, b=1 / b, c=torch.tensor(-1))
 
     @classmethod
     def slope_intercept(cls, m: torch.Tensor, b: torch.Tensor) -> typing.Self:
         "Create a line in the `y = mx + b` form."
 
-        return cls(m=m, b=b)
+        return cls(a=m, b=torch.tensor(-1), c=b)
+
+    @classmethod
+    def from_segment(cls, segment: Segment) -> typing.Self:
+        "Extend the segment into a line."
+
+        slope = segment.slope
+        end = segment.end
+        return cls.slope_intercept(slope, end.y - slope * end.x)
 
 
 def _unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:

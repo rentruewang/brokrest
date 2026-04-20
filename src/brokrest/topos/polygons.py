@@ -39,8 +39,8 @@ class Polygon(Topo):
 
     @property
     def segments(self) -> Segment:
-        ub = Segment.from_points(self.upper_bound)
-        lb = Segment.from_points(self.lower_bound)
+        ub = Segment.from_points(self.upper_bound).point_right()
+        lb = Segment.from_points(self.lower_bound).point_right()
         return td.cat([ub, lb])
 
     @property
@@ -50,46 +50,6 @@ class Polygon(Topo):
     @property
     def lower_bound(self) -> Point:
         return td.cat([self.left[None], self.lower, self.right[None]])
-
-    def merge_segments(self, radian: float = 0.1) -> Segment:
-        """
-        Either merge consecutive segments, or drop segments that cannot be merged.
-        """
-
-        if (segments := self.segments).ndim != 1:
-            raise ValueError("Only 1d segments can be supported right now.")
-
-        slopes = segments.slope
-        shifted = slopes.roll(1, 0)
-
-        merge = (shifted - slopes).abs() <= radian
-        idx_of_first_0 = [i for i, x in enumerate(merge) if not x][0]
-
-        # Move the breaking point to the start s.t. we don't need to handle breakage.
-        segments = segments.roll(-idx_of_first_0)
-        merge = merge.roll(-idx_of_first_0)
-
-        results: list[Segment] = []
-        to_merge: list[Segment] = []
-        for segment, do_merge in zip(segments, merge):
-            if do_merge:
-                to_merge.append(segment)
-
-            elif to_merge:
-                results.append(
-                    Segment(
-                        x_0=to_merge[0].x_0,
-                        y_0=to_merge[0].y_0,
-                        x_1=to_merge[-1].x_1,
-                        y_1=to_merge[-1].y_1,
-                    )
-                )
-                to_merge.clear()
-
-            else:
-                results.append(segment)
-
-        return td.stack(results)
 
     @typing.override
     def plot(self, figure: plotting.figure, /) -> None:

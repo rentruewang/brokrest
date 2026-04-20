@@ -339,7 +339,7 @@ class LeftCandle(Candle):
         return self.start
 
 
-def dataframe_factory(df: pd.DataFrame, /) -> Candle:
+def dataframe_to_candles(df: pd.DataFrame, /) -> Candle:
     """
     Parse an input dataframe into corresponding `Candle`.
 

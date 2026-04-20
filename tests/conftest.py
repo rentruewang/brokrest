@@ -33,7 +33,7 @@ def _dataframe_chart():
     low = np.zeros(100)
     high = np.ones(100)
 
-    yield candles.dataframe_factory(
+    yield candles.dataframe_to_candles(
         pd.DataFrame(
             {
                 "enter": enter,
@@ -45,7 +45,7 @@ def _dataframe_chart():
             }
         )
     )
-    yield candles.dataframe_factory(
+    yield candles.dataframe_to_candles(
         pd.DataFrame(
             {
                 "enter": enter,

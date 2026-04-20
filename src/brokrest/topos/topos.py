@@ -120,13 +120,13 @@ class Topo(TensorClass, Displayable, abc.ABC):
         return NotImplemented
 
     @typing.override
-    def draw(self, vp: ViewPort, /) -> plotting.figure:
+    def draw(self, vp: ViewPort) -> None:
         """
         Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
 
         if self._draw is NotImplemented:
-            return vp.figure()
+            return
 
         selected = self
 
@@ -135,9 +135,7 @@ class Topo(TensorClass, Displayable, abc.ABC):
             visible_idx = box.visible(vp)
             selected = selected[visible_idx]
 
-        figure = vp.figure()
-        selected._draw(figure)
-        return figure
+        selected._draw(vp.figure)
 
     @abc.abstractmethod
     def _draw(self, figure: plotting.figure, /) -> None:

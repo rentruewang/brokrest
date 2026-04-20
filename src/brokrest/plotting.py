@@ -4,6 +4,7 @@
 
 import abc
 import dataclasses as dcls
+import functools
 import typing
 
 from bokeh import plotting
@@ -48,8 +49,16 @@ class ViewPort:
             or self.top != float("inf")
         )
 
+    @functools.cached_property
     def figure(self):
         return plotting.figure()
+
+    def display(self, display: "Displayable"):
+        display.draw(self)
+        return self
+
+    def show(self):
+        return plotting.show(self.figure)
 
 
 @typing.runtime_checkable
@@ -59,7 +68,7 @@ class Displayable(typing.Protocol):
     """
 
     @abc.abstractmethod
-    def draw(self, vp: ViewPort, /) -> plotting.figure:
+    def draw(self, vp: ViewPort, /) -> None:
         """
         Each painter should decide how to paint on `Canvas`,
         with the supported methods.

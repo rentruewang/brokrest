@@ -27,9 +27,7 @@ class Polygon(Topo):
 
         self.batch_size = self.vertices.shape[:-1]
 
-    @typing.override
-    def _draw(self, figure: plotting.figure, /) -> None:
-        raise NotImplementedError
+    _draw = NotImplemented
 
     @classmethod
     def from_segments(cls, *segments: Segment) -> typing.Self:

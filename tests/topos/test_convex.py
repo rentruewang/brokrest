@@ -33,7 +33,5 @@ def outer_shell_points(convex_hull: Polygon, all_coords: Point):
 
 
 def test_convex_points(outer_shell_points: Point, convex_hull: Polygon):
-    eq = outer_shell_points.cross_eq_1d(convex_hull.vertices)
-
     # Ensure all points should have at least a match.
     assert outer_shell_points.is_vertex_of(convex_hull).all().item()

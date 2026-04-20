@@ -161,7 +161,7 @@ class Candle(Topo, abc.ABC):
         return shapely.convex_hull([top_line, bottom_line])
 
     @typing.override
-    def _draw(self, figure: plotting.figure):
+    def _draw(self, figure: plotting.figure) -> None:
         # The center bars for the candles.
         _ = figure.segment(
             x0=self.center.numpy(),

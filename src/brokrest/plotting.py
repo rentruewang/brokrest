@@ -8,7 +8,7 @@ import typing
 
 from bokeh import plotting
 
-__all__ = ["Canvas", "ViewPort", "Displayable"]
+__all__ = ["ViewPort", "Displayable"]
 
 
 @dcls.dataclass(frozen=True)
@@ -48,23 +48,8 @@ class ViewPort:
             or self.top != float("inf")
         )
 
-
-@dcls.dataclass(frozen=True)
-class Canvas:
-    """
-    The canvas to plot on.
-    """
-
-    window: ViewPort
-    """
-    The viewport to use.
-    """
-
-    figure: plotting.figure
-    "The figure to plot on."
-
-    def show(self):
-        plotting.show(self.figure)
+    def figure(self):
+        return plotting.figure()
 
 
 @typing.runtime_checkable
@@ -74,7 +59,7 @@ class Displayable(typing.Protocol):
     """
 
     @abc.abstractmethod
-    def draw(self, canvas: Canvas, /) -> None:
+    def draw(self, vp: ViewPort, /) -> plotting.figure:
         """
         Each painter should decide how to paint on `Canvas`,
         with the supported methods.

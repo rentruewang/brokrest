@@ -15,6 +15,9 @@ from brokrest.tds import tensorclass
 
 from .topos import Topo
 
+if typing.TYPE_CHECKING:
+    from .lines import Point
+
 __all__ = ["Rect", "Box", "Segment"]
 
 
@@ -106,7 +109,7 @@ class Box(Rect):
         return shapely.convex_hull(self.boundary())
 
     @typing.override
-    def _draw(self, figure: plotting.figure):
+    def _draw(self, figure: plotting.figure) -> None:
         _ = figure.rect(
             x=self.x_0.numpy(),
             y=self.y_0.numpy(),
@@ -235,10 +238,14 @@ class Segment(Rect):
         return Box(x_0=self.left, x_1=self.right, y_0=self.bottom, y_1=self.top)
 
     @typing.override
-    def _draw(self, figure: plotting.figure):
+    def _draw(self, figure: plotting.figure) -> None:
         _ = figure.segment(
             x0=self.x_0.numpy(),
             x1=self.x_1.numpy(),
             y0=self.y_0.numpy(),
             y1=self.y_1.numpy(),
         )
+
+    @classmethod
+    def from_start_end(cls, start: "Point", end: "Point") -> typing.Self:
+        return cls(x_0=start.x, y_0=start.y, x_1=end.x, y_1=end.y)

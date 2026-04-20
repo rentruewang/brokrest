@@ -27,7 +27,14 @@ class Polygon(Topo):
 
         self.batch_size = self.vertices.shape[:-1]
 
-    _draw = NotImplemented
+    def segments(self) -> Segment:
+        starts = self.vertices
+        ends = self.vertices.roll(1, 0)
+        return Segment.from_start_end(starts, ends)
+
+    @typing.override
+    def _draw(self, figure: plotting.figure, /) -> None:
+        _ = self.segments()._draw(figure)
 
     @classmethod
     def from_segments(cls, *segments: Segment) -> typing.Self:
@@ -46,5 +53,5 @@ class Polygon(Topo):
         if len(vertices) == 1:
             batch = vertices[0]
         else:
-            batch = td.cat(vertices)
+            batch = td.stack(vertices)
         return cls(batch)

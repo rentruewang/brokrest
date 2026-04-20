@@ -11,7 +11,7 @@ from collections import abc as cabc
 import torch
 from bokeh import plotting
 
-from brokrest.plotting import Canvas, Displayable
+from brokrest.plotting import Displayable, ViewPort
 from brokrest.tds import TensorClass, tensorclass
 
 if typing.TYPE_CHECKING:
@@ -22,6 +22,7 @@ __all__ = [
     "TopoHandlerFunc",
     "TopoHandlerBase",
     "TopoHandlerProxy",
+    "TopoInScope",
     "register_topo_handler",
     "enabled_topo_handlers",
 ]
@@ -119,22 +120,24 @@ class Topo(TensorClass, Displayable, abc.ABC):
         return NotImplemented
 
     @typing.override
-    def draw(self, canvas: Canvas, /) -> None:
+    def draw(self, vp: ViewPort, /) -> plotting.figure:
         """
         Populate the canvas with `bokeh`, filter based on viewbox (`self.outer()`).
         """
 
         if self._draw is NotImplemented:
-            return
+            return vp.figure()
 
         selected = self
 
         # Get the bounding box of `self`, and get rid of points not in the box.
-        box = self.outer()
-        visible_topos = box.visible(canvas.window)
-        selected = selected[visible_topos]
+        if (box := self.outer()) is not NotImplemented:
+            visible_idx = box.visible(vp)
+            selected = selected[visible_idx]
 
-        selected._draw(canvas.figure)
+        figure = vp.figure()
+        selected._draw(figure)
+        return figure
 
     @abc.abstractmethod
     def _draw(self, figure: plotting.figure, /) -> None:
@@ -246,6 +249,35 @@ def enabled_topo_handlers():
     """
 
     return tuple(_TOPO_HANDLERS)
+
+
+@dcls.dataclass(frozen=True)
+class TopoInScope(TopoHandlerBase, Displayable):
+    """
+    Get all the topo in scope.
+    """
+
+    topo_list: list[Topo] = dcls.field(default_factory=list)
+
+    def __len__(self) -> int:
+        return len(self.topo_list)
+
+    def __getitem__(self, idx: int) -> Topo:
+        return self.topo_list[idx]
+
+    def __iter__(self) -> cabc.Generator[Topo, typing.Any, None]:
+        yield from self.topo_list
+
+    def __repr__(self) -> str:
+        return repr(self.topo_list)
+
+    def __call__(self, topo) -> None:
+        self.topo_list.append(topo)
+
+    @typing.override
+    def draw(self, vp: ViewPort, /) -> None:
+        for topo in self.topo_list:
+            topo.draw(vp)
 
 
 _TOPO_HANDLERS: list[TopoHandlerFunc] = []

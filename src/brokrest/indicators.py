@@ -39,7 +39,7 @@ class Rsi(Indicator):
         return talib.RSI(data, timeperiod=self.window)
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class Ema(Indicator):
     period: float = 30
 
@@ -52,7 +52,7 @@ class Ema(Indicator):
         return talib.EMA(data, timeperiod=self.period)
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class Macd(Indicator):
     """
     MACD signal is just EMA_fast - EMA_slow.

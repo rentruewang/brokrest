@@ -11,7 +11,6 @@ import torch
 from bokeh import plotting
 
 from brokrest.plotting import ViewPort
-from brokrest.tds import tensorclass
 
 from .topos import Topo
 
@@ -21,7 +20,6 @@ if typing.TYPE_CHECKING:
 __all__ = ["Rect", "Box", "Segment"]
 
 
-@tensorclass
 class Rect(Topo, abc.ABC):
     """
     A tuple with 4 values.
@@ -42,7 +40,6 @@ class Rect(Topo, abc.ABC):
     "The bottom side."
 
 
-@tensorclass
 class Box(Rect):
     """
     A box with 4 sides.
@@ -185,7 +182,6 @@ def _segment_visible(
     return ans
 
 
-@tensorclass
 class Segment(Rect):
 
     @typing.override

@@ -10,8 +10,6 @@ import tensordict as td
 import torch
 from bokeh import plotting
 
-from brokrest.tds import TensorClass, tensorclass
-
 from .lines import Line, Point
 from .rects import Segment
 from .topos import Topo
@@ -19,7 +17,6 @@ from .topos import Topo
 __all__ = ["Polygon"]
 
 
-@tensorclass
 class Polygon(Topo):
     upper: Point
     lower: Point
@@ -81,7 +78,7 @@ class Polygon(Topo):
         return cls.from_vertices(points)
 
 
-def _maybe_stack_input[T: TensorClass](*items: T) -> T:
+def _maybe_stack_input[T: td.TensorClass](*items: T) -> T:
     if len(items) == 1:
         return items[0]
     else:

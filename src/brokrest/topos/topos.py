@@ -8,11 +8,11 @@ import dataclasses as dcls
 import typing
 from collections import abc as cabc
 
+import tensordict as td
 import torch
 from bokeh import plotting
 
 from brokrest.plotting import Displayable, ViewPort
-from brokrest.tds import TensorClass, tensorclass
 
 if typing.TYPE_CHECKING:
     from .rects import Box
@@ -28,8 +28,7 @@ __all__ = [
 ]
 
 
-@tensorclass
-class Topo(TensorClass, Displayable, abc.ABC):
+class Topo(td.TensorClass, Displayable, abc.ABC):
     """
     A set of topologies.
 

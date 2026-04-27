@@ -235,6 +235,8 @@ class _Commands:
                 with self.session.cd("ta-lib"):
                     self._run("sudo", "./install")
                 self._run("rm", "-rf", "ta-lib")
+            case _:
+                raise RuntimeError(f"Platform '{sys.platform}' is not supported!")
 
 
 def _is_remote(session: nox.Session):

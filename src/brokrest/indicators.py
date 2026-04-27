@@ -57,8 +57,8 @@ class CandleIndicator(Displayable):
     def draw_on(self, vp: ViewPort, /) -> None:
         selected = (self.candles.left >= vp.left) & (self.candles.right <= vp.right)
         filtered_candles: Candle = self.candles[selected]
-        exit_values = self.candles.exit.cpu().numpy()
-        times = self.candles.right.cpu().numpy()
+        exit_values = self.candles.exit.cpu().numpy().astype("float64")
+        times = self.candles.right.cpu().numpy().astype("float64")
 
         indicators = self.indicator(exit_values)
 

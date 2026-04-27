@@ -70,7 +70,7 @@ class ViewPort:
 
 class Displayable(abc.ABC):
     """
-    `Painter` paints on the `Canvas`.
+    `Displayable` paints on the `Canvas`.
     """
 
     @abc.abstractmethod
@@ -80,7 +80,7 @@ class Displayable(abc.ABC):
         with the supported methods.
 
         Args:
-            canvas: Canvas to invoke. Should be invoked sequentially.
+            vp: ViewPort to draw on. Only shapes inside the viewport are visible.
         """
 
         raise NotImplementedError

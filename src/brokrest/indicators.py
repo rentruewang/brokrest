@@ -7,6 +7,8 @@ import numpy as np
 import talib
 import torch
 from numpy import typing as npt
+import abc
+from brokrest.plotting import Displayable
 
 __all__ = ["Indicator", "Rsi", "Ema", "Macd", "BollingerBand"]
 
@@ -14,7 +16,7 @@ __all__ = ["Indicator", "Rsi", "Ema", "Macd", "BollingerBand"]
 FloatArray = npt.NDArray[np.float64]
 
 
-class Indicator(typing.Protocol):
+class Indicator(Displayable, abc.ABC):
     """
     `Indicator` is a callable that converts the raw datapoint into some signals.
     It must have the same number of datapoints, matching the original input.
@@ -23,7 +25,9 @@ class Indicator(typing.Protocol):
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         return torch.tensor(self.ta_lib(data.cpu().numpy().astype("float64")))
 
-    def ta_lib(self, data: FloatArray, /) -> FloatArray: ...
+    @abc.abstractmethod
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+        raise NotImplementedError
 
 
 @dcls.dataclass(frozen=True)

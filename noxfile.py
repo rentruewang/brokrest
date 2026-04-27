@@ -224,7 +224,7 @@ class _Commands:
         return pdm(self.session)
 
     def _run(self, *args: str):
-        return self.session.run(*args, external=True)
+        self.session.run(*args, external=True)
 
     def _install_ta_lib(self):
         match sys.platform:
@@ -233,9 +233,7 @@ class _Commands:
             case "linux":
                 self._run("git", "clone", "https://github.com/ta-lib/ta-lib/")
                 with self.session.cd("ta-lib"):
-                    self._run("./configure")
-                    self._run("make", "-j")
-                    self._run("sudo", "make", "install")
+                    self._run("./install")
                 self._run("rm", "-rf", "ta-lib")
 
 

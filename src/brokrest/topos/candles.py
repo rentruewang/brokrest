@@ -13,8 +13,6 @@ import tensordict as td
 import torch
 from bokeh import plotting
 
-from brokrest.tds import tensorclass
-
 from .lines import Point
 from .polygons import Polygon
 from .rects import Box
@@ -59,7 +57,6 @@ class CandleLooks:
         )
 
 
-@tensorclass
 class Candle(Topo, abc.ABC):
     """
     A candle on the candle chart
@@ -243,7 +240,6 @@ class Candle(Topo, abc.ABC):
         return self[selected]
 
 
-@tensorclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
@@ -300,7 +296,6 @@ class BothCandle(Candle):
         return self.start
 
 
-@tensorclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).

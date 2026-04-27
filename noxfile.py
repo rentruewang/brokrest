@@ -3,6 +3,7 @@
 import dataclasses as dcls
 import functools
 import os
+import sys
 
 import nox
 
@@ -185,8 +186,9 @@ class _Pdm:
 class _Commands:
     session: nox.Session
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         github(self.session).setup()
+        self._install_ta_lib()
 
     def build(self):
         "`pdm build` command."
@@ -220,6 +222,21 @@ class _Commands:
     @property
     def pdm(self):
         return pdm(self.session)
+
+    def _run(self, *args: str):
+        self.session.run(*args, external=True)
+
+    def _install_ta_lib(self):
+        match sys.platform:
+            case "darwin":
+                self._run("brew", "install", "ta-lib")
+            case "linux":
+                self._run("git", "clone", "https://github.com/ta-lib/ta-lib/")
+                with self.session.cd("ta-lib"):
+                    self._run("sudo", "./install")
+                self._run("rm", "-rf", "ta-lib")
+            case _:
+                raise RuntimeError(f"Platform '{sys.platform}' is not supported!")
 
 
 def _is_remote(session: nox.Session):

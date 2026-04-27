@@ -10,11 +10,6 @@ from brokrest.topos import LeftCandle
 
 __all__ = ["load_yahooquery"]
 
-_MINUTE = "m"
-_HOUR = "h"
-_MONTH = "mo"
-_WEEK = "wk"
-_YEAR = "y"
 
 Interval = typing.Literal[
     "1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"

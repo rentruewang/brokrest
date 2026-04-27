@@ -1,14 +1,15 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
 import pytest
-import torch
+from numpy import random as npr
 
-from brokrest.indicators import BollingerBand, Ema, Indicator, Macd, Rsi, convolve
+from brokrest.indicators import BollingerBand, Ema, Indicator, Macd, Rsi
+import numpy as np
 
 
 @pytest.fixture
-def data() -> torch.Tensor:
-    return torch.randn(1000)
+def data():
+    return npr.randn(1000)
 
 
 @pytest.fixture
@@ -43,13 +44,8 @@ def signal(request: pytest.FixtureRequest) -> Indicator:
     return request.getfixturevalue(request.param)
 
 
-def test_signal_working(data: torch.Tensor, signal: Indicator):
+def test_signal_working(data: np.ndarray, signal: Indicator):
     out = signal(data)
-    assert isinstance(out, torch.Tensor)
+    assert isinstance(out, np.ndarray)
+    assert out.shape[-1] == len(data)
     assert len(out) == len(out)
-
-
-def test_convolve_1d():
-    a = torch.randn(9)
-    b = torch.randn(10)
-    assert convolve(a, b).ndim == 1

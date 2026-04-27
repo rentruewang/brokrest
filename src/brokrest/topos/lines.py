@@ -7,8 +7,6 @@ import typing
 import torch
 from bokeh import plotting
 
-from brokrest.tds import tensorclass
-
 from .probs import Importance
 from .rects import Box, Segment
 from .topos import Topo
@@ -19,7 +17,6 @@ if typing.TYPE_CHECKING:
 __all__ = ["Line", "Point"]
 
 
-@tensorclass
 class Point(Topo):
     "A collection of points."
 
@@ -56,7 +53,7 @@ class Point(Topo):
     def _outer(self) -> Box:
         return Box(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
 
-    def unit(self) -> typing.Self:
+    def unit(self):
         return self / self.length
 
     @property
@@ -72,7 +69,6 @@ def mean_squared_error(x: torch.Tensor):
     return (x**2).mean()
 
 
-@tensorclass
 class Line(Topo):
     """
     A set of lines. Represented as `ax + by + c = 0` (standard form).

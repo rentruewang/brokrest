@@ -63,7 +63,7 @@ class Polygon(Topo):
 
         val = line.subs(point_list).flatten()
 
-        lr = torch.isclose(val, torch.zeros_like(val), atol=1e-5)
+        lr = torch.isclose(val, torch.zeros_like(val), atol=1e-4)
         assert lr.sum() == 2
 
         upper: Point = point_list[val > 0 & ~lr]

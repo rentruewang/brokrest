@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from brokrest.indicators import BollingerBand, Ema, Indicator, Macd, Rsi, convolve
+from brokrest.indicators import BollingerBand, Ema, Indicator, Macd, Rsi
 
 
 @pytest.fixture
@@ -47,9 +47,3 @@ def test_signal_working(data: torch.Tensor, signal: Indicator):
     out = signal(data)
     assert isinstance(out, torch.Tensor)
     assert len(out) == len(out)
-
-
-def test_convolve_1d():
-    a = torch.randn(9)
-    b = torch.randn(10)
-    assert convolve(a, b).ndim == 1

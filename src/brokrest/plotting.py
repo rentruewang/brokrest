@@ -68,8 +68,7 @@ class ViewPort:
         return plotting.show(self.figure)
 
 
-@typing.runtime_checkable
-class Displayable(typing.Protocol):
+class Displayable(abc.ABC):
     """
     `Painter` paints on the `Canvas`.
     """

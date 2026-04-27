@@ -232,7 +232,7 @@ class _Commands:
                 self._run("brew", "install", "ta-lib")
             case "linux":
                 self._run("git", "clone", "https://github.com/ta-lib/ta-lib/")
-                with self._cd("ta-lib"):
+                with self.session.cd("ta-lib"):
                     self._run("./configure")
                     self._run("make", "-j")
                     self._run("sudo", "make", "install")

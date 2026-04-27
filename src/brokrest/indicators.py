@@ -3,31 +3,18 @@
 import dataclasses as dcls
 import typing
 
-import numpy as np
-import talib
 import torch
-from numpy import typing as npt
-import abc
-from brokrest.plotting import Displayable
 
 __all__ = ["Indicator", "Rsi", "Ema", "Macd", "BollingerBand"]
 
 
-FloatArray = npt.NDArray[np.float64]
-
-
-class Indicator(Displayable, abc.ABC):
+class Indicator(typing.Protocol):
     """
-    `Indicator` is a callable that converts the raw datapoint into some signals.
+    `Signal` is a callable that converts the raw datapoint into some signals.
     It must have the same number of datapoints, matching the original input.
     """
 
-    def __call__(self, data: torch.Tensor) -> torch.Tensor:
-        return torch.tensor(self.ta_lib(data.cpu().numpy().astype("float64")))
-
-    @abc.abstractmethod
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
-        raise NotImplementedError
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor: ...
 
 
 @dcls.dataclass(frozen=True)
@@ -39,24 +26,35 @@ class Rsi(Indicator):
             raise ValueError(f"{self.window=} should be a positive number.")
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
-        return talib.RSI(data, timeperiod=self.window)
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
+        delta = data[1:] - data[:-1]
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+
+        avg_gain = gain.unfold(0, self.window, 1).mean(-1)
+        avg_loss = loss.unfold(0, self.window, 1).mean(-1)
+
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
 
 
-@dcls.dataclass(frozen=True)
+@dcls.dataclass
 class Ema(Indicator):
-    period: float = 30
+    decay: float = 0.9
 
     def __post_init__(self):
-        if not self.period > 0:
-            raise ValueError(f"{self.period=}, but should be positive.")
+        if not 0 <= self.decay <= 1:
+            raise ValueError(f"{self.decay=} should be a number between 0 and 1.")
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
-        return talib.EMA(data, timeperiod=self.period)
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
+        kernel = self.decay * ((1 - self.decay) ** torch.arange(len(data)))
+        kernel = kernel.flip(0)
+
+        return convolve(data, kernel)
 
 
-@dcls.dataclass(frozen=True)
+@dcls.dataclass
 class Macd(Indicator):
     """
     MACD signal is just EMA_fast - EMA_slow.
@@ -64,17 +62,10 @@ class Macd(Indicator):
 
     fast: float = 12
     slow: float = 26
-    signal: float = 12
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
-        result, _, _ = talib.MACD(
-            data,
-            fastperiod=self.fast,
-            slowperiod=self.slow,
-            signalperiod=self.signal,
-        )
-        return result
+    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
+        return Ema(1 / self.fast)(data) - Ema(1 / self.slow)(data)
 
 
 @dcls.dataclass(frozen=True)
@@ -83,20 +74,48 @@ class BollingerBand(Indicator):
     Bollinger band is a lower, middle, upper band.
     """
 
-    window: int = 5
-    num_std_up: float = 2
-    num_std_down: float = 2
+    window: int = 20
+    num_std: float = 1.5
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def __call__(self, prices: torch.Tensor):
         """
         Compute Bollinger Bands in PyTorch.
         """
 
-        low, mid, top = talib.BBANDS(
-            data,
-            timeperiod=self.window,
-            nbdevdn=self.num_std_down,
-            nbdevup=self.num_std_up,
-        )
-        return np.stack([low, mid, top])
+        kernel = torch.ones(self.window) / self.window
+
+        # Rolling mean.
+        middle_band = convolve(prices, kernel)
+
+        # Variance: E[x^2] - (E[x])^2
+        prices_sq = prices**2
+        mean_sq = convolve(prices_sq, kernel)
+        variance = mean_sq - middle_band**2
+        std = torch.sqrt(variance.clamp(min=1e-8))
+
+        upper_band = middle_band + self.num_std * std
+        lower_band = middle_band - self.num_std * std
+
+        return torch.stack([middle_band, upper_band, lower_band], dim=-1)
+
+
+def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    if len(a) < len(b):
+        a, b = b, a
+
+    return _convolve(a, b)
+
+
+def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    assert len(a) >= len(b)
+
+    if a.ndim != 1 or b.ndim != 1:
+        raise ValueError(f"Both arrays should have ndim=1. {a.ndim=}, {b.ndim=}.")
+
+    # Pad only on the left (causal).
+    padded = torch.cat([torch.zeros([len(b) - 1, *a.shape[1:]]), a])
+    # shape: (len(longer), *b.shape)
+    rolling_a = padded.unfold(0, len(b), 1)
+
+    return (rolling_a * b.unsqueeze(0)).sum(dim=1)

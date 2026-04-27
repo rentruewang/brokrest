@@ -233,7 +233,7 @@ class _Commands:
             case "linux":
                 self._run("git", "clone", "https://github.com/ta-lib/ta-lib/")
                 with self.session.cd("ta-lib"):
-                    self._run("./install")
+                    self._run("sudo", "./install")
                 self._run("rm", "-rf", "ta-lib")
 
 

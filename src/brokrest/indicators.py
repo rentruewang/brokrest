@@ -1,20 +1,86 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
+import abc
 import dataclasses as dcls
 import typing
+from collections import abc as cabc
 
-import torch
+import numpy as np
+import talib
+from numpy import typing as npt
 
-__all__ = ["Indicator", "Rsi", "Ema", "Macd", "BollingerBand"]
+from brokrest.plotting import Displayable, ViewPort
+from brokrest.topos import Candle
+
+__all__ = ["Indicator", "IndicatorList", "Rsi", "Ema", "Macd", "BollingerBand"]
 
 
-class Indicator(typing.Protocol):
+FloatArray: typing.TypeAlias = npt.NDArray[np.float64]
+
+
+class Indicator(abc.ABC):
     """
-    `Signal` is a callable that converts the raw datapoint into some signals.
+    `Indicator` is a callable that converts the raw datapoint into some signals.
     It must have the same number of datapoints, matching the original input.
+
+    In `compute`, the result can be either 1D (1 indicator) or 2D (N indicators).
+    1D tensors would be casted to (1, length) tensors in `__call__`.
     """
 
-    def __call__(self, data: torch.Tensor, /) -> torch.Tensor: ...
+    def __call__(self, data: FloatArray, /) -> FloatArray:
+        if data.ndim != 1:
+            raise ValueError(f"Input should be a 1D tensor. Got {data.shape=}.")
+
+        result = self.ta_lib(data)
+
+        match result.ndim:
+            case 1:
+                return np.expand_dims(result, 0)
+            case 2:
+                return result
+            case _:
+                raise AssertionError(
+                    f"Expected 1D or 2D tensor output, got {result.shape=}."
+                )
+
+    @abc.abstractmethod
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+        raise NotImplementedError
+
+
+@dcls.dataclass(frozen=True)
+class CandleIndicator(Displayable):
+    candles: Candle
+    indicator: Indicator
+
+    @typing.override
+    def draw_on(self, vp: ViewPort, /) -> None:
+        selected = (self.candles.left >= vp.left) & (self.candles.right <= vp.right)
+        filtered_candles: Candle = self.candles[selected]
+        exit_values = self.candles.exit.cpu().numpy()
+        times = self.candles.right.cpu().numpy()
+
+        indicators = self.indicator(exit_values)
+
+        vp.display(filtered_candles)
+
+        for ind in indicators:
+            vp.figure.segment(
+                x0=times[:-1],
+                x1=times[1:],
+                y0=ind[:-1],
+                y1=ind[1:],
+            )
+
+
+@dcls.dataclass(frozen=True)
+class IndicatorList(Indicator):
+    indicators: cabc.Sequence[Indicator]
+
+    @typing.override
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+        results = np.concatenate([ind(data) for ind in self.indicators])
+        return results
 
 
 @dcls.dataclass(frozen=True)
@@ -26,46 +92,42 @@ class Rsi(Indicator):
             raise ValueError(f"{self.window=} should be a positive number.")
 
     @typing.override
-    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
-        delta = data[1:] - data[:-1]
-        gain = delta.where(delta > 0, 0)
-        loss = -delta.where(delta < 0, 0)
-
-        avg_gain = gain.unfold(0, self.window, 1).mean(-1)
-        avg_loss = loss.unfold(0, self.window, 1).mean(-1)
-
-        rs = avg_gain / avg_loss
-        return 100 - (100 / (1 + rs))
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+        return talib.RSI(data, timeperiod=self.window)
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class Ema(Indicator):
-    decay: float = 0.9
+    period: int = 30
 
     def __post_init__(self):
-        if not 0 <= self.decay <= 1:
-            raise ValueError(f"{self.decay=} should be a number between 0 and 1.")
+        if not self.period > 0:
+            raise ValueError(f"{self.period=}, but should be positive.")
 
     @typing.override
-    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
-        kernel = self.decay * ((1 - self.decay) ** torch.arange(len(data)))
-        kernel = kernel.flip(0)
-
-        return convolve(data, kernel)
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+        return talib.EMA(data, timeperiod=self.period)
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class Macd(Indicator):
     """
     MACD signal is just EMA_fast - EMA_slow.
     """
 
-    fast: float = 12
-    slow: float = 26
+    fast: int = 12
+    slow: int = 26
+    signal: int = 12
 
     @typing.override
-    def __call__(self, data: torch.Tensor, /) -> torch.Tensor:
-        return Ema(1 / self.fast)(data) - Ema(1 / self.slow)(data)
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+        result, _, _ = talib.MACD(
+            data,
+            fastperiod=self.fast,
+            slowperiod=self.slow,
+            signalperiod=self.signal,
+        )
+        return result
 
 
 @dcls.dataclass(frozen=True)
@@ -74,48 +136,20 @@ class BollingerBand(Indicator):
     Bollinger band is a lower, middle, upper band.
     """
 
-    window: int = 20
-    num_std: float = 1.5
+    window: int = 5
+    num_std_up: float = 2
+    num_std_down: float = 2
 
     @typing.override
-    def __call__(self, prices: torch.Tensor):
+    def ta_lib(self, data: FloatArray, /) -> FloatArray:
         """
         Compute Bollinger Bands in PyTorch.
         """
 
-        kernel = torch.ones(self.window) / self.window
-
-        # Rolling mean.
-        middle_band = convolve(prices, kernel)
-
-        # Variance: E[x^2] - (E[x])^2
-        prices_sq = prices**2
-        mean_sq = convolve(prices_sq, kernel)
-        variance = mean_sq - middle_band**2
-        std = torch.sqrt(variance.clamp(min=1e-8))
-
-        upper_band = middle_band + self.num_std * std
-        lower_band = middle_band - self.num_std * std
-
-        return torch.stack([middle_band, upper_band, lower_band], dim=-1)
-
-
-def convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    if len(a) < len(b):
-        a, b = b, a
-
-    return _convolve(a, b)
-
-
-def _convolve(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
-    assert len(a) >= len(b)
-
-    if a.ndim != 1 or b.ndim != 1:
-        raise ValueError(f"Both arrays should have ndim=1. {a.ndim=}, {b.ndim=}.")
-
-    # Pad only on the left (causal).
-    padded = torch.cat([torch.zeros([len(b) - 1, *a.shape[1:]]), a])
-    # shape: (len(longer), *b.shape)
-    rolling_a = padded.unfold(0, len(b), 1)
-
-    return (rolling_a * b.unsqueeze(0)).sum(dim=1)
+        low, mid, top = talib.BBANDS(
+            data,
+            timeperiod=self.window,
+            nbdevdn=self.num_std_down,
+            nbdevup=self.num_std_up,
+        )
+        return np.stack([low, mid, top])

@@ -46,14 +46,16 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
 
     @typing.final
     def __post_init__(self) -> None:
-        self._setup_batch_size()
+        if (batch_size := self._setup_batch_size()) is not NotImplemented:
+            self.batch_size = batch_size
+
         self._sort_by_value()
         self._checks()
 
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
         self._call_handlers()
 
-    def _setup_batch_size(self):
+    def _setup_batch_size(self) -> torch.Size:
         # Make all equal size.
         _ = self.auto_batch_size_()
 
@@ -65,6 +67,7 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
                 f"Discovered batch size: {self.shape} "
                 f"should match the broadcasted shape: {auto_shape}."
             )
+        return auto_shape
 
     def _checks(self) -> None:
         return

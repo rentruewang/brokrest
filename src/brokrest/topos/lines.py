@@ -84,11 +84,11 @@ class Line(Topo):
     "The constant term."
 
     @typing.override
-    def _setup_batch_size(self):
+    def _setup_batch_size(self) -> torch.Size:
         sizes = {s for s in [self.a.shape, self.b.shape, self.c.shape] if len(s)}
 
         if len(sizes) == 0:
-            return
+            return NotImplemented
 
         if len(sizes) != 1:
             raise ValueError(f"Too many sizes: {sizes=}.")
@@ -107,6 +107,7 @@ class Line(Topo):
         self.c = _cast_to_target_size(self.c)
 
         self.auto_batch_size_()
+        return self.batch_size
 
     @property
     def slope(self) -> torch.Tensor:
@@ -227,6 +228,7 @@ class Line(Topo):
 
 
 def _unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
+    # Because flatten actually **adds** dimensions, so here we remove it.
     if not sizes:
         return item.squeeze(dim)
 

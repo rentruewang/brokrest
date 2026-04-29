@@ -3,7 +3,9 @@
 import dataclasses as dcls
 import functools
 import os
+import subprocess as sp
 import sys
+from collections import abc as cabc
 
 import nox
 
@@ -104,7 +106,7 @@ class _Github:
         "The shared entrypoint to GitHub Actions scripts"
 
         # Does nothing outside of GitHub Actions.
-        if not self.active():
+        if not in_github_actions():
             return
 
         self._remove_unwanted_files()
@@ -133,15 +135,6 @@ class _Github:
 
         self._run("df", "-h")
 
-    @staticmethod
-    def active() -> bool:
-        "Detect whether or not it is running in GitHub Actions."
-
-        print("Checking if we are in GitHub Actions...", end=" ")
-        result = os.getenv("GITHUB_ACTIONS") == "true"
-        print("Yes" if result else "No")
-        return result
-
 
 @dcls.dataclass(frozen=True)
 class _Pdm:
@@ -150,7 +143,7 @@ class _Pdm:
     def __post_init__(self):
         github(self.session).setup()
 
-        if _is_remote(self.session):
+        if in_github_actions():
             self._run("pdm", "config", "python.use_venv", "true")
 
     def sync(self) -> None:
@@ -173,7 +166,7 @@ class _Pdm:
 
     def _sync_or_install(self, mode: str) -> None:
         # Don't repeatedly reinstall locally.
-        if not _is_remote(self.session):
+        if not in_github_actions():
             return
 
         self.session.run_install("pdm", mode, "-G:all")
@@ -188,7 +181,7 @@ class _Commands:
 
     def __post_init__(self) -> None:
         github(self.session).setup()
-        self._install_ta_lib()
+        _install_ta_lib(self.session)
 
     def build(self):
         "`pdm build` command."
@@ -226,18 +219,72 @@ class _Commands:
     def _run(self, *args: str):
         self.session.run(*args, external=True)
 
-    def _install_ta_lib(self):
-        match sys.platform:
-            case "darwin":
-                self._run("brew", "install", "ta-lib")
-            case "linux":
-                self._run("git", "clone", "https://github.com/ta-lib/ta-lib/")
-                with self.session.cd("ta-lib"):
-                    self._run("sudo", "./install")
-                self._run("rm", "-rf", "ta-lib")
-            case _:
-                raise RuntimeError(f"Platform '{sys.platform}' is not supported!")
+
+def _install_talib_macos(session: nox.Session):
+    if _has_brew_pkg("ta-lib"):
+        return
+
+    session.run("brew", "install", "ta-lib", external=True)
 
 
-def _is_remote(session: nox.Session):
-    return github(session).active()
+def _install_talib_linux(session: nox.Session):
+    if _has_talib_linux_binding():
+        return
+
+    session.run("git", "clone", "https://github.com/ta-lib/ta-lib/", external=True)
+    with session.cd("ta-lib"):
+        session.run("sudo", "./install", external=True)
+    session.run("rm", "-rf", "ta-lib", external=True)
+
+
+def _install_ta_lib(session: nox.Session):
+
+    match sys.platform:
+        case "darwin":
+            _install_talib_macos(session)
+        case "linux":
+            _install_talib_linux(session)
+        case _:
+            raise RuntimeError(f"Platform '{sys.platform}' is not supported!")
+
+
+def checking_if(condition: str):
+    def decorator[**P](function: cabc.Callable[P, bool]) -> cabc.Callable[P, bool]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> bool:
+            print(f"Checking if {condition}...", end=" ")
+            answer = function(*args, **kwargs)
+            print("Yes" if answer else "No")
+            return answer
+
+        return wrapper
+
+    return decorator
+
+
+@checking_if("we are in GitHub Actions")
+def in_github_actions() -> bool:
+    "Detect whether or not it is running in GitHub Actions."
+
+    return os.getenv("GITHUB_ACTIONS") == "true"
+
+
+@checking_if("ta-lib is installed in brew")
+def _has_brew_pkg(pkg_name: str):
+    result = sp.run(
+        ["brew", "list", "--versions", pkg_name],
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+        text=True,
+    )
+    return result.stdout.strip() != ""
+
+
+@checking_if("ta-lib is installed on linux")
+def _has_talib_linux_binding():
+    result = sp.run(
+        ["ldconfig", "-p"],
+        stdout=sp.PIPE,
+        stderr=sp.PIPE,
+        text=True,
+    )
+    return "ta_lib" in result.stdout.lower()

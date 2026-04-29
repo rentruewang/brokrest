@@ -24,11 +24,11 @@ class Polygon(Topo):
     right: Point
 
     @typing.override
-    def _setup_batch_size(self) -> None:
+    def _setup_batch_size(self):
         if self.vertices.ndim == 0:
             raise ValueError("A single vertex cannot make a polygon.")
 
-        self.batch_size = self.vertices.shape[1:]
+        return self.vertices.shape[1:]
 
     @property
     def vertices(self) -> Point:

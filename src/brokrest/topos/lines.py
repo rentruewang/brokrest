@@ -228,8 +228,9 @@ class Line(Topo):
 
 
 def _unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
+    # Because flatten actually **adds** dimensions, so here we remove it.
     if not sizes:
-        return item.unsqueeze(dim)
+        return item.squeeze(dim)
 
     else:
         return item.unflatten(dim, sizes)

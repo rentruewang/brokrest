@@ -1,10 +1,10 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
+import numpy as np
 import pytest
 from numpy import random as npr
 
 from brokrest.indicators import BollingerBand, Ema, Indicator, Macd, Rsi
-import numpy as np
 
 
 @pytest.fixture

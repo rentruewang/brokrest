@@ -4,11 +4,10 @@
 
 import typing
 
+import numpy as np
 import pytest
-import torch
 
-from brokrest.topos import Line, Point, Window
-from brokrest.topos.probs import Importance
+from brokrest.topos import Importance, Line, Point, Window
 
 
 class _LinearEqSolve(typing.NamedTuple):
@@ -20,24 +19,24 @@ def _solve_cases():
     # Test intercept forms
     yield _LinearEqSolve(
         eq=Line.intercept(
-            a=torch.tensor(5),
-            b=torch.tensor(4),
+            a=np.array(5),
+            b=np.array(4),
         ),
         point=Point(
-            x=torch.tensor([5, 0]),
-            y=torch.tensor([0, 4]),
+            x=np.array([5, 0]),
+            y=np.array([0, 4]),
         ),
     )
 
     # Test slope-intercept
     yield _LinearEqSolve(
         eq=Line.slope_intercept(
-            m=torch.tensor(9),
-            b=torch.tensor(3),
+            m=np.array(9),
+            b=np.array(3),
         ),
         point=Point(
-            x=torch.tensor([0, 1]),
-            y=torch.tensor([3, 12]),
+            x=np.array([0, 1]),
+            y=np.array([3, 12]),
         ),
     )
 
@@ -46,9 +45,9 @@ def _solve_cases():
 def test_sub_cases_solved(case: _LinearEqSolve):
     "Points on the line (already solved cases) yields 0."
 
-    assert torch.allclose(
-        case.eq.subs(case.point).float(),
-        torch.zeros([case.eq.numel(), case.point.numel()]).float(),
+    assert np.allclose(
+        case.eq.subs(case.point).astype("float32"),
+        torch.zeros([case.eq, case.point.size]).astype("float32"),
     )
 
 

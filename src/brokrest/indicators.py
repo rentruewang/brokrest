@@ -7,15 +7,12 @@ from collections import abc as cabc
 
 import numpy as np
 import talib
-from numpy import typing as npt
 
 from brokrest.plotting import Displayable, ViewPort
 from brokrest.topos import Candle
+from brokrest.typing import DoubleArray
 
 __all__ = ["Indicator", "IndicatorList", "Rsi", "Ema", "Macd", "BollingerBand"]
-
-
-FloatArray: typing.TypeAlias = npt.NDArray[np.float64]
 
 
 class Indicator(abc.ABC):
@@ -27,7 +24,7 @@ class Indicator(abc.ABC):
     1D tensors would be casted to (1, length) tensors in `__call__`.
     """
 
-    def __call__(self, data: FloatArray, /) -> FloatArray:
+    def __call__(self, data: DoubleArray, /) -> DoubleArray:
         if data.ndim != 1:
             raise ValueError(f"Input should be a 1D tensor. Got {data.shape=}.")
 
@@ -44,7 +41,7 @@ class Indicator(abc.ABC):
                 )
 
     @abc.abstractmethod
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def ta_lib(self, data: DoubleArray, /) -> DoubleArray:
         raise NotImplementedError
 
 
@@ -78,7 +75,7 @@ class IndicatorList(Indicator):
     indicators: cabc.Sequence[Indicator]
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def ta_lib(self, data: DoubleArray, /) -> DoubleArray:
         results = np.concatenate([ind(data) for ind in self.indicators])
         return results
 
@@ -92,7 +89,7 @@ class Rsi(Indicator):
             raise ValueError(f"{self.window=} should be a positive number.")
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def ta_lib(self, data: DoubleArray, /) -> DoubleArray:
         return talib.RSI(data, timeperiod=self.window)
 
 
@@ -105,7 +102,7 @@ class Ema(Indicator):
             raise ValueError(f"{self.period=}, but should be positive.")
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def ta_lib(self, data: DoubleArray, /) -> DoubleArray:
         return talib.EMA(data, timeperiod=self.period)
 
 
@@ -120,7 +117,7 @@ class Macd(Indicator):
     signal: int = 12
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def ta_lib(self, data: DoubleArray, /) -> DoubleArray:
         result, _, _ = talib.MACD(
             data,
             fastperiod=self.fast,
@@ -141,7 +138,7 @@ class BollingerBand(Indicator):
     num_std_down: float = 2
 
     @typing.override
-    def ta_lib(self, data: FloatArray, /) -> FloatArray:
+    def ta_lib(self, data: DoubleArray, /) -> DoubleArray:
         """
         Compute Bollinger Bands in PyTorch.
         """

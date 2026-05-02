@@ -3,14 +3,15 @@
 "A set of shapes that can be represented as a 4 tuple."
 
 import abc
+import dataclasses as dcls
 import typing
 
+import numpy as np
 import shapely
-import tensordict as td
-import torch
 from bokeh import plotting
 
 from brokrest.plotting import ViewPort
+from brokrest.typing import FloatArray, IntArray
 
 from .topos import Topo
 
@@ -20,6 +21,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["Rect", "Box", "Segment"]
 
 
+@dcls.dataclass
 class Rect(Topo, abc.ABC):
     """
     A tuple with 4 values.
@@ -27,16 +29,16 @@ class Rect(Topo, abc.ABC):
     If `batch_size` is not 1, all `x_0`, `x_1`, `y_0`, `y_1` need to be the same shape.
     """
 
-    x_0: torch.Tensor
+    x_0: FloatArray
     "The left side."
 
-    x_1: torch.Tensor
+    x_1: FloatArray
     "The right side."
 
-    y_0: torch.Tensor
+    y_0: FloatArray
     "The top side."
 
-    y_1: torch.Tensor
+    y_1: FloatArray
     "The bottom side."
 
 
@@ -49,44 +51,44 @@ class Box(Rect):
     def _checks(self) -> None:
         super()._checks()
 
-        if not torch.all(self.width >= 0):
+        if not np.all(self.width >= 0):
             raise ValueError("Box should not have negative width.")
 
-        if not torch.all(self.height >= 0):
+        if not np.all(self.height >= 0):
             raise ValueError("Box should not have negative height.")
 
     @property
-    def bottom(self) -> torch.Tensor:
+    def bottom(self) -> FloatArray:
         "The bottom of the box. Alias of `y_0`."
         return self.y_0
 
     @property
-    def top(self) -> torch.Tensor:
+    def top(self) -> FloatArray:
         "The top of the box. Alias of `y_1`."
         return self.y_1
 
     @property
-    def left(self) -> torch.Tensor:
+    def left(self) -> FloatArray:
         "The left of the box. Alias of `x_0`."
         return self.x_0
 
     @property
-    def right(self) -> torch.Tensor:
+    def right(self) -> FloatArray:
         "The right of the box. Alias of `x_1`."
         return self.x_1
 
     @property
-    def width(self) -> torch.Tensor:
+    def width(self) -> FloatArray:
         "The width of the `Box`es."
         return self.x_1 - self.x_0
 
     @property
-    def height(self) -> torch.Tensor:
+    def height(self) -> FloatArray:
         "The height of the `Box`es."
         return self.y_1 - self.y_0
 
     @property
-    def area(self) -> torch.Tensor:
+    def area(self) -> FloatArray:
         "The area of the `Box`es."
         return self.width * self.height
 
@@ -96,10 +98,7 @@ class Box(Rect):
 
     def boundary(self):
         return shapely.box(
-            xmin=self.left.numpy(),
-            xmax=self.right.numpy(),
-            ymin=self.bottom.numpy(),
-            ymax=self.top.numpy(),
+            xmin=self.left, xmax=self.right, ymin=self.bottom, ymax=self.top
         )
 
     def convex_hull(self):
@@ -107,14 +106,9 @@ class Box(Rect):
 
     @typing.override
     def plot(self, figure: plotting.figure) -> None:
-        _ = figure.rect(
-            x=self.x_0.numpy(),
-            y=self.y_0.numpy(),
-            width=self.width.numpy(),
-            height=self.height.numpy(),
-        )
+        _ = figure.rect(x=self.x_0, y=self.y_0, width=self.width, height=self.height)
 
-    def visible(self, window: ViewPort) -> torch.Tensor:
+    def visible(self, window: ViewPort) -> FloatArray:
         """
         Return a boolean tensor, of whether `self` is visible in the view box or not.
 
@@ -143,8 +137,8 @@ class Box(Rect):
 
 
 def _segment_visible(
-    start: torch.Tensor, end: torch.Tensor, x: float, y: float
-) -> torch.Tensor:
+    start: FloatArray, end: FloatArray, x: float, y: float
+) -> FloatArray:
     """
     Try to see if segment [start, end] is visible in viewport [x, y], vectorized.
     """
@@ -152,20 +146,20 @@ def _segment_visible(
     result_shape = start.shape
     assert end.shape == start.shape
 
-    def is_ordered(*ordered: torch.Tensor):
+    def is_ordered(*ordered: FloatArray):
         "The tensors are ordered."
 
-        answer = torch.ones(result_shape).bool()
+        answer = np.ones(result_shape).astype("bool")
         for smaller, larger in zip(ordered[:-1], ordered[1:]):
             answer &= smaller <= larger
         return answer
 
-    x_tensor = torch.tensor(x)
-    y_tensor = torch.tensor(y)
+    x_tensor = np.array(x).astype("float32")
+    y_tensor = np.array(y).astype("float32")
 
     # Let's laid it out on an axis.
     # the line is visible with one of the conditions:
-    ans = torch.zeros(result_shape).bool()
+    ans = np.zeros(result_shape).astype("bool")
 
     # start - x - end - y
     ans |= is_ordered(start, x_tensor, end, y_tensor)
@@ -183,21 +177,22 @@ def _segment_visible(
 
 
 class Segment(Rect):
+    "Segments on a 2D plane."
 
     @typing.override
-    def ordering(self) -> torch.Tensor:
-        return self.x_0
+    def ordering(self) -> IntArray:
+        return np.argsort(self.x_0)
 
     @property
-    def dx(self):
+    def dx(self) -> FloatArray:
         return self.x_1 - self.x_0
 
     @property
-    def dy(self):
+    def dy(self) -> FloatArray:
         return self.y_1 - self.y_0
 
     @property
-    def slope(self) -> torch.Tensor:
+    def slope(self) -> FloatArray:
         return self.dy / self.dx
 
     @property

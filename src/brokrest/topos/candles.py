@@ -7,11 +7,14 @@ import dataclasses as dcls
 import functools
 import typing
 
+import numpy as np
 import pandas as pd
 import shapely
 import tensordict as td
 import torch
 from bokeh import plotting
+
+from brokrest.typing import FloatArray, IntArray
 
 from .lines import Point
 from .polygons import Polygon
@@ -57,21 +60,22 @@ class CandleLooks:
         )
 
 
+@dcls.dataclass
 class Candle(Topo, abc.ABC):
     """
     A candle on the candle chart
     """
 
-    enter: torch.Tensor
+    enter: FloatArray
     "The entering position of this candle."
 
-    exit: torch.Tensor
+    exit: FloatArray
     "The exiting position of this candle."
 
-    low: torch.Tensor
+    low: FloatArray
     "The minimum value of the candle."
 
-    high: torch.Tensor
+    high: FloatArray
     "The maximum value of the candle."
 
     @typing.override
@@ -204,7 +208,7 @@ class Candle(Topo, abc.ABC):
 
     @typing.override
     @abc.abstractmethod
-    def ordering(self) -> torch.Tensor:
+    def ordering(self) -> IntArray:
         """
         As the candles are organized by time, ordering must be present.
         """
@@ -240,15 +244,16 @@ class Candle(Topo, abc.ABC):
         return self[selected]
 
 
+@dcls.dataclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
     """
 
-    start: torch.Tensor
+    start: FloatArray
     "The starting time of the candle."
 
-    end: torch.Tensor
+    end: FloatArray
     "The ending time of the candle."
 
     @typing.override
@@ -292,10 +297,11 @@ class BothCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def ordering(self) -> torch.Tensor:
-        return self.start
+    def ordering(self) -> IntArray:
+        return np.argsort(self.start)
 
 
+@dcls.dataclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).
@@ -335,8 +341,8 @@ class LeftCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
     @typing.override
-    def ordering(self) -> torch.Tensor:
-        return self.start
+    def ordering(self) -> IntArray:
+        return np.argsort(self.start)
 
 
 def dataframe_to_candles(df: pd.DataFrame, /) -> Candle:

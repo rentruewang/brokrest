@@ -5,14 +5,17 @@
 import abc
 import contextlib as ctxl
 import dataclasses as dcls
+import functools
 import typing
 from collections import abc as cabc
 
-import tensordict as td
+import numpy as np
 import torch
 from bokeh import plotting
+from numpy import typing as npt
 
 from brokrest.plotting import Displayable, ViewPort
+from brokrest.typing import IntArray
 
 if typing.TYPE_CHECKING:
     from .rects import Box
@@ -28,49 +31,41 @@ __all__ = [
 ]
 
 
-class Topo(td.TensorClass, Displayable, abc.ABC):
+@dcls.dataclass
+class Topo(Displayable, abc.ABC):
     """
     A set of topologies.
 
-    This is backed by `td.tensorclass`.
+    This is a dataclass of arrays.
     If `.ndim == 0`, this is a single instance and you can call `item()` on it.
     """
 
-    def __init_subclass__(cls) -> None:
-        # We do not want subclasses to define their `__post_init__`,
-        # to ensure that `_TOPO_HANDLERS` have the initialized `Topo`.
-        if "__post_init__" in cls.__dict__:
-            raise ValueError(
-                f"Sublcass should not define `__post_init__`, but {cls=} has it."
-            )
-
     @typing.final
     def __post_init__(self) -> None:
-        if (batch_size := self._setup_batch_size()) is not NotImplemented:
-            self.batch_size = batch_size
-
+        self._shape = self._setup_shape()
         self._sort_by_value()
         self._checks()
 
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
         self._call_handlers()
 
-    def _setup_batch_size(self) -> torch.Size:
-        # Make all equal size.
-        _ = self.auto_batch_size_()
-
-        # Check if shapes are valid.
-        shapes = [t.shape for t in self.values()]
-        auto_shape = torch.broadcast_shapes(*shapes)
-        if auto_shape != self.shape:
-            raise ValueError(
-                f"Discovered batch size: {self.shape} "
-                f"should match the broadcasted shape: {auto_shape}."
-            )
-        return auto_shape
+    def __len__(self) -> int:
+        return self.shape[0]
 
     def _checks(self) -> None:
         return
+
+    def _setup_shape(self) -> tuple[int, ...]:
+        # If mapping is empty, the shape is `()`.
+        if not (mapping := self.array_dict()):
+            return ()
+
+        shape, *rest = (arr.shape for arr in mapping.values())
+
+        for other in rest:
+            shape = _shape_prefix(shape, other)
+
+        return shape
 
     def _call_handlers(self):
         for handler in _TOPO_HANDLERS:
@@ -102,19 +97,17 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
                 )
             )
 
-        ordered_index = torch.argsort(ordering)
-
         for key in self.keys():
-            setattr(self, key, getattr(self, key)[ordered_index])
+            setattr(self, key, getattr(self, key)[ordering])
 
-    def ordering(self) -> torch.Tensor:
+    def ordering(self) -> IntArray:
         """
         Return the argsort of the current `Topo`.
 
         If the collection doesn't need to be ordered, return `NotImplemented`.
 
         Returns:
-            A 1D `torch.Tensor` of shape [len(self)],
+            A 1D `npt.NDArray` of shape [len(self)],
             whose elements are permutation of `range(len(self))`,
             or `NotImplemented` if ordering doesn't exist.
         """
@@ -178,9 +171,28 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
 
         return NotImplemented
 
-    def tensor(self) -> torch.Tensor:
-        values = list(self.values())
-        return torch.stack(values, dim=-1)
+    def apply[T: npt.ArrayLike](self, ufunc: cabc.Callable[[T], T]) -> typing.Self:
+        for key, val in self.array_dict().items():
+            mapped = ufunc(val)
+            setattr(self, key, mapped)
+
+    def array_dict(self) -> dict[str, npt.NDArray]:
+        return dict(self._array_dict())
+
+    def _array_dict(self):
+        for key in self.__all_keys:
+            item = getattr(self, key)
+
+            if isinstance(item, np.ndarray):
+                yield key, getattr(self, key)
+
+    @functools.cached_property
+    def __all_keys(self):
+        return {key.name for key in dcls.fields(self)}
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        return self._shape
 
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
@@ -283,13 +295,27 @@ class TopoInScope(TopoHandlerBase, Displayable):
 _TOPO_HANDLERS: list[TopoHandlerFunc] = []
 
 
+def _shape_prefix(shape: tuple[int, ...], other: tuple[int, ...]) -> tuple[int, ...]:
+    "Find the common prefix between `shape` and `other`."
+
+    result: list[int] = []
+
+    for s, o in zip(shape, other):
+        if s != o:
+            return tuple(result)
+
+        result.append(s)
+
+    return shape
+
+
 def _broadcast_tensor_dict(
-    items: cabc.Mapping[str, torch.Tensor],
-) -> dict[str, torch.Tensor]:
+    items: cabc.Mapping[str, npt.NDArray],
+) -> dict[str, npt.NDArray]:
     """
     Broadcast the tensors in a mapping from string to tensors to the same shape.
     """
 
     keys = list(items.keys())
     vals = [items[k] for k in keys]
-    return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
+    return {k: v for k, v in zip(keys, np.broadcast_arrays(*vals))}

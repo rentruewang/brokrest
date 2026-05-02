@@ -48,4 +48,3 @@ def test_signal_working(data: np.ndarray, signal: Indicator):
     out = signal(data)
     assert isinstance(out, np.ndarray)
     assert out.shape[-1] == len(data)
-    assert len(out) == len(out)

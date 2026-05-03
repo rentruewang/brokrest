@@ -13,6 +13,7 @@ import tensordict as td
 import torch
 from bokeh import plotting
 
+from ._turnaround import simple_keep_turnaround_segments
 from .lines import Point
 from .polygons import Polygon
 from .rects import Box
@@ -146,9 +147,20 @@ class Candle(Topo, abc.ABC):
 
         return (self.exit - self.enter).sign()
 
-    def center_points(self, enter_exit: bool = True):
+    @typing.no_type_check
+    def center_points(self, enter_exit: bool = True) -> Point:
         coords = self.top_bottom_bounds(enter_exit=enter_exit)
         return coords[..., 0] / 2 + coords[..., 1] / 2
+
+    def to_turnaround_segments(self):
+        """
+        Convert to the segments you commonly see in a stock;
+        where each folding point of the segment represents a bounce (up to down or down to up).
+
+        Switch to a vectorized implementation if possible.
+        """
+
+        return simple_keep_turnaround_segments(self)
 
     def top_bottom_bounds(self, enter_exit: bool = True) -> Point:
         """

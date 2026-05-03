@@ -36,6 +36,20 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
     If `.ndim == 0`, this is a single instance and you can call `item()` on it.
     """
 
+    if typing.TYPE_CHECKING:
+
+        def __iter__(self) -> cabc.Iterator[typing.Self]:
+            raise NotImplementedError
+
+        @typing.overload
+        def __getitem__(self, idx: str) -> torch.Tensor: ...
+
+        @typing.overload
+        def __getitem__(self, idx: typing.Any) -> typing.Self: ...
+
+        def __getitem__(self, idx):
+            raise NotImplementedError
+
     @typing.final
     def __post_init__(self) -> None:
         if (batch_size := self._setup_batch_size()) is not NotImplemented:

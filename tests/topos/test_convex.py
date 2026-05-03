@@ -23,7 +23,7 @@ def convex_hull(candle: Candle, enter_exit: bool):
 
 @pytest.fixture
 def all_coords(candle: Candle, enter_exit: bool):
-    return candle.coords(enter_exit)
+    return candle.top_bottom_bounds(enter_exit).flatten()
 
 
 @pytest.fixture

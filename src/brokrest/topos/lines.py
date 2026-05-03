@@ -35,7 +35,7 @@ class Point(Topo):
 
         if not (self.ndim == points.ndim == 1):
             raise ValueError(
-                f"Only supports when both {self.ndim=} = {points.ndim=} = 1."
+                f"Only supported when both {self.ndim=} = {points.ndim=} = 1."
             )
         eq: Point = self[:, None] == points[None, :]
         result = eq.x & eq.y

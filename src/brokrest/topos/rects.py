@@ -183,11 +183,6 @@ def _segment_visible(
 
 
 class Segment(Rect):
-
-    @typing.override
-    def ordering(self) -> torch.Tensor:
-        return self.x_0
-
     @property
     def dx(self):
         return self.x_1 - self.x_0
@@ -212,31 +207,32 @@ class Segment(Rect):
         needs_flipping = self.x_0 > self.x_1
         return td.cat([self[~needs_flipping], self[needs_flipping].flip()])
 
-    @property
-    def is_ltr_1d(self):
-        "Is left to right."
-
+    def order_left_to_right(self) -> typing.Self:
         if self.ndim != 1:
-            raise RuntimeError(f"Left to right only makes sense for 1D. {self.ndim=}.")
+            raise ValueError
 
-        return (self.x_0[1:] >= self.x_0[:-1]).all()
+        idx = self.x_0.argsort()
+        result = typing.cast(typing.Self, self.apply(lambda x: x[idx]))
+
+        # Check left to right ordering.
+        if not (result.x_0[1:] >= result.x_0[:-1]).all():
+            raise AssertionError("This is a bug, not left to right.")
+
+        return result
 
     def merge_similar_mono(self, radian: float = 0.1) -> typing.Self:
         """
         Merge consecutive segments with angle diff under `radian`.
         """
 
-        # No need to update.
-        if not self.is_ltr_1d:
-            raise ValueError(f"{self} is not left to right.")
-
-        angles = self.angle
+        segments = self.order_left_to_right()
+        angles = segments.angle
         shifted = angles.roll(-1, 0)
         merge_at = (shifted - angles).abs() <= radian
 
         results: list[Segment] = []
         to_merge: list[Segment] = []
-        for segment, do_merge in zip(self, merge_at):
+        for segment, do_merge in zip(segments, merge_at):
             if do_merge:
                 to_merge.append(segment)
 
@@ -244,7 +240,7 @@ class Segment(Rect):
                 assert segment.x_0 == to_merge[-1].x_1
                 assert segment.y_0 == to_merge[-1].y_1
                 results.append(
-                    type(self)(
+                    type(segments)(
                         x_0=to_merge[0].x_0,
                         y_0=to_merge[0].y_0,
                         x_1=segment.x_1,

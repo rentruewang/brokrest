@@ -73,11 +73,6 @@ def test_chart_is_1d(chart: Candle):
     assert chart.ndim == 1
 
 
-def test_chart_is_sorted(chart: Candle):
-    start = chart.left.tolist()
-    assert list(start) == sorted(start)
-
-
 def test_chart_index(chart: Candle):
     "Test chart's index access"
 

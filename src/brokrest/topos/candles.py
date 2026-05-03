@@ -97,6 +97,10 @@ class Candle(Topo, abc.ABC):
             raise ValueError(message)
 
     @property
+    def center_y(self):
+        return self.low / 2 + self.high / 2
+
+    @property
     @abc.abstractmethod
     def center(self) -> torch.Tensor:
         "The time at which this candle occurs."
@@ -142,7 +146,15 @@ class Candle(Topo, abc.ABC):
 
         return (self.exit - self.enter).sign()
 
-    def coords(self, enter_exit: bool = True):
+    def center_points(self, enter_exit: bool = True):
+        coords = self.top_bottom_bounds(enter_exit=enter_exit)
+        return coords[..., 0] / 2 + coords[..., 1] / 2
+
+    def top_bottom_bounds(self, enter_exit: bool = True) -> Point:
+        """
+        The top and bottom boundary points, stacked in the last dimension.
+        """
+
         if enter_exit:
             top = torch.where(self.inc, self.exit, self.enter)
             bottom = torch.where(self.dec, self.exit, self.enter)
@@ -155,13 +167,14 @@ class Candle(Topo, abc.ABC):
         top_coords = Point(x=self.center, y=top)
         bottom_coords = Point(x=self.center, y=bottom)
 
-        return td.cat([top_coords, bottom_coords])
+        return td.stack([top_coords, bottom_coords], dim=-1)
 
     @typing.no_type_check
     def convex(self, enter_exit: bool = True):
-        coords = self.coords(enter_exit=enter_exit)
-        point_set = shapely.MultiPoint(coords.tensor().view(-1, 2).numpy())
-
+        coords = self.top_bottom_bounds(enter_exit=enter_exit)
+        point_set = shapely.MultiPoint(
+            coords.transpose(-1, 0).flatten().tensor().numpy()
+        )
         if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
             raise RuntimeError("Did not return a polygon.")
 
@@ -201,15 +214,6 @@ class Candle(Topo, abc.ABC):
             line_color=self.looks.up_line,
             line_width=self.looks.line_width,
         )
-
-    @typing.override
-    @abc.abstractmethod
-    def ordering(self) -> torch.Tensor:
-        """
-        As the candles are organized by time, ordering must be present.
-        """
-
-        raise NotImplementedError
 
     @functools.cached_property
     def looks(self) -> CandleLooks:
@@ -291,10 +295,6 @@ class BothCandle(Candle):
     def _outer(self):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
-    @typing.override
-    def ordering(self) -> torch.Tensor:
-        return self.start
-
 
 class LeftCandle(Candle):
     """
@@ -302,6 +302,7 @@ class LeftCandle(Candle):
     """
 
     start: torch.Tensor
+    "The starting time of the candle."
 
     @property
     @typing.override
@@ -333,10 +334,6 @@ class LeftCandle(Candle):
     @typing.override
     def _outer(self):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
-
-    @typing.override
-    def ordering(self) -> torch.Tensor:
-        return self.start
 
 
 def dataframe_to_candles(df: pd.DataFrame, /) -> Candle:

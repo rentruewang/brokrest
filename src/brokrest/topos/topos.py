@@ -36,20 +36,11 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
     If `.ndim == 0`, this is a single instance and you can call `item()` on it.
     """
 
-    def __init_subclass__(cls) -> None:
-        # We do not want subclasses to define their `__post_init__`,
-        # to ensure that `_TOPO_HANDLERS` have the initialized `Topo`.
-        if "__post_init__" in cls.__dict__:
-            raise ValueError(
-                f"Sublcass should not define `__post_init__`, but {cls=} has it."
-            )
-
     @typing.final
     def __post_init__(self) -> None:
         if (batch_size := self._setup_batch_size()) is not NotImplemented:
             self.batch_size = batch_size
 
-        self._sort_by_value()
         self._checks()
 
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
@@ -75,51 +66,6 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
     def _call_handlers(self):
         for handler in _TOPO_HANDLERS:
             handler(self)
-
-    @typing.no_type_check
-    def _sort_by_value(self) -> None:
-        "Sort according to `ordering`."
-
-        if (ordering := self.ordering()) is NotImplemented:
-            return
-
-        # This is OK. Both are scalars.
-        if self.ndim == ordering.ndim == 0:
-            return
-
-        if not (self.ndim == ordering.ndim == 1):
-            raise NotImplementedError(
-                f"Ndim != 1 is not yet supported {self.ndim=}, {ordering.ndim=}."
-            )
-
-        if len(ordering) != len(self):
-            raise ValueError(
-                " ".join(
-                    [
-                        f"`Topo.sort_key()` should be a permutation of 0-{len(self)=}.",
-                        f"Got a {ordering.ndim}D array with shape {ordering.shape}.",
-                    ]
-                )
-            )
-
-        ordered_index = torch.argsort(ordering)
-
-        for key in self.keys():
-            setattr(self, key, getattr(self, key)[ordered_index])
-
-    def ordering(self) -> torch.Tensor:
-        """
-        Return the argsort of the current `Topo`.
-
-        If the collection doesn't need to be ordered, return `NotImplemented`.
-
-        Returns:
-            A 1D `torch.Tensor` of shape [len(self)],
-            whose elements are permutation of `range(len(self))`,
-            or `NotImplemented` if ordering doesn't exist.
-        """
-
-        return NotImplemented
 
     @typing.override
     def draw_on(self, vp: ViewPort) -> None:

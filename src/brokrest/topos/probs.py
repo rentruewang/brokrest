@@ -32,4 +32,4 @@ class Window:
 
     def __call__(self, dists: FloatArray, /) -> FloatArray:
         in_range = (dists >= self.lower) & (dists <= self.upper)
-        return dists * in_range.astype("float32")
+        return dists * in_range

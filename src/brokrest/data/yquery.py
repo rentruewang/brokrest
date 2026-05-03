@@ -41,10 +41,10 @@ def _yq_load(symbol: str, interval: Interval, period: Period) -> LeftCandle:
         df = df.reset_index(level=0, drop=True)
 
     lc = LeftCandle(
-        enter=np.array(df["open"].values.astype("float32")),
-        exit=np.array(df["close"].values.astype("float32")),
-        low=np.array(df["low"].values.astype("float32")),
-        high=np.array(df["high"].values.astype("float32")),
+        enter=np.array(df["open"].values),
+        exit=np.array(df["close"].values),
+        low=np.array(df["low"].values),
+        high=np.array(df["high"].values),
         start=np.array(df.index.values.astype("datetime64[s]").astype("int64")),
     )
     lc.start -= lc.start.min()

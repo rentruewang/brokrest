@@ -10,11 +10,9 @@ import typing
 import numpy as np
 import pandas as pd
 import shapely
-import tensordict as td
-import torch
 from bokeh import plotting
 
-from brokrest.typing import FloatArray, IntArray
+from brokrest.typing import BoolArray, FloatArray, IntArray
 
 from .lines import Point
 from .polygons import Polygon
@@ -80,7 +78,7 @@ class Candle(Topo, abc.ABC):
 
     @typing.override
     def _checks(self) -> None:
-        if torch.any(self.low > self.high):
+        if np.any(self.low > self.high):
             raise ValueError(
                 f"Min value: {self.low} must be smaller than max value: {self.high}."
             )
@@ -88,10 +86,10 @@ class Candle(Topo, abc.ABC):
         self._check_value_in_range(self.enter, "entering")
         self._check_value_in_range(self.exit, "exiting")
 
-    def _check_value_in_range(self, value: torch.Tensor, desc: str) -> None:
+    def _check_value_in_range(self, value: FloatArray, desc: str) -> None:
         "Check if the given value is in the range [min, max]."
 
-        if torch.any(self.low > value) or torch.any(self.high < value):
+        if np.any(self.low > value) or np.any(self.high < value):
             message = " ".join(
                 [
                     f"{desc.capitalize()} value: {self.enter},",
@@ -102,7 +100,7 @@ class Candle(Topo, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def center(self) -> torch.Tensor:
+    def center(self) -> FloatArray:
         "The time at which this candle occurs."
 
         raise NotImplementedError
@@ -116,26 +114,26 @@ class Candle(Topo, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def left(self) -> torch.Tensor:
+    def left(self) -> FloatArray:
         "The left side of the candle."
 
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def right(self) -> torch.Tensor:
+    def right(self) -> FloatArray:
         "The right side of the candle."
 
         raise NotImplementedError
 
     @property
-    def inc(self) -> torch.Tensor:
+    def inc(self) -> BoolArray:
         "Is increasing."
 
         return self.direction >= 0
 
     @property
-    def dec(self) -> torch.Tensor:
+    def dec(self) -> BoolArray:
         "Is decreasing."
 
         return self.direction < 0
@@ -144,12 +142,12 @@ class Candle(Topo, abc.ABC):
     def direction(self):
         "The direction for each candle. 1 for up and -1 for down."
 
-        return (self.exit - self.enter).sign()
+        return np.sign(self.exit - self.enter)
 
     def coords(self, enter_exit: bool = True):
         if enter_exit:
-            top = torch.where(self.inc, self.exit, self.enter)
-            bottom = torch.where(self.dec, self.exit, self.enter)
+            top = np.where(self.inc, self.exit, self.enter)
+            bottom = np.where(self.dec, self.exit, self.enter)
         else:
             top = self.high
             bottom = self.low
@@ -159,12 +157,13 @@ class Candle(Topo, abc.ABC):
         top_coords = Point(x=self.center, y=top)
         bottom_coords = Point(x=self.center, y=bottom)
 
-        return td.cat([top_coords, bottom_coords])
+        return Topo.cat([top_coords, bottom_coords])
 
     @typing.no_type_check
     def convex(self, enter_exit: bool = True):
         coords = self.coords(enter_exit=enter_exit)
-        point_set = shapely.MultiPoint(coords.tensor().view(-1, 2).numpy())
+        raise NotImplementedError
+        point_set = shapely.MultiPoint(coords.values().view(-1, 2))
 
         if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
             raise RuntimeError("Did not return a polygon.")
@@ -175,21 +174,17 @@ class Candle(Topo, abc.ABC):
     def plot(self, figure: plotting.figure) -> None:
         # The center bars for the candles.
         _ = figure.segment(
-            x0=self.center.numpy(),
-            y0=self.high.numpy(),
-            x1=self.center.numpy(),
-            y1=self.low.numpy(),
-            color="black",
+            x0=self.center, y0=self.high, x1=self.center, y1=self.low, color="black"
         )
 
         width = self.max_width * 0.7
 
         # The body of candles that are decreasing.
         _ = figure.vbar(
-            x=self.center[self.dec].numpy(),
+            x=self.center[self.dec],
             width=width,
-            top=self.enter[self.dec].numpy(),
-            bottom=self.exit[self.dec].numpy(),
+            top=self.enter[self.dec],
+            bottom=self.exit[self.dec],
             fill_color=self.looks.down_fill,
             color=self.looks.down_line,
             line_width=self.looks.line_width,
@@ -197,10 +192,10 @@ class Candle(Topo, abc.ABC):
 
         # The body of candles that are increasing.
         _ = figure.vbar(
-            x=self.center[self.inc].numpy(),
+            x=self.center[self.inc],
             width=width,
-            top=self.enter[self.inc].numpy(),
-            bottom=self.exit[self.inc].numpy(),
+            top=self.enter[self.inc],
+            bottom=self.exit[self.inc],
             fill_color=self.looks.up_fill,
             line_color=self.looks.up_line,
             line_width=self.looks.line_width,
@@ -260,7 +255,7 @@ class BothCandle(Candle):
     def _checks(self) -> None:
         super()._checks()
 
-        if torch.any(self.start > self.end):
+        if np.any(self.start > self.end):
             raise ValueError(
                 f"Starting time {self.start} must be before than ending time: {self.end}."
             )
@@ -268,11 +263,11 @@ class BothCandle(Candle):
     def continuous(self) -> bool:
         nexts = self[1:]
         prevs = self[:-1]
-        return torch.allclose(nexts.start, prevs.end)
+        return np.allclose(nexts.start, prevs.end)
 
     @property
     @typing.override
-    def center(self) -> torch.Tensor:
+    def center(self):
         "The centered times."
         return (self.end + self.start) / 2
 
@@ -307,11 +302,11 @@ class LeftCandle(Candle):
     The candle that only has the starting time defined (timing is implicit).
     """
 
-    start: torch.Tensor
+    start: FloatArray
 
     @property
     @typing.override
-    def center(self) -> torch.Tensor:
+    def center(self):
         "The centered times."
         return self.start + self.max_width / 2
 
@@ -384,5 +379,5 @@ def _try_init_with_type_and_keys(df: pd.DataFrame, typ: type[Candle], *keys: str
     if not all(k in df.columns for k in keys):
         return None
 
-    dicts = {key: torch.tensor(df[key].tolist()) for key in keys}
+    dicts = {key: np.array(df[key]) for key in keys}
     return typ(**dicts)

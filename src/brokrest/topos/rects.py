@@ -11,7 +11,7 @@ import shapely
 from bokeh import plotting
 
 from brokrest.plotting import ViewPort
-from brokrest.typing import FloatArray, IntArray
+from brokrest.typing import BoolArray, FloatArray, IntArray
 
 from .topos import Topo
 
@@ -108,7 +108,7 @@ class Box(Rect):
     def plot(self, figure: plotting.figure) -> None:
         _ = figure.rect(x=self.x_0, y=self.y_0, width=self.width, height=self.height)
 
-    def visible(self, window: ViewPort) -> FloatArray:
+    def visible(self, window: ViewPort) -> BoolArray:
         """
         Return a boolean tensor, of whether `self` is visible in the view box or not.
 
@@ -138,7 +138,7 @@ class Box(Rect):
 
 def _segment_visible(
     start: FloatArray, end: FloatArray, x: float, y: float
-) -> FloatArray:
+) -> BoolArray:
     """
     Try to see if segment [start, end] is visible in viewport [x, y], vectorized.
     """
@@ -154,8 +154,8 @@ def _segment_visible(
             answer &= smaller <= larger
         return answer
 
-    x_tensor = np.array(x).astype("float32")
-    y_tensor = np.array(y).astype("float32")
+    x_tensor = np.array(x)
+    y_tensor = np.array(y)
 
     # Let's laid it out on an axis.
     # the line is visible with one of the conditions:
@@ -197,7 +197,7 @@ class Segment(Rect):
 
     @property
     def angle(self):
-        return (self.dx + self.dy * 1j).angle()
+        return np.angle(self.dx + self.dy * 1j)
 
     def flip(self):
         return type(self)(x_0=self.x_1, y_0=self.y_1, x_1=self.x_0, y_1=self.y_0)
@@ -205,7 +205,7 @@ class Segment(Rect):
     def face_right(self) -> typing.Self:
         self = self.flatten()
         needs_flipping = self.x_0 > self.x_1
-        return td.cat([self[~needs_flipping], self[needs_flipping].flip()])
+        return Topo.cat([self[~needs_flipping], self[needs_flipping].flip()])
 
     @property
     def is_ltr_1d(self):
@@ -216,7 +216,7 @@ class Segment(Rect):
 
         return (self.x_0[1:] >= self.x_0[:-1]).all()
 
-    def merge_similar_mono(self, radian: float = 0.1) -> typing.Self:
+    def merge_similar_mono(self, radian: float = 0.1):
         """
         Merge consecutive segments with angle diff under `radian`.
         """
@@ -251,7 +251,7 @@ class Segment(Rect):
             else:
                 results.append(segment)
 
-        return td.stack(results)
+        return Topo.stack(results)
 
     @property
     def start(self):
@@ -273,23 +273,23 @@ class Segment(Rect):
     def left(self):
         "The `min(x)`."
 
-        return torch.minimum(self.x_0, self.x_1)
+        return np.minimum(self.x_0, self.x_1)
 
     @property
     def right(self):
         "The `max(x)`."
 
-        return torch.maximum(self.x_0, self.x_1)
+        return np.maximum(self.x_0, self.x_1)
 
     @property
     def bottom(self):
         "The `min(y)`."
-        return torch.minimum(self.y_0, self.y_1)
+        return np.minimum(self.y_0, self.y_1)
 
     @property
     def top(self):
         "The `max(y)`."
-        return torch.maximum(self.y_0, self.y_1)
+        return np.maximum(self.y_0, self.y_1)
 
     def points(self):
         """
@@ -299,8 +299,8 @@ class Segment(Rect):
         from .lines import Point
 
         # Shape: [*self.shapes, 2]
-        start, end = self.start.tensor(), self.end.tensor()
-        unique = torch.stack([start, end]).view(2, -1).unique(dim=0)
+        start, end = np.array(self.start), np.array(self.end)
+        unique = np.unique(np.stack([start, end]).reshape(2, -1), axis=0)
         return Point(unique[0], unique[1])
 
     def line(self):
@@ -314,12 +314,7 @@ class Segment(Rect):
 
     @typing.override
     def plot(self, figure: plotting.figure) -> None:
-        _ = figure.segment(
-            x0=self.x_0.numpy(),
-            x1=self.x_1.numpy(),
-            y0=self.y_0.numpy(),
-            y1=self.y_1.numpy(),
-        )
+        _ = figure.segment(x0=self.x_0, x1=self.x_1, y0=self.y_0, y1=self.y_1)
 
     @classmethod
     def from_start_end(cls, start: "Point", end: "Point") -> typing.Self:

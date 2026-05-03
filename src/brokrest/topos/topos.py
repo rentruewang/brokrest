@@ -4,18 +4,19 @@
 
 import abc
 import contextlib as ctxl
+import copy
 import dataclasses as dcls
 import functools
 import typing
 from collections import abc as cabc
 
 import numpy as np
-import torch
+import pandas as pd
 from bokeh import plotting
 from numpy import typing as npt
 
 from brokrest.plotting import Displayable, ViewPort
-from brokrest.typing import IntArray
+from brokrest.typing import FloatArray, IntArray
 
 if typing.TYPE_CHECKING:
     from .rects import Box
@@ -42,7 +43,9 @@ class Topo(Displayable, abc.ABC):
 
     @typing.final
     def __post_init__(self) -> None:
+        print("Before setup shape")
         self._shape = self._setup_shape()
+        print("After setup shape", self.shape)
         self._sort_by_value()
         self._checks()
 
@@ -51,6 +54,22 @@ class Topo(Displayable, abc.ABC):
 
     def __len__(self) -> int:
         return self.shape[0]
+
+    def __iter__(self):
+        for idx in range(len(self)):
+            yield self[idx]
+
+    @typing.overload
+    def __getitem__(self, idx: str) -> FloatArray: ...
+    @typing.overload
+    def __getitem__(self, idx) -> typing.Self: ...
+    @typing.no_type_check
+    def __getitem__(self, idx):
+        if isinstance(idx, str):
+            return self.array_dict()[idx]
+
+        else:
+            return self.apply(lambda arr: arr[idx])
 
     def _checks(self) -> None:
         return
@@ -79,8 +98,11 @@ class Topo(Displayable, abc.ABC):
             return
 
         # This is OK. Both are scalars.
-        if self.ndim == ordering.ndim == 0:
-            return
+        if self.ndim == 0:
+            if ordering.size == 1:
+                return
+
+            raise ValueError(f"Ndim == 0, but {ordering=} has more than 1 index.")
 
         if not (self.ndim == ordering.ndim == 1):
             raise NotImplementedError(
@@ -171,10 +193,22 @@ class Topo(Displayable, abc.ABC):
 
         return NotImplemented
 
-    def apply[T: npt.ArrayLike](self, ufunc: cabc.Callable[[T], T]) -> typing.Self:
+    def apply(self, ufunc: "UFunc") -> typing.Self:
+        self = copy.deepcopy(self)
         for key, val in self.array_dict().items():
             mapped = ufunc(val)
             setattr(self, key, mapped)
+        self.__post_init__()
+        return self
+
+    def keys(self):
+        return self.array_dict().keys()
+
+    def values(self):
+        return self.array_dict().values()
+
+    def items(self):
+        return self.array_dict().items()
 
     def array_dict(self) -> dict[str, npt.NDArray]:
         return dict(self._array_dict())
@@ -183,8 +217,8 @@ class Topo(Displayable, abc.ABC):
         for key in self.__all_keys:
             item = getattr(self, key)
 
-            if isinstance(item, np.ndarray):
-                yield key, getattr(self, key)
+            if _is_numpy_type(item):
+                yield key, item
 
     @functools.cached_property
     def __all_keys(self):
@@ -194,10 +228,75 @@ class Topo(Displayable, abc.ABC):
     def shape(self) -> tuple[int, ...]:
         return self._shape
 
+    @property
+    def ndim(self):
+        return len(self.shape)
+
+    def reshape(self, *dims: int) -> typing.Self:
+        return self.apply(lambda x: x.reshape(*dims))
+
+    def flatten(self) -> typing.Self:
+        return self.reshape(-1)
+
     @classmethod
-    def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
+    def from_dict(cls, items: cabc.Mapping[str, FloatArray]) -> typing.Self:
         broadcasted = _broadcast_tensor_dict(items)
         return cls(**broadcasted)
+
+    @staticmethod
+    def stack[T: Topo](items: list[T], /, axis: int = 0) -> T:
+        return _stack_or_cat(
+            items,
+            merge_array=np.stack,
+            name="stack",
+            axis=axis,
+        )
+
+    @staticmethod
+    def cat[T: Topo](items: list[T], /, axis: int = 0) -> T:
+        return _stack_or_cat(
+            items,
+            merge_array=np.concatenate,
+            name="cat",
+            axis=axis,
+        )
+
+
+class UFunc(typing.Protocol):
+    def __call__(self, arr) -> typing.Any: ...
+
+
+def _is_numpy_type(x):
+    return isinstance(x, (np.ndarray, np.generic))
+
+
+class MergeArray(typing.Protocol):
+    def __call__(self, arr, /, axis: int = 0) -> typing.Any: ...
+
+
+@typing.no_type_check
+def _stack_or_cat[T: Topo](
+    items: list[T],
+    merge_array: MergeArray,
+    name: str,
+    axis: int,
+) -> T:
+    if not len(items):
+        raise ValueError("Empty list encountered.")
+
+    if len(types := {type(item) for item in items}) != 1:
+        raise TypeError(
+            f"{name.capitalize()} only supported for topos of the same type. Got {types}."
+        )
+
+    target_type = list(types)[0]
+    dicts = pd.DataFrame([item.array_dict() for item in items])
+
+    result = {}
+    for col in dicts.columns:
+        result[col] = merge_array(dicts[col], axis=axis)
+
+    return target_type(**result)
 
 
 @typing.runtime_checkable

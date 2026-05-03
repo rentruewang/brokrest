@@ -6,10 +6,9 @@ import dataclasses as dcls
 import typing
 
 import numpy as np
-import torch
 from bokeh import plotting
 
-from brokrest.typing import FloatArray
+from brokrest.typing import BoolArray, FloatArray
 
 from .probs import Importance
 from .rects import Box, Segment
@@ -31,8 +30,11 @@ class Point(Topo):
     y: FloatArray
     "The y element."
 
+    def __array__(self):
+        return np.stack([self.x, self.y])
+
     @typing.no_type_check
-    def cross_eq_1d(self, points: typing.Self) -> torch.Tensor:
+    def cross_eq_1d(self, points: typing.Self) -> BoolArray:
         """
         Find self == points, using cross product.
         The result would be in a `[len(self), len(points)]` boolean matrix.
@@ -47,9 +49,9 @@ class Point(Topo):
         assert result.shape == (len(self), len(points)), result.shape
         return result
 
-    def is_vertex_of(self, polygon: "Polygon") -> torch.Tensor:
+    def is_vertex_of(self, polygon: "Polygon"):
         "Find if `self` is a polygon vertex of `polygon`. Return a boolean tensor."
-        result = self.cross_eq_1d(polygon.vertices).any(dim=1)
+        result = np.any(self.cross_eq_1d(polygon.vertices), axis=1)
         assert result.ndim == 1
         assert result.shape == (len(self),)
         return result
@@ -58,19 +60,16 @@ class Point(Topo):
     def _outer(self) -> Box:
         return Box(x_0=self.x, x_1=self.x, y_0=self.y, y_1=self.y)
 
-    def unit(self):
-        return self / self.length
-
     @property
     def length(self) -> float:
         return (self.x**2 + self.y**2).sum().item() ** 0.5
 
     @typing.override
     def plot(self, figure: plotting.figure, /) -> None:
-        _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
+        _ = figure.scatter(x=self.x, y=self.y, color="red")
 
 
-def mean_squared_error(x: torch.Tensor):
+def mean_squared_error(x: FloatArray):
     return (x**2).mean()
 
 
@@ -94,7 +93,7 @@ class Line(Topo):
         sizes = {s for s in [self.a.shape, self.b.shape, self.c.shape] if len(s)}
 
         if len(sizes) == 0:
-            return NotImplemented
+            return super()._setup_shape()
 
         if len(sizes) != 1:
             raise ValueError(f"Too many sizes: {sizes=}.")
@@ -106,7 +105,7 @@ class Line(Topo):
                 return item
 
             assert item.shape == ()
-            return item * np.ones(target_size, dtype="float32")
+            return item * np.ones(target_size)
 
         self.a = _cast_to_target_size(self.a)
         self.b = _cast_to_target_size(self.b)
@@ -159,7 +158,7 @@ class Line(Topo):
         result = _unflatten(result, -1, points.shape)
         result = _unflatten(result, 0, self.shape)
 
-        assert isinstance(result, FloatArray)
+        assert isinstance(result, np.ndarray)
         assert result.shape == (*self.shape, *points.shape)
         return result
 
@@ -194,7 +193,7 @@ class Line(Topo):
             raise ValueError("Only supports 1d lines and points.")
 
         # The broadcasted dimensions would be [num_lines, num_points].
-        ss: typing.Self = self[:, None]
+        ss = self[:, None]
         ps: Point = points[None, :]
 
         return ss.a * ps.x + ss.b * ps.y + ss.c
@@ -215,11 +214,7 @@ class Line(Topo):
     def intercept(cls, a: FloatArray, b: FloatArray) -> typing.Self:
         "Create a line in the `x/a + y/b = 1` form."
 
-        return cls(
-            a=np.array(1 / a, dtype="float32"),
-            b=np.array(1 / b, dtype="float32"),
-            c=np.array(-1),
-        )
+        return cls(a=np.array(1 / a), b=np.array(1 / b), c=np.array(-1))
 
     @classmethod
     def slope_intercept(cls, m: FloatArray, b: FloatArray) -> typing.Self:

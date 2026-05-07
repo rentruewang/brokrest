@@ -47,7 +47,7 @@ def _solve_cases():
 def test_sub_cases_solved(case: _LinearEqSolve):
     "Points on the line (already solved cases) yields 0."
 
-    assert np.allclose(case.eq.subs(case.point).float(), 0)
+    assert np.allclose(case.eq.subs(case.point).astype(float), 0)
 
 
 @pytest.fixture

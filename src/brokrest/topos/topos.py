@@ -9,7 +9,6 @@ import typing
 from collections import abc as cabc
 
 import numpy as np
-import torch
 from bokeh import plotting
 
 from brokrest.plotting import Displayable, ViewPort
@@ -237,4 +236,4 @@ def _broadcast_tensor_dict(
 
     keys = list(items.keys())
     vals = [items[k] for k in keys]
-    return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
+    return {k: v for k, v in zip(keys, np.broadcast_tensors(*vals))}

@@ -77,7 +77,7 @@ class DistTestCase(typing.NamedTuple):
 
 
 def _distance_cases():
-    line = Line.slope_intercept(1, 2)
+    line = Line.slope_intercept(np.array(1), np.array(2))
     point = Point(3, 4)
     lines = Line.slope_intercept(random.randn(5), random.randn(5))
     points = Point(random.randn(6), random.randn(6))

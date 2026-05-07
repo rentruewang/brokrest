@@ -17,8 +17,8 @@ def _candle_chart():
     exit = random.rand(100)
     start = random.randn(100)
     end = start + 1
-    low = random.zeros(100)
-    high = random.ones(100)
+    low = npt.zeros(100)
+    high = npt.ones(100)
 
     yield BothCandle(enter=enter, exit=exit, start=start, end=end, low=low, high=high)
     yield LeftCandle(enter=enter, exit=exit, start=start, low=low, high=high)

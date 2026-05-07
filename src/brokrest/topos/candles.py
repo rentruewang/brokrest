@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import shapely
 import tensordict as td
-import torch
 from bokeh import plotting
 
 from ._turnaround import simple_keep_turnaround_segments
@@ -385,5 +384,5 @@ def _try_init_with_type_and_keys(df: pd.DataFrame, typ: type[Candle], *keys: str
     if not all(k in df.columns for k in keys):
         return None
 
-    dicts = {key: torch.tensor(df[key].tolist()) for key in keys}
+    dicts = {key: np.asarray(df[key].tolist()) for key in keys}
     return typ(**dicts)

@@ -1,7 +1,8 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
-from numpy import random
 import numpy as np
+from numpy import random
+
 from brokrest.topos import (
     Line,
     Point,

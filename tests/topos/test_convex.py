@@ -41,7 +41,7 @@ def test_convex_points(outer_shell_points: Point, convex_hull: Polygon):
 
 @pytest.fixture
 def polygon():
-    pytest.xfail("Jagged array.")
+    pytest.xfail("Jagged array support")
     return Polygon.from_vertices(
         Point(np.array(0), np.array(0)),
         Point(np.array(0), np.array(1)),

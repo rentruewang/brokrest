@@ -8,7 +8,6 @@ import dataclasses as dcls
 import typing
 from collections import abc as cabc
 
-import tensordict as td
 import torch
 from bokeh import plotting
 
@@ -36,7 +35,6 @@ class Topo(Displayable, abc.ABC):
     If `.ndim == 0`, this is a single instance and you can call `.item()` on it.
     """
 
-
     @typing.final
     def __init__(self) -> None:
         if (batch_size := self._setup_shape()) is not NotImplemented:
@@ -47,7 +45,7 @@ class Topo(Displayable, abc.ABC):
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
         self._call_handlers()
 
-    def _setup_shape(self) -> tuple[int,...]:
+    def _setup_shape(self) -> tuple[int, ...]:
         # Make all equal size.
         _ = self.auto_batch_size_()
 
@@ -128,7 +126,6 @@ class Topo(Displayable, abc.ABC):
     def tensor(self) -> torch.Tensor:
         values = list(self.values())
         return torch.stack(values, dim=-1)
-
 
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:

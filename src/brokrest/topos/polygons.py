@@ -32,7 +32,9 @@ class Polygon(Topo):
 
     @property
     def vertices(self) -> Point:
-        return td.cat([self.upper, self.lower, td.stack([self.left, self.right], dim=-1)],dim=-1)
+        return td.cat(
+            [self.upper, self.lower, td.stack([self.left, self.right], dim=-1)], dim=-1
+        )
 
     @property
     def segments(self) -> Segment:

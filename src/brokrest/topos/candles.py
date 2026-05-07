@@ -24,7 +24,7 @@ from .topos import Topo
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
 
-@dcls.dataclass(frozen=True)
+@dcls.dataclass
 class CandleLooks:
     "The appearances for candles."
 

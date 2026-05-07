@@ -39,6 +39,8 @@ class Topo(ArrayDict, Displayable, abc.ABC):
 
     @typing.final
     def __post_init__(self) -> None:
+        super().__post_init__()
+
         self._checks()
 
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.

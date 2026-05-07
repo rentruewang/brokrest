@@ -40,6 +40,12 @@ class ArrayDict:
     def __post_init__(self):
         _ = self.shape
 
+        for key, field in self.items():
+            if not isinstance(field, np.generic | np.ndarray | ArrayDict):
+                raise ValueError(
+                    f"Field {field} at {key} is not a numpy value or an `ArrayDict`."
+                )
+
     def __array__(self, copy: bool = True) -> np.ndarray:
         values = [np.asarray(val, dtype=val.dtype, copy=copy) for val in self.values()]
         return rec.fromarrays(values, dtype=self.dtype)

@@ -62,7 +62,7 @@ def lines():
 
 @pytest.fixture
 def point():
-    return Point(1, 2)
+    return Point(np.array(1), np.array(2))
 
 
 @pytest.fixture

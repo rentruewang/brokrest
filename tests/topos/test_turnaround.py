@@ -4,8 +4,8 @@ import pytest
 import torch
 
 from brokrest.data.yquery import load_yahooquery
-from brokrest.topos._turnaround import cumsum_with_reset
 from brokrest.topos import Candle
+from brokrest.topos._turnaround import cumsum_with_reset
 
 
 @pytest.fixture

@@ -69,7 +69,7 @@ def cumsum_with_reset(tensor: np.ndarray, reset: np.ndarray):
         raise ValueError(f"Reset should be a boolean tensor. {reset.dtype=}.")
 
     scan = _AssociativeScan()
-    invert = 1 - reset.astype("float64")
+    invert = 1 - reset.astype(float)
     result = scan(tensor, invert, axis=0)
     return result
 
@@ -86,8 +86,8 @@ class _AssociativeScan:
     """
 
     def __call__(self, values: np.ndarray, coeffs: np.ndarray, axis: int) -> np.ndarray:
-        log_values = self._complex_log(values.astype("float64"))
-        log_coeffs = self._complex_log(coeffs.astype("float64"))
+        log_values = self._complex_log(values.astype(float))
+        log_coeffs = self._complex_log(coeffs.astype(float))
         a_star = np.cumsum(log_coeffs, axis=axis)
 
         # Here, `torch.logcumsumexp` is replaced with `np.logaddexp.accumulate`.

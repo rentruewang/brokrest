@@ -143,7 +143,7 @@ def _segment_visible(
     def is_ordered(*ordered: np.ndarray):
         "The tensors are ordered."
 
-        answer = np.ones(result_shape).bool()
+        answer = np.ones(result_shape).astype(bool)
         for smaller, larger in zip(ordered[:-1], ordered[1:]):
             answer &= smaller <= larger
         return answer

@@ -33,7 +33,7 @@ class Topo(ArrayDict, Displayable, abc.ABC):
     """
     A set of topologies.
 
-    This is backed by `td.tensorclass`.
+    This is backed by `ArrayDict`.
     If `.ndim == 0`, this is a single instance and you can call `.item()` on it.
     """
 

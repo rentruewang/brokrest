@@ -4,13 +4,15 @@
 
 import dataclasses as dcls
 import functools
+import operator
 import types
 import typing
 from collections import abc as cabc
 
 import numpy as np
+from numpy import rec
 
-__all__ = ["Array", "ArrayDict", "ArrayOrDict", "JaggedArray"]
+__all__ = ["Array", "ArrayDict", "ArrayOrDict"]
 
 type Array = np.ndarray | np.generic
 type ArrayOrDict = Array | ArrayDict
@@ -58,6 +60,47 @@ class ArrayDict:
     def __iter__(self) -> cabc.Iterator[typing.Self]:
         for i in range(len(self)):
             yield self[i]
+
+    def __add__(self, other):
+        return self.apply(lambda arr: operator.add(arr, other))
+
+    def __sub__(self, other):
+        return self.apply(lambda arr: operator.sub(arr, other))
+
+    def __mul__(self, other):
+        return self.apply(lambda arr: operator.mul(arr, other))
+
+    def __truediv__(self, other):
+        return self.apply(lambda arr: operator.truediv(arr, other))
+
+    def __floordiv__(self, other):
+        return self.apply(lambda arr: operator.floordiv(arr, other))
+
+    def __pow__(self, other):
+        return self.apply(lambda arr: operator.pow(arr, other))
+
+    def __matmul__(self, other):
+        return self.apply(lambda arr: operator.matmul(arr, other))
+
+    @typing.no_type_check
+    def __eq__(self, other):
+        return self.apply(lambda arr: operator.eq(arr, other))
+
+    @typing.no_type_check
+    def __ne__(self, other):
+        return self.apply(lambda arr: operator.ne(arr, other))
+
+    def __gt__(self, other):
+        return self.apply(lambda arr: operator.gt(arr, other))
+
+    def __ge__(self, other):
+        return self.apply(lambda arr: operator.ge(arr, other))
+
+    def __lt__(self, other):
+        return self.apply(lambda arr: operator.lt(arr, other))
+
+    def __le__(self, other):
+        return self.apply(lambda arr: operator.le(arr, other))
 
     def keys(self):
         return self.fields().keys()
@@ -144,3 +187,47 @@ class ArrayDict:
             )
 
         return self.apply(lambda arr: arr.reshape(1))[0]
+
+    def squeeze(self, axis: int) -> typing.Self:
+        if self.shape[axis] != 1:
+            raise ValueError(
+                "Cannot squeeze a dimension that is not 1! "
+                f"{self.shape=}, {self.shape[axis]=}."
+            )
+
+        return self.reshape(*_shape_except_axis(self.shape, axis=axis))
+
+    @classmethod
+    def stack(cls, insts: cabc.Sequence[typing.Self], /, axis: int = 0) -> typing.Self:
+        if not all(isinstance(inst, cls) for inst in insts):
+            raise TypeError(f"Not all instances are subclasses of {cls}")
+
+        expanded = [
+            inst.apply(lambda arr: np.expand_dims(arr, axis=axis)) for inst in insts
+        ]
+        return cls.concat(expanded, axis=axis)
+
+    @classmethod
+    def concat(cls, insts: cabc.Sequence[typing.Self], /, axis: int = 0) -> typing.Self:
+        if not all(isinstance(inst, cls) for inst in insts):
+            raise TypeError(f"Not all instances are subclasses of {cls}")
+
+        shapes = [inst.shape for inst in insts]
+        shapes_except_axis = [_shape_except_axis(shape, axis=axis) for shape in shapes]
+
+        if len(set(shapes_except_axis)) != 1:
+            raise ValueError(
+                f"All axis should match except the target {axis=}! But {shapes=}."
+            )
+
+        array = rec.fromarrays(
+            [np.asarray(inst) for inst in insts], dtype=insts[0].dtype
+        )
+        keys = insts[0].keys()
+
+        return cls(**{key: getattr(array, key) for key in keys})
+
+
+def _shape_except_axis(shape: tuple[int, ...], axis: int):
+    axis %= len(shape)
+    return *shape[:axis], *shape[axis + 1 :]

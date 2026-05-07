@@ -8,7 +8,6 @@ import typing
 
 import numpy as np
 import shapely
-import tensordict as td
 from bokeh import plotting
 
 from brokrest.plotting import ViewPort
@@ -193,7 +192,7 @@ class Segment(Rect):
     def face_right(self) -> typing.Self:
         self = self.reshape(-1)
         needs_flipping = self.x_0 > self.x_1
-        return td.cat([self[~needs_flipping], self[needs_flipping].flip()])
+        return self.concat([self[~needs_flipping], self[needs_flipping].flip()])
 
     def order_left_to_right(self) -> typing.Self:
         if self.ndim != 1:
@@ -208,7 +207,7 @@ class Segment(Rect):
 
         return result
 
-    def merge_similar_mono(self, radian: float = 0.1) -> typing.Self:
+    def merge_similar_mono(self, radian: float = 0.1):
         """
         Merge consecutive segments with angle diff under `radian`.
         """
@@ -240,7 +239,7 @@ class Segment(Rect):
             else:
                 results.append(segment)
 
-        return td.stack(results)
+        return Segment.stack(results)
 
     @property
     def start(self):

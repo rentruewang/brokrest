@@ -7,7 +7,6 @@ import typing
 
 import numpy as np
 import shapely
-import tensordict as td
 from bokeh import plotting
 
 from .lines import Line, Point
@@ -26,23 +25,28 @@ class Polygon(Topo):
 
     @property
     def vertices(self) -> Point:
-        return td.cat(
-            [self.upper, self.lower, td.stack([self.left, self.right], dim=-1)], dim=-1
+        return Point.concat(
+            [
+                self.upper,
+                self.lower,
+                Point.stack([self.left, self.right], axis=-1),
+            ],
+            axis=-1,
         )
 
     @property
     def segments(self) -> Segment:
         ub = Segment.from_points(self.upper_bound).face_right()
         lb = Segment.from_points(self.lower_bound).face_right()
-        return td.cat([ub, lb])
+        return Segment.concat([ub, lb])
 
     @property
     def upper_bound(self) -> Point:
-        return td.cat([self.left[None], self.upper, self.right[None]])
+        return Point.concat([self.left[None], self.upper, self.right[None]])
 
     @property
     def lower_bound(self) -> Point:
-        return td.cat([self.left[None], self.lower, self.right[None]])
+        return Point.concat([self.left[None], self.lower, self.right[None]])
 
     @typing.override
     def plot(self, figure: plotting.figure, /) -> None:
@@ -52,7 +56,7 @@ class Polygon(Topo):
     def from_vertices(cls, *vertices: Point) -> typing.Self:
         batch = _maybe_stack_input(*vertices)
 
-        point_list = td.stack(sorted(batch, key=lambda p: p.x))
+        point_list = Point.stack(sorted(batch, key=lambda p: p.x))
         left, right = point_list[0], point_list[-1]
 
         line = Line.from_segment(Segment.from_start_end(left, right))
@@ -74,8 +78,8 @@ class Polygon(Topo):
         return cls.from_vertices(points)
 
 
-def _maybe_stack_input[T](*items: T) -> T:
+def _maybe_stack_input(*items: Point) -> Point:
     if len(items) == 1:
         return items[0]
     else:
-        return td.stack(items)
+        return Point.stack(items)

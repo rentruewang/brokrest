@@ -3,7 +3,6 @@
 import typing
 
 import numpy as np
-import tensordict as td
 
 from .rects import Segment
 
@@ -48,7 +47,7 @@ def simple_keep_turnaround_segments(candles: "Candle") -> Segment:
         prev_segment = segment
 
     _make_new_segment_and_append()
-    return td.stack(segment_list)
+    return Segment.stack(segment_list)
 
 
 def vectorized_keep_turnaround_points(candles: "Candle") -> Segment:

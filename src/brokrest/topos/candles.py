@@ -10,7 +10,6 @@ import typing
 import numpy as np
 import pandas as pd
 import shapely
-import tensordict as td
 from bokeh import plotting
 
 from ._turnaround import simple_keep_turnaround_segments
@@ -180,7 +179,7 @@ class Candle(Topo, abc.ABC):
         top_coords = Point(x=self.center, y=top)
         bottom_coords = Point(x=self.center, y=bottom)
 
-        return td.stack([top_coords, bottom_coords], dim=-1)
+        return Point.stack([top_coords, bottom_coords], axis=-1)
 
     @typing.no_type_check
     def convex(self, enter_exit: bool = True):

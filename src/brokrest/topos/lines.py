@@ -166,7 +166,7 @@ class Line(Topo):
             raise ValueError("Only supports 1d lines and points.")
 
         # The broadcasted dimensions would be [num_lines, num_points].
-        ss: typing.Self = self[:, None]
+        ss: Line = self[:, None]
         ps: Point = points[None, :]
 
         return ss.a * ps.x + ss.b * ps.y + ss.c
@@ -213,4 +213,5 @@ def _unflatten(item: np.ndarray, dim: int, sizes: tuple[int, ...]) -> np.ndarray
         return item.squeeze(dim)
 
     else:
-        return item.unflatten(dim, sizes)
+        shape = *item.shape[:dim], *([1] * len(sizes)), *item.shape[dim + 1 :]
+        return item.reshape(*shape)

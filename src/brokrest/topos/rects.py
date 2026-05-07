@@ -3,6 +3,7 @@
 "A set of shapes that can be represented as a 4 tuple."
 
 import abc
+import dataclasses as dcls
 import typing
 
 import numpy as np
@@ -21,6 +22,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["Rect", "Box", "Segment"]
 
 
+@dcls.dataclass
 class Rect(Topo, abc.ABC):
     """
     A tuple with 4 values.

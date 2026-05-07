@@ -36,7 +36,7 @@ class LineReg(Ruler):
         x = expand(points.x)
         sol, *_ = linalg.lstsq(x, points.y)
         m, b = parse(sol)
-        return Line.slope_intercept(m=m, b=b)
+        return Line.slope_intercept(m=np.asarray(m), b=np.asarray(b))
 
 
 @typing.no_type_check

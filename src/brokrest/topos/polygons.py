@@ -2,6 +2,7 @@
 
 "Polygons that works closly with shapely."
 
+import dataclasses as dcls
 import typing
 
 import numpy as np
@@ -16,6 +17,7 @@ from .topos import Topo
 __all__ = ["Polygon"]
 
 
+@dcls.dataclass
 class Polygon(Topo):
     upper: Point
     lower: Point

@@ -11,12 +11,13 @@ import numpy as np
 import pandas as pd
 import shapely
 from bokeh import plotting
-
+from numpy import rec
 from ._turnaround import simple_keep_turnaround_segments
 from .lines import Point
 from .polygons import Polygon
 from .rects import Box
 from .topos import Topo
+from numpy.lib import recfunctions
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
@@ -178,13 +179,14 @@ class Candle(Topo, abc.ABC):
 
         top_coords = Point(x=self.center, y=top)
         bottom_coords = Point(x=self.center, y=bottom)
-
         return Point.stack([top_coords, bottom_coords], axis=-1)
 
     @typing.no_type_check
     def convex(self, enter_exit: bool = True):
         coords = self.top_bottom_bounds(enter_exit=enter_exit)
-        point_set = shapely.MultiPoint(coords.transpose([-1, 0]).reshape(-1).tensor())
+        point_set = shapely.MultiPoint(
+            recfunctions.structured_to_unstructured(np.asarray(coords).reshape(-1))
+        )
         if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
             raise RuntimeError("Did not return a polygon.")
 

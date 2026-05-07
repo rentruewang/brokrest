@@ -35,13 +35,12 @@ class ArrayDict:
     def __post_init__(self):
         _ = self.shape
 
-    def __array__(self) -> np.ndarray:
-        values = [np.asarray(val, dtype=val.dtype) for val in self.values()]
-        expand = [np.expand_dims(val, axis=0) for val in values]
-        return np.concat(expand, axis=0)
+    def __array__(self, copy: bool = True) -> np.ndarray:
+        values = [np.asarray(val, dtype=val.dtype, copy=copy) for val in self.values()]
+        return rec.fromarrays(values, dtype=self.dtype)
 
     def __len__(self) -> int:
-        return len(self.shape)
+        return self.shape[0]
 
     @typing.overload
     def __getitem__(self, key: str, /) -> ArrayOrDict: ...
@@ -132,8 +131,11 @@ class ArrayDict:
         except Exception as e:
             raise type(e)(f"ArrayDict.apply failed for {self=}, {function=}.") from e
 
+    def swapaxes(self, axis0: int, axis1: int, /) -> typing.Self:
+        return self.apply(lambda arr: arr.swapaxes(axis0, axis1))
+
     def transpose(self, axes: cabc.Sequence[int]) -> typing.Self:
-        return self.apply(lambda arr: np.transpose(arr, axes))
+        return self.apply(lambda arr: arr.transpose(axes))
 
     def reshape(self, *dims: int) -> typing.Self:
         return self.apply(lambda v: v.reshape(*dims))
@@ -202,30 +204,18 @@ class ArrayDict:
         if not all(isinstance(inst, cls) for inst in insts):
             raise TypeError(f"Not all instances are subclasses of {cls}")
 
-        expanded = [
-            inst.apply(lambda arr: np.expand_dims(arr, axis=axis)) for inst in insts
-        ]
-        return cls.concat(expanded, axis=axis)
+        array = np.stack([np.asarray(inst) for inst in insts], axis=axis)
+        keys = insts[0].keys()
+        return cls(**{key: array[key] for key in keys})
 
     @classmethod
     def concat(cls, insts: cabc.Sequence[typing.Self], /, axis: int = 0) -> typing.Self:
         if not all(isinstance(inst, cls) for inst in insts):
             raise TypeError(f"Not all instances are subclasses of {cls}")
 
-        shapes = [inst.shape for inst in insts]
-        shapes_except_axis = [_shape_except_axis(shape, axis=axis) for shape in shapes]
-
-        if len(set(shapes_except_axis)) != 1:
-            raise ValueError(
-                f"All axis should match except the target {axis=}! But {shapes=}."
-            )
-
-        array = rec.fromarrays(
-            [np.asarray(inst) for inst in insts], dtype=insts[0].dtype
-        )
+        array = np.concat([np.asarray(inst) for inst in insts], axis=axis)
         keys = insts[0].keys()
-
-        return cls(**{key: getattr(array, key) for key in keys})
+        return cls(**{key: array[key] for key in keys})
 
 
 def _shape_except_axis(shape: tuple[int, ...], axis: int):

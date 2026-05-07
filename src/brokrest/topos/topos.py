@@ -11,6 +11,7 @@ from collections import abc as cabc
 import numpy as np
 from bokeh import plotting
 
+from brokrest.arrays import ArrayDict
 from brokrest.plotting import Displayable, ViewPort
 
 if typing.TYPE_CHECKING:
@@ -27,7 +28,8 @@ __all__ = [
 ]
 
 
-class Topo(Displayable, abc.ABC):
+@dcls.dataclass
+class Topo(ArrayDict, Displayable, abc.ABC):
     """
     A set of topologies.
 
@@ -35,30 +37,18 @@ class Topo(Displayable, abc.ABC):
     If `.ndim == 0`, this is a single instance and you can call `.item()` on it.
     """
 
-    def __init__(self) -> None:
-        if (batch_size := self._setup_shape()) is not NotImplemented:
-            self.batch_size = batch_size
-
+    @typing.final
+    def __post_init__(self) -> None:
         self._checks()
 
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
         self._call_handlers()
 
-    def _setup_shape(self) -> tuple[int, ...]:
-        # Make all equal size.
-        _ = self.auto_batch_size_()
-
-        # Check if shapes are valid.
-        shapes = [t.shape for t in self.values()]
-        auto_shape = np.broadcast_shapes(*shapes)
-        if auto_shape != self.shape:
-            raise ValueError(
-                f"Discovered batch size: {self.shape} "
-                f"should match the broadcasted shape: {auto_shape}."
-            )
-        return auto_shape
-
     def _checks(self) -> None:
+        """
+        Perform some checks in subclasses.
+        """
+
         return
 
     def _call_handlers(self):
@@ -122,10 +112,6 @@ class Topo(Displayable, abc.ABC):
 
         return NotImplemented
 
-    def tensor(self) -> np.ndarray:
-        values = list(self.values())
-        return np.stack(values, axis=-1)
-
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, np.ndarray]) -> typing.Self:
         broadcasted = _broadcast_tensor_dict(items)
@@ -160,7 +146,7 @@ class TopoHandlerBase(TopoHandlerFunc, abc.ABC):
             _ = _TOPO_HANDLERS.pop()
 
 
-@dcls.dataclass(frozen=True)
+@dcls.dataclass
 class TopoHandlerProxy(TopoHandlerBase):
     """
     The proxy object for handler, s.t. we can make priting easier,
@@ -195,7 +181,7 @@ def enabled_topo_handlers():
     return tuple(_TOPO_HANDLERS)
 
 
-@dcls.dataclass(frozen=True)
+@dcls.dataclass
 class TopoInScope(TopoHandlerBase, Displayable):
     """
     Get all the topo in scope.
@@ -236,4 +222,4 @@ def _broadcast_tensor_dict(
 
     keys = list(items.keys())
     vals = [items[k] for k in keys]
-    return {k: v for k, v in zip(keys, np.broadcast_tensors(*vals))}
+    return {k: v for k, v in zip(keys, np.broadcast_arrays(*vals))}

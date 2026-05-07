@@ -24,13 +24,6 @@ class Polygon(Topo):
     left: Point
     right: Point
 
-    @typing.override
-    def _setup_shape(self):
-        if self.vertices.ndim == 0:
-            raise ValueError("A single vertex cannot make a polygon.")
-
-        return self.vertices.shape[:-1]
-
     @property
     def vertices(self) -> Point:
         return td.cat(
@@ -64,7 +57,7 @@ class Polygon(Topo):
 
         line = Line.from_segment(Segment.from_start_end(left, right))
 
-        val = line.subs(point_list).flatten()
+        val = line.subs(point_list).reshape(-1)
 
         lr = np.isclose(val, 0, atol=1e-4)
         assert lr.sum() == 2

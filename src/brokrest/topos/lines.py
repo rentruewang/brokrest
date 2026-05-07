@@ -86,32 +86,6 @@ class Line(Topo):
     c: np.ndarray
     "The constant term."
 
-    @typing.override
-    def _setup_shape(self) -> tuple[int, ...]:
-        sizes = {s for s in [self.a.shape, self.b.shape, self.c.shape] if len(s)}
-
-        if len(sizes) == 0:
-            return NotImplemented
-
-        if len(sizes) != 1:
-            raise ValueError(f"Too many sizes: {sizes=}.")
-
-        target_size = list(sizes)[0]
-
-        def _cast_to_target_size(item: np.ndarray):
-            if item.shape == target_size:
-                return item
-
-            assert item.shape == ()
-            return item * np.ones(target_size)
-
-        self.a = _cast_to_target_size(self.a)
-        self.b = _cast_to_target_size(self.b)
-        self.c = _cast_to_target_size(self.c)
-
-        self.auto_batch_size_()
-        return self.batch_size
-
     @property
     def slope(self) -> np.ndarray:
         return -self.a / self.b
@@ -149,7 +123,7 @@ class Line(Topo):
         Compute the distance of each points to a line.
         """
 
-        dist_mat = self.flatten()._dist_prod_flat(points.flatten())
+        dist_mat = self.reshape(-1)._dist_prod_flat(points.reshape(-1))
         assert dist_mat.ndim == 2, dist_mat.shape
 
         # Cast it to [*self.shape, *self.points] dims.

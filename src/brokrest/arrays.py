@@ -12,7 +12,7 @@ import numpy as np
 
 __all__ = ["Array", "ArrayDict", "ArrayOrDict", "JaggedArray"]
 
-type Array = np.ndarray | np.generic | JaggedArray
+type Array = np.ndarray | np.generic
 type ArrayOrDict = Array | ArrayDict
 
 ArrayDictRowIdx: typing.TypeAlias = (
@@ -27,8 +27,8 @@ ArrayDictRowIdx: typing.TypeAlias = (
 "The row wise index access for `ArrayDict`."
 
 
-@dcls.dataclass(frozen=True)
-class ArrayDict(cabc.Mapping[str, ArrayOrDict]):
+@dcls.dataclass
+class ArrayDict:
 
     def __post_init__(self):
         _ = self.shape
@@ -38,7 +38,6 @@ class ArrayDict(cabc.Mapping[str, ArrayOrDict]):
         expand = [np.expand_dims(val, axis=0) for val in values]
         return np.concat(expand, axis=0)
 
-    @typing.override
     def __len__(self) -> int:
         return len(self.shape)
 
@@ -48,7 +47,6 @@ class ArrayDict(cabc.Mapping[str, ArrayOrDict]):
     @typing.overload
     def __getitem__(self, key: ArrayDictRowIdx, /) -> typing.Self: ...
 
-    @typing.override
     @typing.no_type_check
     def __getitem__(self, key, /):
         if isinstance(key, str):
@@ -57,19 +55,16 @@ class ArrayDict(cabc.Mapping[str, ArrayOrDict]):
         else:
             return self.apply(lambda v: v[key])
 
-    @typing.override
-    def __iter__(self) -> cabc.Iterator[str]:
-        return iter(self.fields())
+    def __iter__(self) -> cabc.Iterator[typing.Self]:
+        for i in range(len(self)):
+            yield self[i]
 
-    @typing.override
     def keys(self):
         return self.fields().keys()
 
-    @typing.override
     def values(self):
         return self.fields().values()
 
-    @typing.override
     def items(self):
         return self.fields().items()
 
@@ -94,7 +89,10 @@ class ArrayDict(cabc.Mapping[str, ArrayOrDict]):
         except Exception as e:
             raise type(e)(f"ArrayDict.apply failed for {self=}, {function=}.") from e
 
-    def reshape(self, *dims: int):
+    def transpose(self, axes: cabc.Sequence[int]) -> typing.Self:
+        return self.apply(lambda arr: np.transpose(arr, axes))
+
+    def reshape(self, *dims: int) -> typing.Self:
         return self.apply(lambda v: v.reshape(*dims))
 
     @property
@@ -139,14 +137,10 @@ class ArrayDict(cabc.Mapping[str, ArrayOrDict]):
     def __dtype_cached(self) -> np.dtype:
         return np.dtype([(key, val.dtype) for key, val in self.items()])
 
-    def item(self):
+    def item(self) -> typing.Self:
         if self.size != 1:
             raise RuntimeError(
                 f"Cannot call .item() on array with multiple elements: {self.shape=}."
             )
 
         return self.apply(lambda arr: arr.reshape(1))[0]
-
-
-class JaggedArray[A: ArrayOrDict]:
-    pass

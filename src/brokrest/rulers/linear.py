@@ -56,7 +56,7 @@ def pinned_linear_regression(points: Point, pins: list[int]) -> Line:
 def shift_line_on(line: Line, point: Point) -> Line:
     "Shift the line to fit a point. The output would have a new dimension matching points."
 
-    shifts = (point.y - line.solve_y(point.x)).flatten()
+    shifts = (point.y - line.solve_y(point.x)).reshape(-1)
     m = line.slope[..., None]
     b = line.y_intercept[..., None] + shifts
     return Line.slope_intercept(m=m, b=b)
@@ -84,7 +84,7 @@ def boundary_linereg(points: Point, /) -> Line:
     regression_line = LineReg(bias=True)(points)
     argmin, argmax = arg_minmax_for_line(regression_line, points)
     minmax = points[[argmin, argmax]]
-    return shift_line_on(regression_line, minmax).flatten()
+    return shift_line_on(regression_line, minmax).reshape(-1)
 
 
 def arg_minmax_for_line(line: Line, points: Point) -> tuple[int, int]:

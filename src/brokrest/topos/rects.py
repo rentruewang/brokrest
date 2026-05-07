@@ -191,7 +191,7 @@ class Segment(Rect):
         return type(self)(x_0=self.x_1, y_0=self.y_1, x_1=self.x_0, y_1=self.y_0)
 
     def face_right(self) -> typing.Self:
-        self = self.flatten()
+        self = self.reshape(-1)
         needs_flipping = self.x_0 > self.x_1
         return td.cat([self[~needs_flipping], self[needs_flipping].flip()])
 
@@ -288,7 +288,7 @@ class Segment(Rect):
         from .lines import Point
 
         # Shape: [*self.shapes, 2]
-        start, end = self.start.tensor(), self.end.tensor()
+        start, end = np.asarray(self.start), np.asarray(self.end)
         unique = np.unique(np.stack([start, end]).reshape(2, -1), axis=0)
         return Point(unique[0], unique[1])
 

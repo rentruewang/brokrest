@@ -4,8 +4,9 @@
 
 import typing
 
+import numpy as np
 import pytest
-import torch
+from numpy import random
 
 from brokrest.topos import Line, Point, Window
 from brokrest.topos.probs import Importance
@@ -20,24 +21,24 @@ def _solve_cases():
     # Test intercept forms
     yield _LinearEqSolve(
         eq=Line.intercept(
-            a=torch.tensor(5),
-            b=torch.tensor(4),
+            a=np.asarray(5),
+            b=np.asarray(4),
         ),
         point=Point(
-            x=torch.tensor([5, 0]),
-            y=torch.tensor([0, 4]),
+            x=np.asarray([5, 0]),
+            y=np.asarray([0, 4]),
         ),
     )
 
     # Test slope-intercept
     yield _LinearEqSolve(
         eq=Line.slope_intercept(
-            m=torch.tensor(9),
-            b=torch.tensor(3),
+            m=np.asarray(9),
+            b=np.asarray(3),
         ),
         point=Point(
-            x=torch.tensor([0, 1]),
-            y=torch.tensor([3, 12]),
+            x=np.asarray([0, 1]),
+            y=np.asarray([3, 12]),
         ),
     )
 
@@ -46,30 +47,27 @@ def _solve_cases():
 def test_sub_cases_solved(case: _LinearEqSolve):
     "Points on the line (already solved cases) yields 0."
 
-    assert torch.allclose(
-        case.eq.subs(case.point).float(),
-        torch.zeros([case.eq.numel(), case.point.numel()]).float(),
-    )
+    assert np.allclose(case.eq.subs(case.point).astype(float), 0)
 
 
 @pytest.fixture
 def line():
-    return Line.slope_intercept(1, 2)
+    return Line.slope_intercept(np.asarray(1), np.asarray(2))
 
 
 @pytest.fixture
 def lines():
-    return Line.slope_intercept(torch.randn(5), torch.randn(5))
+    return Line.slope_intercept(random.randn(5), random.randn(5))
 
 
 @pytest.fixture
 def point():
-    return Point(1, 2)
+    return Point(np.array(1), np.array(2))
 
 
 @pytest.fixture
 def points():
-    return Point(torch.randn(5), torch.randn(5))
+    return Point(random.randn(5), random.randn(5))
 
 
 class DistTestCase(typing.NamedTuple):
@@ -79,10 +77,10 @@ class DistTestCase(typing.NamedTuple):
 
 
 def _distance_cases():
-    line = Line.slope_intercept(1, 2)
-    point = Point(3, 4)
-    lines = Line.slope_intercept(torch.randn(5), torch.randn(5))
-    points = Point(torch.randn(6), torch.randn(6))
+    line = Line.slope_intercept(np.array(1), np.array(2))
+    point = Point(np.array(3), np.array(4))
+    lines = Line.slope_intercept(random.randn(5), random.randn(5))
+    points = Point(random.randn(6), random.randn(6))
 
     yield DistTestCase(line, point, ())
     yield DistTestCase(lines, point, (5,))

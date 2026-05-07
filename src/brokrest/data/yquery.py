@@ -3,7 +3,6 @@
 import typing
 
 import pandas as pd
-import torch
 import yahooquery as yq
 
 from brokrest.topos import LeftCandle
@@ -41,11 +40,11 @@ def _yq_load(symbol: str, interval: Interval, period: Period) -> LeftCandle:
         df = df.reset_index(level=0, drop=True)
 
     lc = LeftCandle(
-        enter=torch.tensor(df["open"].values.astype("float32")),
-        exit=torch.tensor(df["close"].values.astype("float32")),
-        low=torch.tensor(df["low"].values.astype("float32")),
-        high=torch.tensor(df["high"].values.astype("float32")),
-        start=torch.tensor(df.index.values.astype("datetime64[s]").astype("int64")),
+        enter=df["open"].values.astype(float),
+        exit=df["close"].values.astype(float),
+        low=df["low"].values.astype(float),
+        high=df["high"].values.astype(float),
+        start=df.index.values.astype("datetime64[s]").astype(int),
     )
     lc.start -= lc.start.min()
     return lc

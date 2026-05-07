@@ -6,9 +6,9 @@ import typing
 
 import numpy as np
 import shapely
-import tensordict as td
-import torch
 from bokeh import plotting
+
+from brokrest.arrays import array_dict_dataclass
 
 from .lines import Line, Point
 from .rects import Segment
@@ -17,36 +17,37 @@ from .topos import Topo
 __all__ = ["Polygon"]
 
 
+@array_dict_dataclass
 class Polygon(Topo):
     upper: Point
     lower: Point
     left: Point
     right: Point
 
-    @typing.override
-    def _setup_batch_size(self):
-        if self.vertices.ndim == 0:
-            raise ValueError("A single vertex cannot make a polygon.")
-
-        return self.vertices.shape[1:]
-
     @property
     def vertices(self) -> Point:
-        return td.cat([self.upper, self.lower, td.stack([self.left, self.right])])
+        return Point.concat(
+            [
+                self.upper,
+                self.lower,
+                Point.stack([self.left, self.right], axis=-1),
+            ],
+            axis=-1,
+        )
 
     @property
     def segments(self) -> Segment:
         ub = Segment.from_points(self.upper_bound).face_right()
         lb = Segment.from_points(self.lower_bound).face_right()
-        return td.cat([ub, lb])
+        return Segment.concat([ub, lb])
 
     @property
     def upper_bound(self) -> Point:
-        return td.cat([self.left[None], self.upper, self.right[None]])
+        return Point.concat([self.left[None], self.upper, self.right[None]])
 
     @property
     def lower_bound(self) -> Point:
-        return td.cat([self.left[None], self.lower, self.right[None]])
+        return Point.concat([self.left[None], self.lower, self.right[None]])
 
     @typing.override
     def plot(self, figure: plotting.figure, /) -> None:
@@ -56,14 +57,14 @@ class Polygon(Topo):
     def from_vertices(cls, *vertices: Point) -> typing.Self:
         batch = _maybe_stack_input(*vertices)
 
-        point_list = td.stack(sorted(batch, key=lambda p: p.x))
+        point_list = Point.stack(sorted(batch, key=lambda p: p.x))
         left, right = point_list[0], point_list[-1]
 
         line = Line.from_segment(Segment.from_start_end(left, right))
 
         val = line.subs(point_list).flatten()
 
-        lr = torch.isclose(val, torch.zeros_like(val), atol=1e-4)
+        lr = np.isclose(val, 0, atol=1e-4)
         assert lr.sum() == 2
 
         upper: Point = point_list[val > 0 & ~lr]
@@ -78,8 +79,8 @@ class Polygon(Topo):
         return cls.from_vertices(points)
 
 
-def _maybe_stack_input[T: td.TensorClass](*items: T) -> T:
+def _maybe_stack_input(*items: Point) -> Point:
     if len(items) == 1:
         return items[0]
     else:
-        return td.stack(items)
+        return Point.stack(items)

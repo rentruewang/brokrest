@@ -6,10 +6,11 @@ import dataclasses as dcls
 import math
 import typing
 
-import torch
-from torch import linalg
+import numpy as np
+from numpy import linalg
 
 from brokrest.topos import Line, Point
+from brokrest.typing import ArrayOrScalar, FloatArray
 
 from .rulers import Ruler
 
@@ -33,9 +34,9 @@ class LineReg(Ruler):
         parse = _bias_parse if self.bias else _parse
 
         x = expand(points.x)
-        sol: torch.Tensor = linalg.lstsq(x, points.y).solution
+        sol, *_ = linalg.lstsq(x, points.y)
         m, b = parse(sol)
-        return Line.slope_intercept(m=m, b=b)
+        return Line.slope_intercept(m=np.asarray(m), b=np.asarray(b))
 
 
 @typing.no_type_check
@@ -88,29 +89,29 @@ def boundary_linereg(points: Point, /) -> Line:
 
 def arg_minmax_for_line(line: Line, points: Point) -> tuple[int, int]:
     value = line.subs(points)
-    maximum = int(torch.argmax(value).item())
-    minimum = int(torch.argmin(value).item())
+    maximum = int(np.argmax(value))
+    minimum = int(np.argmin(value))
     return minimum, maximum
 
 
-def _bias_expand(x: torch.Tensor) -> torch.Tensor:
-    ones = torch.ones_like(x)
-    return torch.stack([x, ones], dim=-1)
+def _bias_expand(x: FloatArray) -> FloatArray:
+    ones = np.ones_like(x)
+    return np.stack([x, ones], axis=-1)
 
 
-def _expand(x: torch.Tensor) -> torch.Tensor:
+def _expand(x: FloatArray) -> FloatArray:
     return x[..., None]
 
 
 class _SlopeAndBias(typing.NamedTuple):
-    m: torch.Tensor
-    b: torch.Tensor
+    m: ArrayOrScalar
+    b: ArrayOrScalar
 
 
-def _bias_parse(sol: torch.Tensor) -> _SlopeAndBias:
+def _bias_parse(sol: FloatArray) -> _SlopeAndBias:
     return _SlopeAndBias(m=sol[0], b=sol[1])
 
 
-def _parse(sol: torch.Tensor) -> _SlopeAndBias:
+def _parse(sol: FloatArray) -> _SlopeAndBias:
     m = sol[0]
-    return _SlopeAndBias(m=m, b=torch.zeros_like(m))
+    return _SlopeAndBias(m=m, b=np.zeros_like(m))

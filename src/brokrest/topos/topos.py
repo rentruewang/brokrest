@@ -8,10 +8,10 @@ import dataclasses as dcls
 import typing
 from collections import abc as cabc
 
-import tensordict as td
-import torch
+import numpy as np
 from bokeh import plotting
 
+from brokrest.arrays import ArrayDict, array_dict_dataclass
 from brokrest.plotting import Displayable, ViewPort
 
 if typing.TYPE_CHECKING:
@@ -28,53 +28,29 @@ __all__ = [
 ]
 
 
-class Topo(td.TensorClass, Displayable, abc.ABC):
+@array_dict_dataclass
+class Topo(ArrayDict, Displayable, abc.ABC):
     """
     A set of topologies.
 
-    This is backed by `td.tensorclass`.
-    If `.ndim == 0`, this is a single instance and you can call `item()` on it.
+    This is backed by `ArrayDict`.
+    If `.ndim == 0`, this is a single instance and you can call `.item()` on it.
     """
-
-    if typing.TYPE_CHECKING:
-
-        def __iter__(self) -> cabc.Iterator[typing.Self]:
-            raise NotImplementedError
-
-        @typing.overload
-        def __getitem__(self, idx: str) -> torch.Tensor: ...
-
-        @typing.overload
-        def __getitem__(self, idx: typing.Any) -> typing.Self: ...
-
-        def __getitem__(self, idx):
-            raise NotImplementedError
 
     @typing.final
     def __post_init__(self) -> None:
-        if (batch_size := self._setup_batch_size()) is not NotImplemented:
-            self.batch_size = batch_size
+        super().__post_init__()
 
         self._checks()
 
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
         self._call_handlers()
 
-    def _setup_batch_size(self) -> torch.Size:
-        # Make all equal size.
-        _ = self.auto_batch_size_()
-
-        # Check if shapes are valid.
-        shapes = [t.shape for t in self.values()]
-        auto_shape = torch.broadcast_shapes(*shapes)
-        if auto_shape != self.shape:
-            raise ValueError(
-                f"Discovered batch size: {self.shape} "
-                f"should match the broadcasted shape: {auto_shape}."
-            )
-        return auto_shape
-
     def _checks(self) -> None:
+        """
+        Perform some checks in subclasses.
+        """
+
         return
 
     def _call_handlers(self):
@@ -138,12 +114,8 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
 
         return NotImplemented
 
-    def tensor(self) -> torch.Tensor:
-        values = list(self.values())
-        return torch.stack(values, dim=-1)
-
     @classmethod
-    def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
+    def from_dict(cls, items: cabc.Mapping[str, np.ndarray]) -> typing.Self:
         broadcasted = _broadcast_tensor_dict(items)
         return cls(**broadcasted)
 
@@ -244,12 +216,12 @@ _TOPO_HANDLERS: list[TopoHandlerFunc] = []
 
 
 def _broadcast_tensor_dict(
-    items: cabc.Mapping[str, torch.Tensor],
-) -> dict[str, torch.Tensor]:
+    items: cabc.Mapping[str, np.ndarray],
+) -> dict[str, np.ndarray]:
     """
     Broadcast the tensors in a mapping from string to tensors to the same shape.
     """
 
     keys = list(items.keys())
     vals = [items[k] for k in keys]
-    return {k: v for k, v in zip(keys, torch.broadcast_tensors(*vals))}
+    return {k: v for k, v in zip(keys, np.broadcast_arrays(*vals))}

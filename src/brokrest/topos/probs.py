@@ -3,7 +3,7 @@
 import dataclasses as dcls
 import typing
 
-import torch
+import numpy as np
 
 __all__ = ["Importance", "Window"]
 
@@ -18,7 +18,7 @@ class Importance(typing.Protocol):
     Outputs the original distance matrix filtered.
     """
 
-    def __call__(self, dists: torch.Tensor, /) -> torch.Tensor: ...
+    def __call__(self, dists: np.ndarray, /) -> np.ndarray: ...
 
 
 @dcls.dataclass(frozen=True)
@@ -30,6 +30,6 @@ class Window:
         if self.lower > self.upper:
             raise ValueError(f"Invalid configuration: {self.lower=}, {self.upper=}.")
 
-    def __call__(self, dists: torch.Tensor, /) -> torch.Tensor:
+    def __call__(self, dists: np.ndarray, /) -> np.ndarray:
         in_range = (dists >= self.lower) & (dists <= self.upper)
-        return dists * in_range.float()
+        return dists * in_range.astype(float)

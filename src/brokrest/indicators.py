@@ -7,15 +7,12 @@ from collections import abc as cabc
 
 import numpy as np
 import talib
-from numpy import typing as npt
 
 from brokrest.plotting import Displayable, ViewPort
 from brokrest.topos import Candle
+from brokrest.typing import FloatArray
 
 __all__ = ["Indicator", "IndicatorList", "Rsi", "Ema", "Macd", "BollingerBand"]
-
-
-FloatArray: typing.TypeAlias = npt.NDArray[np.float64]
 
 
 class Indicator(abc.ABC):
@@ -57,20 +54,15 @@ class CandleIndicator(Displayable):
     def draw_on(self, vp: ViewPort, /) -> None:
         selected = (self.candles.left >= vp.left) & (self.candles.right <= vp.right)
         filtered_candles: Candle = self.candles[selected]
-        exit_values = self.candles.exit.cpu().numpy().astype("float64")
-        times = self.candles.right.cpu().numpy().astype("float64")
+        exit_values = self.candles.exit.astype(float)
+        times = self.candles.right.astype(float)
 
         indicators = self.indicator(exit_values)
 
         vp.display(filtered_candles)
 
         for ind in indicators:
-            vp.figure.segment(
-                x0=times[:-1],
-                x1=times[1:],
-                y0=ind[:-1],
-                y1=ind[1:],
-            )
+            vp.figure.segment(x0=times[:-1], x1=times[1:], y0=ind[:-1], y1=ind[1:])
 
 
 @dcls.dataclass(frozen=True)
@@ -142,10 +134,6 @@ class BollingerBand(Indicator):
 
     @typing.override
     def ta_lib(self, data: FloatArray, /) -> FloatArray:
-        """
-        Compute Bollinger Bands in PyTorch.
-        """
-
         low, mid, top = talib.BBANDS(
             data,
             timeperiod=self.window,

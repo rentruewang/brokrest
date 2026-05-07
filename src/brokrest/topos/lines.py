@@ -4,7 +4,7 @@
 
 import typing
 
-import torch
+import numpy as np
 from bokeh import plotting
 
 from .probs import Importance
@@ -20,14 +20,14 @@ __all__ = ["Line", "Point"]
 class Point(Topo):
     "A collection of points."
 
-    x: torch.Tensor
+    x: np.ndarray
     "The x element."
 
-    y: torch.Tensor
+    y: np.ndarray
     "The y element."
 
     @typing.no_type_check
-    def cross_eq_1d(self, points: typing.Self) -> torch.Tensor:
+    def cross_eq_1d(self, points: typing.Self) -> np.ndarray:
         """
         Find self == points, using cross product.
         The result would be in a `[len(self), len(points)]` boolean matrix.
@@ -42,7 +42,7 @@ class Point(Topo):
         assert result.shape == (len(self), len(points)), result.shape
         return result
 
-    def is_vertex_of(self, polygon: "Polygon") -> torch.Tensor:
+    def is_vertex_of(self, polygon: "Polygon") -> np.ndarray:
         "Find if `self` is a polygon vertex of `polygon`. Return a boolean tensor."
         result = self.cross_eq_1d(polygon.vertices).any(dim=1)
         assert result.ndim == 1
@@ -65,7 +65,7 @@ class Point(Topo):
         _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
 
 
-def mean_squared_error(x: torch.Tensor):
+def mean_squared_error(x: np.ndarray):
     return (x**2).mean()
 
 
@@ -74,17 +74,17 @@ class Line(Topo):
     A set of lines. Represented as `ax + by + c = 0` (standard form).
     """
 
-    a: torch.Tensor
+    a: np.ndarray
     "The x coefficient."
 
-    b: torch.Tensor
+    b: np.ndarray
     "The y coefficient."
 
-    c: torch.Tensor
+    c: np.ndarray
     "The constant term."
 
     @typing.override
-    def _setup_shape(self) -> torch.Size:
+    def _setup_shape(self) -> tuple[int, ...]:
         sizes = {s for s in [self.a.shape, self.b.shape, self.c.shape] if len(s)}
 
         if len(sizes) == 0:
@@ -95,12 +95,12 @@ class Line(Topo):
 
         target_size = list(sizes)[0]
 
-        def _cast_to_target_size(item: torch.Tensor):
+        def _cast_to_target_size(item: np.ndarray):
             if item.shape == target_size:
                 return item
 
             assert item.shape == ()
-            return item * torch.ones(target_size)
+            return item * np.ones(target_size)
 
         self.a = _cast_to_target_size(self.a)
         self.b = _cast_to_target_size(self.b)
@@ -110,25 +110,25 @@ class Line(Topo):
         return self.batch_size
 
     @property
-    def slope(self) -> torch.Tensor:
+    def slope(self) -> np.ndarray:
         return -self.a / self.b
 
     @property
-    def x_intercept(self) -> torch.Tensor:
+    def x_intercept(self) -> np.ndarray:
         return self.b
 
     @property
-    def y_intercept(self) -> torch.Tensor:
+    def y_intercept(self) -> np.ndarray:
         return self.b
 
-    def solve_y(self, x: torch.Tensor) -> torch.Tensor:
+    def solve_y(self, x: np.ndarray) -> np.ndarray:
         """
         Returns y = mx + b as a self.ndim + 1 matrix `R`. `R_ij = m_i x_j + b_i.`
         """
 
         return self.slope[..., None] * x[None, ...] + self.y_intercept[..., None]
 
-    def subs(self, points: Point) -> torch.Tensor:
+    def subs(self, points: Point) -> np.ndarray:
         """
         Returns ax + by + c.
         """
@@ -141,7 +141,7 @@ class Line(Topo):
 
         return a * x + b * y + c
 
-    def dist(self, points: Point) -> torch.Tensor:
+    def dist(self, points: Point) -> np.ndarray:
         """
         Compute the distance of each points to a line.
         """
@@ -154,7 +154,7 @@ class Line(Topo):
         result = _unflatten(result, -1, points.shape)
         result = _unflatten(result, 0, self.shape)
 
-        assert isinstance(result, torch.Tensor)
+        assert isinstance(result, np.ndarray)
         assert result.shape == (*self.shape, *points.shape)
         return result
 
@@ -162,7 +162,7 @@ class Line(Topo):
         self,
         points: Point,
         resample: Importance = NotImplemented,
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """
         Convert the distance into a loss (larger = farther).
         """
@@ -178,7 +178,7 @@ class Line(Topo):
         assert (score >= 0).item(), score
         return score
 
-    def _dist_prod_flat(self, points: Point) -> torch.Tensor:
+    def _dist_prod_flat(self, points: Point) -> np.ndarray:
         """
         The distance product. `self` and `points` are both 1D (`flatten()`-ed).
 
@@ -201,22 +201,25 @@ class Line(Topo):
     plot = NotImplemented
 
     @classmethod
-    def standard(cls, a: torch.Tensor, b: torch.Tensor, c: torch.Tensor) -> typing.Self:
+    def standard(cls, a: np.ndarray, b: np.ndarray, c: np.ndarray) -> typing.Self:
         "Create a line in the `ax + by + c = 0` form."
 
         return cls(a=a, b=b, c=c)
 
     @classmethod
-    def intercept(cls, a: torch.Tensor, b: torch.Tensor) -> typing.Self:
+    def intercept(cls, a: np.ndarray, b: np.ndarray) -> typing.Self:
         "Create a line in the `x/a + y/b = 1` form."
 
-        return cls(a=1 / a, b=1 / b, c=torch.tensor(-1))
+        c = -np.ones_like(b)
+        assert a.shape == b.shape == c.shape
+        return cls(a=1 / a, b=1 / b, c=c)
 
     @classmethod
-    def slope_intercept(cls, m: torch.Tensor, b: torch.Tensor) -> typing.Self:
+    def slope_intercept(cls, m: np.ndarray, b: np.ndarray) -> typing.Self:
         "Create a line in the `y = mx + b` form."
 
-        return cls(a=m, b=torch.tensor(-1), c=b)
+        assert m.shape == b.shape
+        return cls(a=m, b=-np.ones_like(m), c=b)
 
     @classmethod
     def from_segment(cls, segment: Segment) -> typing.Self:
@@ -227,7 +230,7 @@ class Line(Topo):
         return cls.slope_intercept(slope, end.y - slope * end.x)
 
 
-def _unflatten(item: torch.Tensor, dim: int, sizes: tuple[int, ...]) -> torch.Tensor:
+def _unflatten(item: np.ndarray, dim: int, sizes: tuple[int, ...]) -> np.ndarray:
     # Because flatten actually **adds** dimensions, so here we remove it.
     if not sizes:
         return item.squeeze(dim)

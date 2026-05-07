@@ -7,6 +7,7 @@ import dataclasses as dcls
 import functools
 import typing
 
+import numpy as np
 import pandas as pd
 import shapely
 import tensordict as td
@@ -63,16 +64,16 @@ class Candle(Topo, abc.ABC):
     A candle on the candle chart
     """
 
-    enter: torch.Tensor
+    enter: np.ndarray
     "The entering position of this candle."
 
-    exit: torch.Tensor
+    exit: np.ndarray
     "The exiting position of this candle."
 
-    low: torch.Tensor
+    low: np.ndarray
     "The minimum value of the candle."
 
-    high: torch.Tensor
+    high: np.ndarray
     "The maximum value of the candle."
 
     @typing.override
@@ -85,7 +86,7 @@ class Candle(Topo, abc.ABC):
         self._check_value_in_range(self.enter, "entering")
         self._check_value_in_range(self.exit, "exiting")
 
-    def _check_value_in_range(self, value: torch.Tensor, desc: str) -> None:
+    def _check_value_in_range(self, value: np.ndarray, desc: str) -> None:
         "Check if the given value is in the range [min, max]."
 
         if torch.any(self.low > value) or torch.any(self.high < value):
@@ -103,7 +104,7 @@ class Candle(Topo, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def center(self) -> torch.Tensor:
+    def center(self) -> np.ndarray:
         "The time at which this candle occurs."
 
         raise NotImplementedError
@@ -117,26 +118,26 @@ class Candle(Topo, abc.ABC):
 
     @property
     @abc.abstractmethod
-    def left(self) -> torch.Tensor:
+    def left(self) -> np.ndarray:
         "The left side of the candle."
 
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def right(self) -> torch.Tensor:
+    def right(self) -> np.ndarray:
         "The right side of the candle."
 
         raise NotImplementedError
 
     @property
-    def inc(self) -> torch.Tensor:
+    def inc(self) -> np.ndarray:
         "Is increasing."
 
         return self.direction >= 0
 
     @property
-    def dec(self) -> torch.Tensor:
+    def dec(self) -> np.ndarray:
         "Is decreasing."
 
         return self.direction < 0
@@ -168,8 +169,8 @@ class Candle(Topo, abc.ABC):
         """
 
         if enter_exit:
-            top = torch.where(self.inc, self.exit, self.enter)
-            bottom = torch.where(self.dec, self.exit, self.enter)
+            top = np.where(self.inc, self.exit, self.enter)
+            bottom = np.where(self.dec, self.exit, self.enter)
         else:
             top = self.high
             bottom = self.low
@@ -196,21 +197,17 @@ class Candle(Topo, abc.ABC):
     def plot(self, figure: plotting.figure) -> None:
         # The center bars for the candles.
         _ = figure.segment(
-            x0=self.center.numpy(),
-            y0=self.high.numpy(),
-            x1=self.center.numpy(),
-            y1=self.low.numpy(),
-            color="black",
+            x0=self.center, y0=self.high, x1=self.center, y1=self.low, color="black"
         )
 
         width = self.max_width * 0.7
 
         # The body of candles that are decreasing.
         _ = figure.vbar(
-            x=self.center[self.dec].numpy(),
+            x=self.center[self.dec],
             width=width,
-            top=self.enter[self.dec].numpy(),
-            bottom=self.exit[self.dec].numpy(),
+            top=self.enter[self.dec],
+            bottom=self.exit[self.dec],
             fill_color=self.looks.down_fill,
             color=self.looks.down_line,
             line_width=self.looks.line_width,
@@ -218,10 +215,10 @@ class Candle(Topo, abc.ABC):
 
         # The body of candles that are increasing.
         _ = figure.vbar(
-            x=self.center[self.inc].numpy(),
+            x=self.center[self.inc],
             width=width,
-            top=self.enter[self.inc].numpy(),
-            bottom=self.exit[self.inc].numpy(),
+            top=self.enter[self.inc],
+            bottom=self.exit[self.inc],
             fill_color=self.looks.up_fill,
             line_color=self.looks.up_line,
             line_width=self.looks.line_width,
@@ -261,10 +258,10 @@ class BothCandle(Candle):
     A candle that has a left side and a right side.
     """
 
-    start: torch.Tensor
+    start: np.ndarray
     "The starting time of the candle."
 
-    end: torch.Tensor
+    end: np.ndarray
     "The ending time of the candle."
 
     @typing.override
@@ -283,7 +280,7 @@ class BothCandle(Candle):
 
     @property
     @typing.override
-    def center(self) -> torch.Tensor:
+    def center(self) -> np.ndarray:
         "The centered times."
         return (self.end + self.start) / 2
 
@@ -313,12 +310,12 @@ class LeftCandle(Candle):
     The candle that only has the starting time defined (timing is implicit).
     """
 
-    start: torch.Tensor
+    start: np.ndarray
     "The starting time of the candle."
 
     @property
     @typing.override
-    def center(self) -> torch.Tensor:
+    def center(self) -> np.ndarray:
         "The centered times."
         return self.start + self.max_width / 2
 

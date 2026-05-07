@@ -3,7 +3,7 @@
 import typing
 
 import tensordict as td
-import torch
+import numpy as np
 
 from .rects import Segment
 
@@ -62,15 +62,15 @@ def vectorized_keep_turnaround_points(candles: "Candle") -> Segment:
     raise NotImplementedError
 
 
-def cumsum_with_reset(tensor: torch.Tensor, reset: torch.Tensor):
+def cumsum_with_reset(tensor: np.ndarray, reset: np.ndarray):
     "Cumsum with resetting signals."
 
-    if reset.dtype != torch.bool:
+    if not np.isdtype(reset.dtype, "bool"):
         raise ValueError(f"Reset should be a boolean tensor. {reset.dtype=}.")
 
     scan = _AssociativeScan()
-    invert = 1 - reset.float()
-    result = scan(tensor, invert, dim=0)
+    invert = 1 - reset.astype("float64")
+    result = scan(tensor, invert, axis=0)
     return result
 
 
@@ -85,18 +85,19 @@ class _AssociativeScan:
     Organize into a class to show scope of the adaptation.
     """
 
-    def __call__(
-        self, values: torch.Tensor, coeffs: torch.Tensor, dim: int
-    ) -> torch.Tensor:
-        log_values = self._complex_log(values.float())
-        log_coeffs = self._complex_log(coeffs.float())
-        a_star = torch.cumsum(log_coeffs, dim=dim)
-        log_x0_plus_b_star = torch.logcumsumexp(log_values - a_star, dim=dim)
-        log_x = a_star + log_x0_plus_b_star
-        return torch.exp(log_x).real
+    def __call__(self, values: np.ndarray, coeffs: np.ndarray, axis: int) -> np.ndarray:
+        log_values = self._complex_log(values.astype("float64"))
+        log_coeffs = self._complex_log(coeffs.astype("float64"))
+        a_star = np.cumsum(log_coeffs, axis=axis)
 
-    def _complex_log(self, float_input: torch.Tensor, eps: float = 1e-6):
-        eps_tensor = float_input.new_tensor(eps)
-        real = float_input.abs().maximum(eps_tensor).log()
-        imag = (float_input < 0).to(float_input.dtype) * torch.pi
-        return torch.complex(real, imag)
+        # Here, `torch.logcumsumexp` is replaced with `np.logaddexp.accumulate`.
+        log_x0_plus_b_star = np.logaddexp.accumulate(log_values - a_star, axis=axis)
+        log_x = a_star + log_x0_plus_b_star
+        result = np.real(np.exp(log_x))
+        return result
+
+    def _complex_log(self, float_input: np.ndarray, eps: float = 1e-6):
+        eps_arr = np.ones_like(float_input) * eps
+        real = np.log(np.maximum(abs(float_input), eps_arr))
+        imag = (float_input < 0).astype(float_input.dtype) * np.pi
+        return real + imag * 1j

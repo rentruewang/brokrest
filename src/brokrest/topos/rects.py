@@ -27,16 +27,16 @@ class Rect(Topo, abc.ABC):
     If `batch_size` is not 1, all `x_0`, `x_1`, `y_0`, `y_1` need to be the same shape.
     """
 
-    x_0: torch.Tensor
+    x_0: np.ndarray
     "The left side."
 
-    x_1: torch.Tensor
+    x_1: np.ndarray
     "The right side."
 
-    y_0: torch.Tensor
+    y_0: np.ndarray
     "The top side."
 
-    y_1: torch.Tensor
+    y_1: np.ndarray
     "The bottom side."
 
 
@@ -56,37 +56,37 @@ class Box(Rect):
             raise ValueError("Box should not have negative height.")
 
     @property
-    def bottom(self) -> torch.Tensor:
+    def bottom(self) -> np.ndarray:
         "The bottom of the box. Alias of `y_0`."
         return self.y_0
 
     @property
-    def top(self) -> torch.Tensor:
+    def top(self) -> np.ndarray:
         "The top of the box. Alias of `y_1`."
         return self.y_1
 
     @property
-    def left(self) -> torch.Tensor:
+    def left(self) -> np.ndarray:
         "The left of the box. Alias of `x_0`."
         return self.x_0
 
     @property
-    def right(self) -> torch.Tensor:
+    def right(self) -> np.ndarray:
         "The right of the box. Alias of `x_1`."
         return self.x_1
 
     @property
-    def width(self) -> torch.Tensor:
+    def width(self) -> np.ndarray:
         "The width of the `Box`es."
         return self.x_1 - self.x_0
 
     @property
-    def height(self) -> torch.Tensor:
+    def height(self) -> np.ndarray:
         "The height of the `Box`es."
         return self.y_1 - self.y_0
 
     @property
-    def area(self) -> torch.Tensor:
+    def area(self) -> np.ndarray:
         "The area of the `Box`es."
         return self.width * self.height
 
@@ -114,7 +114,7 @@ class Box(Rect):
             height=self.height.numpy(),
         )
 
-    def visible(self, window: ViewPort) -> torch.Tensor:
+    def visible(self, window: ViewPort) -> np.ndarray:
         """
         Return a boolean tensor, of whether `self` is visible in the view box or not.
 
@@ -143,8 +143,8 @@ class Box(Rect):
 
 
 def _segment_visible(
-    start: torch.Tensor, end: torch.Tensor, x: float, y: float
-) -> torch.Tensor:
+    start: np.ndarray, end: np.ndarray, x: float, y: float
+) -> np.ndarray:
     """
     Try to see if segment [start, end] is visible in viewport [x, y], vectorized.
     """
@@ -152,7 +152,7 @@ def _segment_visible(
     result_shape = start.shape
     assert end.shape == start.shape
 
-    def is_ordered(*ordered: torch.Tensor):
+    def is_ordered(*ordered: np.ndarray):
         "The tensors are ordered."
 
         answer = torch.ones(result_shape).bool()
@@ -192,7 +192,7 @@ class Segment(Rect):
         return self.y_1 - self.y_0
 
     @property
-    def slope(self) -> torch.Tensor:
+    def slope(self) -> np.ndarray:
         return self.dy / self.dx
 
     @property

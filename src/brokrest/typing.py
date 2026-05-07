@@ -9,3 +9,4 @@ FloatArray = npt.NDArray[np.float64]
 IntArray = npt.NDArray[np.int64]
 BoolArray = npt.NDArray[np.bool]
 UIntArray = npt.NDArray[np.uint64]
+ArrayOrScalar = FloatArray | IntArray | BoolArray | UIntArray | bool | int | float

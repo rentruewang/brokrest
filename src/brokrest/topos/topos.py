@@ -123,12 +123,12 @@ class Topo(Displayable, abc.ABC):
 
         return NotImplemented
 
-    def tensor(self) -> torch.Tensor:
+    def tensor(self) -> np.ndarray:
         values = list(self.values())
         return torch.stack(values, dim=-1)
 
     @classmethod
-    def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
+    def from_dict(cls, items: cabc.Mapping[str, np.ndarray]) -> typing.Self:
         broadcasted = _broadcast_tensor_dict(items)
         return cls(**broadcasted)
 
@@ -229,8 +229,8 @@ _TOPO_HANDLERS: list[TopoHandlerFunc] = []
 
 
 def _broadcast_tensor_dict(
-    items: cabc.Mapping[str, torch.Tensor],
-) -> dict[str, torch.Tensor]:
+    items: cabc.Mapping[str, np.ndarray],
+) -> dict[str, np.ndarray]:
     """
     Broadcast the tensors in a mapping from string to tensors to the same shape.
     """

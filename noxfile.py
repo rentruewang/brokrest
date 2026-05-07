@@ -9,7 +9,7 @@ from collections import abc as cabc
 
 import nox
 
-PYTHON_VERSIONS = ["3.13", "3.14"]
+PYTHON_VERSIONS = ["3.14"]
 
 
 @nox.session
@@ -221,7 +221,7 @@ class _Commands:
 
 
 def _install_talib_macos(session: nox.Session):
-    if _has_brew_pkg("ta-lib"):
+    if _has_brew_talib():
         return
 
     session.run("brew", "install", "ta-lib", external=True)
@@ -249,10 +249,10 @@ def _install_ta_lib(session: nox.Session):
 
 
 def checking_if(condition: str):
-    def decorator[**P](function: cabc.Callable[P, bool]) -> cabc.Callable[P, bool]:
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> bool:
+    def decorator(function: cabc.Callable[[], bool]) -> cabc.Callable[[], bool]:
+        def wrapper() -> bool:
             print(f"Checking if {condition}...", end=" ")
-            answer = function(*args, **kwargs)
+            answer = function()
             print("Yes" if answer else "No")
             return answer
 
@@ -269,9 +269,9 @@ def in_github_actions() -> bool:
 
 
 @checking_if("ta-lib is installed in brew")
-def _has_brew_pkg(pkg_name: str):
+def _has_brew_talib():
     result = sp.run(
-        ["brew", "list", "--versions", pkg_name],
+        ["brew", "list", "--versions", "ta-lib"],
         stdout=sp.PIPE,
         stderr=sp.PIPE,
         text=True,

@@ -26,7 +26,7 @@ def candles():
 def test_cumsum_with_reset(tensor: np.ndarray, reset: np.ndarray):
     answer = [0, 1, 3, 6, 4, 9, 15, 22, 8, 17]
 
-    assert cumsum_with_reset(tensor, reset).round().int().tolist() == answer
+    assert cumsum_with_reset(tensor, reset).round().astype(int).tolist() == answer
 
 
 def test_turnaround_segments(candles: Candle):

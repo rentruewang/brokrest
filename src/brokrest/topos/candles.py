@@ -11,18 +11,20 @@ import numpy as np
 import pandas as pd
 import shapely
 from bokeh import plotting
-from numpy import rec
+from numpy.lib import recfunctions
+
+from brokrest.arrays import array_dict_dataclass
+
 from ._turnaround import simple_keep_turnaround_segments
 from .lines import Point
 from .polygons import Polygon
 from .rects import Box
 from .topos import Topo
-from numpy.lib import recfunctions
 
 __all__ = ["Candle", "CandleLooks", "BothCandle", "LeftCandle"]
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class CandleLooks:
     "The appearances for candles."
 
@@ -58,7 +60,7 @@ class CandleLooks:
         )
 
 
-@dcls.dataclass
+@array_dict_dataclass
 class Candle(Topo, abc.ABC):
     """
     A candle on the candle chart
@@ -151,6 +153,7 @@ class Candle(Topo, abc.ABC):
     @typing.no_type_check
     def center_points(self, enter_exit: bool = True) -> Point:
         coords = self.top_bottom_bounds(enter_exit=enter_exit)
+        breakpoint()
         return coords[..., 0] / 2 + coords[..., 1] / 2
 
     def to_turnaround_segments(self):
@@ -252,7 +255,7 @@ class Candle(Topo, abc.ABC):
         return self[selected]
 
 
-@dcls.dataclass
+@array_dict_dataclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
@@ -305,7 +308,7 @@ class BothCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
 
-@dcls.dataclass
+@array_dict_dataclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).

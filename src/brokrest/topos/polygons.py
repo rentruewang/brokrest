@@ -2,12 +2,13 @@
 
 "Polygons that works closly with shapely."
 
-import dataclasses as dcls
 import typing
 
 import numpy as np
 import shapely
 from bokeh import plotting
+
+from brokrest.arrays import array_dict_dataclass
 
 from .lines import Line, Point
 from .rects import Segment
@@ -16,7 +17,7 @@ from .topos import Topo
 __all__ = ["Polygon"]
 
 
-@dcls.dataclass
+@array_dict_dataclass
 class Polygon(Topo):
     upper: Point
     lower: Point

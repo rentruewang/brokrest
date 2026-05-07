@@ -11,7 +11,7 @@ from collections import abc as cabc
 import numpy as np
 from bokeh import plotting
 
-from brokrest.arrays import ArrayDict
+from brokrest.arrays import ArrayDict, array_dict_dataclass
 from brokrest.plotting import Displayable, ViewPort
 
 if typing.TYPE_CHECKING:
@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 
-@dcls.dataclass
+@array_dict_dataclass
 class Topo(ArrayDict, Displayable, abc.ABC):
     """
     A set of topologies.
@@ -146,7 +146,7 @@ class TopoHandlerBase(TopoHandlerFunc, abc.ABC):
             _ = _TOPO_HANDLERS.pop()
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class TopoHandlerProxy(TopoHandlerBase):
     """
     The proxy object for handler, s.t. we can make priting easier,
@@ -181,7 +181,7 @@ def enabled_topo_handlers():
     return tuple(_TOPO_HANDLERS)
 
 
-@dcls.dataclass
+@dcls.dataclass(frozen=True)
 class TopoInScope(TopoHandlerBase, Displayable):
     """
     Get all the topo in scope.

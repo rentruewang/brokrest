@@ -12,7 +12,7 @@ from collections import abc as cabc
 import numpy as np
 from numpy import rec
 
-__all__ = ["Array", "ArrayDict", "ArrayOrDict"]
+__all__ = ["Array", "ArrayDict", "ArrayOrDict", "array_dict_dataclass"]
 
 type Array = np.ndarray | np.generic
 type ArrayOrDict = Array | ArrayDict
@@ -29,7 +29,12 @@ ArrayDictRowIdx: typing.TypeAlias = (
 "The row wise index access for `ArrayDict`."
 
 
-@dcls.dataclass
+@typing.dataclass_transform(eq_default=False)
+def array_dict_dataclass(cls: type[ArrayDict]):
+    return dcls.dataclass(eq=False)(cls)
+
+
+@array_dict_dataclass
 class ArrayDict:
 
     def __post_init__(self):
@@ -61,45 +66,55 @@ class ArrayDict:
             yield self[i]
 
     def __add__(self, other):
-        return self.apply(lambda arr: operator.add(arr, other))
+        return self.__arithmetic(other, operator.add)
 
     def __sub__(self, other):
-        return self.apply(lambda arr: operator.sub(arr, other))
+        return self.__arithmetic(other, operator.add)
 
     def __mul__(self, other):
-        return self.apply(lambda arr: operator.mul(arr, other))
+        return self.__arithmetic(other, operator.mul)
 
     def __truediv__(self, other):
-        return self.apply(lambda arr: operator.truediv(arr, other))
+        return self.__arithmetic(other, operator.truediv)
 
     def __floordiv__(self, other):
-        return self.apply(lambda arr: operator.floordiv(arr, other))
+        return self.__arithmetic(other, operator.floordiv)
 
     def __pow__(self, other):
-        return self.apply(lambda arr: operator.pow(arr, other))
+        return self.__arithmetic(other, operator.pow)
 
     def __matmul__(self, other):
-        return self.apply(lambda arr: operator.matmul(arr, other))
+        return self.__arithmetic(other, operator.matmul)
 
     @typing.no_type_check
     def __eq__(self, other):
-        return self.apply(lambda arr: operator.eq(arr, other))
+        return self.__arithmetic(other, operator.eq)
 
     @typing.no_type_check
     def __ne__(self, other):
-        return self.apply(lambda arr: operator.ne(arr, other))
+        return self.__arithmetic(other, operator.ne)
 
     def __gt__(self, other):
-        return self.apply(lambda arr: operator.gt(arr, other))
+        return self.__arithmetic(other, operator.gt)
 
     def __ge__(self, other):
-        return self.apply(lambda arr: operator.ge(arr, other))
+        return self.__arithmetic(other, operator.ge)
 
     def __lt__(self, other):
-        return self.apply(lambda arr: operator.lt(arr, other))
+        return self.__arithmetic(other, operator.lt)
 
     def __le__(self, other):
-        return self.apply(lambda arr: operator.le(arr, other))
+        return self.__arithmetic(other, operator.lt)
+
+    def __arithmetic(self, other, op) -> typing.Self:
+        if isinstance(self, ArrayDict) and isinstance(other, ArrayDict):
+            if type(self) != type(other):
+                return NotImplemented
+
+            return type(self)(**{key: op(self[key], other[key]) for key in self.keys()})
+
+        # Broadcast to every element if it's not decomposible (`ArrayDict`).
+        return self.apply(lambda arr: op(arr, other))
 
     def keys(self):
         return self.fields().keys()
@@ -129,7 +144,9 @@ class ArrayDict:
         try:
             return type(self)(**{k: function(v) for k, v in self.items()})
         except Exception as e:
-            raise type(e)(f"ArrayDict.apply failed for {self=}, {function=}.") from e
+            raise RuntimeError(
+                f"ArrayDict.apply failed for {type(self)=}, {function=}."
+            ) from e
 
     def swapaxes(self, axis0: int, axis1: int, /) -> typing.Self:
         return self.apply(lambda arr: arr.swapaxes(axis0, axis1))

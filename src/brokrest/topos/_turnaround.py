@@ -85,8 +85,8 @@ class _AssociativeScan:
     """
 
     def __call__(self, values: np.ndarray, coeffs: np.ndarray, axis: int) -> np.ndarray:
-        log_values = self._complex_log(values.astype(float))
-        log_coeffs = self._complex_log(coeffs.astype(float))
+        log_values = _cast_real(self._complex_log(values.astype(float)))
+        log_coeffs = _cast_real(self._complex_log(coeffs.astype(float)))
         a_star = np.cumsum(log_coeffs, axis=axis)
 
         # Here, `torch.logcumsumexp` is replaced with `np.logaddexp.accumulate`.
@@ -100,3 +100,9 @@ class _AssociativeScan:
         real = np.log(np.maximum(abs(float_input), eps_arr))
         imag = (float_input < 0).astype(float_input.dtype) * np.pi
         return real + imag * 1j
+
+
+@typing.no_type_check
+def _cast_real(value: np.ndarray) -> np.ndarray:
+    assert np.all(np.isreal(value))
+    return value.real

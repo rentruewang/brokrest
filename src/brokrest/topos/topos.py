@@ -8,6 +8,7 @@ import dataclasses as dcls
 import typing
 from collections import abc as cabc
 
+import numpy as np
 import torch
 from bokeh import plotting
 
@@ -35,7 +36,6 @@ class Topo(Displayable, abc.ABC):
     If `.ndim == 0`, this is a single instance and you can call `.item()` on it.
     """
 
-    @typing.final
     def __init__(self) -> None:
         if (batch_size := self._setup_shape()) is not NotImplemented:
             self.batch_size = batch_size
@@ -51,7 +51,7 @@ class Topo(Displayable, abc.ABC):
 
         # Check if shapes are valid.
         shapes = [t.shape for t in self.values()]
-        auto_shape = torch.broadcast_shapes(*shapes)
+        auto_shape = np.broadcast_shapes(*shapes)
         if auto_shape != self.shape:
             raise ValueError(
                 f"Discovered batch size: {self.shape} "
@@ -125,7 +125,7 @@ class Topo(Displayable, abc.ABC):
 
     def tensor(self) -> np.ndarray:
         values = list(self.values())
-        return torch.stack(values, dim=-1)
+        return np.stack(values, axis=-1)
 
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, np.ndarray]) -> typing.Self:

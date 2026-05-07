@@ -1,7 +1,7 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
+import numpy as np
 import pytest
-import torch
 
 from brokrest.data.yquery import load_yahooquery
 from brokrest.topos import Candle
@@ -10,12 +10,12 @@ from brokrest.topos._turnaround import cumsum_with_reset
 
 @pytest.fixture
 def tensor():
-    return torch.arange(10)
+    return np.arange(10)
 
 
 @pytest.fixture
 def reset():
-    return torch.tensor([1, 0, 0, 0, 1, 0, 0, 0, 1, 0]).bool()
+    return np.asarray([1, 0, 0, 0, 1, 0, 0, 0, 1, 0]).astype(bool)
 
 
 @pytest.fixture
@@ -31,8 +31,8 @@ def test_cumsum_with_reset(tensor: np.ndarray, reset: np.ndarray):
 
 def test_turnaround_segments(candles: Candle):
     segments = candles.to_turnaround_segments()
-    signs = segments.dy.sign()
+    signs = np.sign(segments.dy)
 
-    assert (
+    assert np.all(
         signs[:-1] != signs[1:]
-    ).all(), "There shouldn't be consecutive equivalent signs."
+    ), "There shouldn't be consecutive equivalent signs."

@@ -3,6 +3,8 @@
 import dataclasses as dcls
 import typing
 
+import numpy as np
+
 __all__ = ["Importance", "Window"]
 
 

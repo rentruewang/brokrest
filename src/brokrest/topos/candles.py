@@ -59,6 +59,7 @@ class CandleLooks:
         )
 
 
+@dcls.dataclass
 class Candle(Topo, abc.ABC):
     """
     A candle on the candle chart
@@ -78,7 +79,7 @@ class Candle(Topo, abc.ABC):
 
     @typing.override
     def _checks(self) -> None:
-        if torch.any(self.low > self.high):
+        if np.any(self.low > self.high):
             raise ValueError(
                 f"Min value: {self.low} must be smaller than max value: {self.high}."
             )
@@ -89,7 +90,7 @@ class Candle(Topo, abc.ABC):
     def _check_value_in_range(self, value: np.ndarray, desc: str) -> None:
         "Check if the given value is in the range [min, max]."
 
-        if torch.any(self.low > value) or torch.any(self.high < value):
+        if np.any(self.low > value) or np.any(self.high < value):
             message = " ".join(
                 [
                     f"{desc.capitalize()} value: {self.enter},",
@@ -146,7 +147,7 @@ class Candle(Topo, abc.ABC):
     def direction(self):
         "The direction for each candle. 1 for up and -1 for down."
 
-        return (self.exit - self.enter).sign()
+        return np.sign(self.exit - self.enter)
 
     @typing.no_type_check
     def center_points(self, enter_exit: bool = True) -> Point:
@@ -251,6 +252,7 @@ class Candle(Topo, abc.ABC):
         return self[selected]
 
 
+@dcls.dataclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
@@ -266,7 +268,7 @@ class BothCandle(Candle):
     def _checks(self) -> None:
         super()._checks()
 
-        if torch.any(self.start > self.end):
+        if np.any(self.start > self.end):
             raise ValueError(
                 f"Starting time {self.start} must be before than ending time: {self.end}."
             )
@@ -274,7 +276,7 @@ class BothCandle(Candle):
     def continuous(self) -> bool:
         nexts = self[1:]
         prevs = self[:-1]
-        return torch.allclose(nexts.start, prevs.end)
+        return np.allclose(nexts.start, prevs.end)
 
     @property
     @typing.override
@@ -303,6 +305,7 @@ class BothCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
 
+@dcls.dataclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).

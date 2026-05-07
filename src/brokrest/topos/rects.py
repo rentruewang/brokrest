@@ -9,7 +9,6 @@ import typing
 import numpy as np
 import shapely
 import tensordict as td
-import torch
 from bokeh import plotting
 
 from brokrest.plotting import ViewPort
@@ -52,10 +51,10 @@ class Box(Rect):
     def _checks(self) -> None:
         super()._checks()
 
-        if not torch.all(self.width >= 0):
+        if not np.all(self.width >= 0):
             raise ValueError("Box should not have negative width.")
 
-        if not torch.all(self.height >= 0):
+        if not np.all(self.height >= 0):
             raise ValueError("Box should not have negative height.")
 
     @property

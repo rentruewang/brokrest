@@ -7,7 +7,6 @@ import typing
 import numpy as np
 import shapely
 import tensordict as td
-import torch
 from bokeh import plotting
 
 from .lines import Line, Point
@@ -65,7 +64,7 @@ class Polygon(Topo):
 
         val = line.subs(point_list).flatten()
 
-        lr = torch.isclose(val, torch.zeros_like(val), atol=1e-4)
+        lr = np.isclose(val, 0, atol=1e-4)
         assert lr.sum() == 2
 
         upper: Point = point_list[val > 0 & ~lr]
@@ -80,7 +79,7 @@ class Polygon(Topo):
         return cls.from_vertices(points)
 
 
-def _maybe_stack_input[T: td.TensorClass](*items: T) -> T:
+def _maybe_stack_input[T](*items: T) -> T:
     if len(items) == 1:
         return items[0]
     else:

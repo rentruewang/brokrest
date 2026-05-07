@@ -2,6 +2,7 @@
 
 "A set of linear equations."
 
+import dataclasses as dcls
 import typing
 
 import numpy as np
@@ -17,6 +18,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["Line", "Point"]
 
 
+@dcls.dataclass
 class Point(Topo):
     "A collection of points."
 
@@ -69,6 +71,7 @@ def mean_squared_error(x: np.ndarray):
     return (x**2).mean()
 
 
+@dcls.dataclass
 class Line(Topo):
     """
     A set of lines. Represented as `ax + by + c = 0` (standard form).

@@ -1,17 +1,17 @@
 # Copyright (c) The BrokRest Authors - All Rights Reserved
 
 import pytest
-import torch
+from numpy import random
 
 from brokrest.topos import Point, Polygon, Segment
 
 
 def _segments():
     return Segment(
-        x_0=torch.randn(13),
-        x_1=torch.randn(13),
-        y_0=torch.randn(13),
-        y_1=torch.randn(13),
+        x_0=random.randn(13),
+        x_1=random.randn(13),
+        y_0=random.randn(13),
+        y_1=random.randn(13),
     )
 
 

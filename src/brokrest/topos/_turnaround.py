@@ -40,7 +40,7 @@ def simple_keep_turnaround_segments(candles: "Candle") -> Segment:
 
     for segment in segments[1:]:
         # Both pointing up or both pointing down.
-        if segment.dy.sign() == prev_segment.dy.sign():
+        if np.sign(segment.dy) == np.sign(prev_segment.dy):
             continue
 
         # Merge until previous segment.

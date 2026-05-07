@@ -62,7 +62,7 @@ class Point(Topo):
 
     @typing.override
     def plot(self, figure: plotting.figure, /) -> None:
-        _ = figure.scatter(x=self.x.numpy(), y=self.y.numpy(), color="red")
+        _ = figure.scatter(x=self.x, y=self.y, color="red")
 
 
 def mean_squared_error(x: np.ndarray):

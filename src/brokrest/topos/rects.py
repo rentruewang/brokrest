@@ -5,6 +5,7 @@
 import abc
 import typing
 
+import numpy as np
 import shapely
 import tensordict as td
 import torch
@@ -96,10 +97,7 @@ class Box(Rect):
 
     def boundary(self):
         return shapely.box(
-            xmin=self.left.numpy(),
-            xmax=self.right.numpy(),
-            ymin=self.bottom.numpy(),
-            ymax=self.top.numpy(),
+            xmin=self.left, xmax=self.right, ymin=self.bottom, ymax=self.top
         )
 
     def convex_hull(self):
@@ -107,12 +105,7 @@ class Box(Rect):
 
     @typing.override
     def plot(self, figure: plotting.figure) -> None:
-        _ = figure.rect(
-            x=self.x_0.numpy(),
-            y=self.y_0.numpy(),
-            width=self.width.numpy(),
-            height=self.height.numpy(),
-        )
+        _ = figure.rect(x=self.x_0, y=self.y_0, width=self.width, height=self.height)
 
     def visible(self, window: ViewPort) -> np.ndarray:
         """
@@ -126,16 +119,10 @@ class Box(Rect):
         """
 
         horiz = _segment_visible(
-            start=self.left,
-            end=self.right,
-            x=window.left,
-            y=window.right,
+            start=self.left, end=self.right, x=window.left, y=window.right
         )
         verti = _segment_visible(
-            start=self.bottom,
-            end=self.top,
-            x=window.bottom,
-            y=window.top,
+            start=self.bottom, end=self.top, x=window.bottom, y=window.top
         )
 
         # Both horizontally and vertically visible.
@@ -155,17 +142,17 @@ def _segment_visible(
     def is_ordered(*ordered: np.ndarray):
         "The tensors are ordered."
 
-        answer = torch.ones(result_shape).bool()
+        answer = np.ones(result_shape).bool()
         for smaller, larger in zip(ordered[:-1], ordered[1:]):
             answer &= smaller <= larger
         return answer
 
-    x_tensor = torch.tensor(x)
-    y_tensor = torch.tensor(y)
+    x_tensor = np.asarray(x)
+    y_tensor = np.asarray(y)
 
     # Let's laid it out on an axis.
     # the line is visible with one of the conditions:
-    ans = torch.zeros(result_shape).bool()
+    ans = np.zeros(result_shape).astype(bool)
 
     # start - x - end - y
     ans |= is_ordered(start, x_tensor, end, y_tensor)
@@ -274,23 +261,23 @@ class Segment(Rect):
     def left(self):
         "The `min(x)`."
 
-        return torch.minimum(self.x_0, self.x_1)
+        return np.minimum(self.x_0, self.x_1)
 
     @property
     def right(self):
         "The `max(x)`."
 
-        return torch.maximum(self.x_0, self.x_1)
+        return np.maximum(self.x_0, self.x_1)
 
     @property
     def bottom(self):
         "The `min(y)`."
-        return torch.minimum(self.y_0, self.y_1)
+        return np.minimum(self.y_0, self.y_1)
 
     @property
     def top(self):
         "The `max(y)`."
-        return torch.maximum(self.y_0, self.y_1)
+        return np.maximum(self.y_0, self.y_1)
 
     def points(self):
         """
@@ -301,7 +288,7 @@ class Segment(Rect):
 
         # Shape: [*self.shapes, 2]
         start, end = self.start.tensor(), self.end.tensor()
-        unique = torch.stack([start, end]).view(2, -1).unique(dim=0)
+        unique = np.unique(np.stack([start, end]).reshape(2, -1), axis=0)
         return Point(unique[0], unique[1])
 
     def line(self):
@@ -315,12 +302,7 @@ class Segment(Rect):
 
     @typing.override
     def plot(self, figure: plotting.figure) -> None:
-        _ = figure.segment(
-            x0=self.x_0.numpy(),
-            x1=self.x_1.numpy(),
-            y0=self.y_0.numpy(),
-            y1=self.y_1.numpy(),
-        )
+        _ = figure.segment(x0=self.x_0, x1=self.x_1, y0=self.y_0, y1=self.y_1)
 
     @classmethod
     def from_start_end(cls, start: "Point", end: "Point") -> typing.Self:

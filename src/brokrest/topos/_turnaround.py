@@ -2,8 +2,8 @@
 
 import typing
 
-import tensordict as td
 import numpy as np
+import tensordict as td
 
 from .rects import Segment
 

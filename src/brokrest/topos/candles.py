@@ -185,9 +185,7 @@ class Candle(Topo, abc.ABC):
     @typing.no_type_check
     def convex(self, enter_exit: bool = True):
         coords = self.top_bottom_bounds(enter_exit=enter_exit)
-        point_set = shapely.MultiPoint(
-            coords.transpose(-1, 0).flatten().tensor().numpy()
-        )
+        point_set = shapely.MultiPoint(coords.transpose(-1, 0).flatten().tensor())
         if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
             raise RuntimeError("Did not return a polygon.")
 

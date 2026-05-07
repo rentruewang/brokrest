@@ -47,7 +47,7 @@ class Point(Topo):
 
     def is_vertex_of(self, polygon: "Polygon") -> np.ndarray:
         "Find if `self` is a polygon vertex of `polygon`. Return a boolean tensor."
-        result = self.cross_eq_1d(polygon.vertices).any(dim=1)
+        result = self.cross_eq_1d(polygon.vertices).any(axis=1)
         assert result.ndim == 1
         assert result.shape == (len(self),)
         return result
@@ -124,7 +124,7 @@ class Line(Topo):
         Compute the distance of each points to a line.
         """
 
-        dist_mat = self.reshape(-1)._dist_prod_flat(points.reshape(-1))
+        dist_mat = self.flatten()._dist_prod_flat(points.flatten())
         assert dist_mat.ndim == 2, dist_mat.shape
 
         # Cast it to [*self.shape, *self.points] dims.

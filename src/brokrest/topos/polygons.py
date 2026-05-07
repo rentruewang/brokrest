@@ -62,7 +62,7 @@ class Polygon(Topo):
 
         line = Line.from_segment(Segment.from_start_end(left, right))
 
-        val = line.subs(point_list).reshape(-1)
+        val = line.subs(point_list).flatten()
 
         lr = np.isclose(val, 0, atol=1e-4)
         assert lr.sum() == 2

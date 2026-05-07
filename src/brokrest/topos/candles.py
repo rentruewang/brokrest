@@ -153,7 +153,6 @@ class Candle(Topo, abc.ABC):
     @typing.no_type_check
     def center_points(self, enter_exit: bool = True) -> Point:
         coords = self.top_bottom_bounds(enter_exit=enter_exit)
-        breakpoint()
         return coords[..., 0] / 2 + coords[..., 1] / 2
 
     def to_turnaround_segments(self):
@@ -188,7 +187,7 @@ class Candle(Topo, abc.ABC):
     def convex(self, enter_exit: bool = True):
         coords = self.top_bottom_bounds(enter_exit=enter_exit)
         point_set = shapely.MultiPoint(
-            recfunctions.structured_to_unstructured(np.asarray(coords).reshape(-1))
+            recfunctions.structured_to_unstructured(np.asarray(coords).flatten())
         )
         if not isinstance(cvx := point_set.convex_hull, shapely.Polygon):
             raise RuntimeError("Did not return a polygon.")

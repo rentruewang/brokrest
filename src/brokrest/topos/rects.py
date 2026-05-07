@@ -190,7 +190,7 @@ class Segment(Rect):
         return type(self)(x_0=self.x_1, y_0=self.y_1, x_1=self.x_0, y_1=self.y_0)
 
     def face_right(self) -> typing.Self:
-        self = self.reshape(-1)
+        self = self.flatten()
         needs_flipping = self.x_0 > self.x_1
         return self.concat([self[~needs_flipping], self[needs_flipping].flip()])
 

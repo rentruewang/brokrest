@@ -216,6 +216,9 @@ class ArrayDict:
 
         return self.reshape(*_shape_except_axis(self.shape, axis=axis))
 
+    def flatten(self) -> typing.Self:
+        return self.apply(lambda arr: arr.flatten())
+
     @classmethod
     def stack(cls, insts: cabc.Sequence[typing.Self], /, axis: int = 0) -> typing.Self:
         if not all(isinstance(inst, cls) for inst in insts):

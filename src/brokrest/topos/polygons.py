@@ -28,11 +28,11 @@ class Polygon(Topo):
         if self.vertices.ndim == 0:
             raise ValueError("A single vertex cannot make a polygon.")
 
-        return self.vertices.shape[1:]
+        return self.vertices.shape[:-1]
 
     @property
     def vertices(self) -> Point:
-        return td.cat([self.upper, self.lower, td.stack([self.left, self.right])])
+        return td.cat([self.upper, self.lower, td.stack([self.left, self.right], dim=-1)],dim=-1)
 
     @property
     def segments(self) -> Segment:

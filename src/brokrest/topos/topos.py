@@ -129,6 +129,7 @@ class Topo(Displayable, abc.ABC):
         values = list(self.values())
         return torch.stack(values, dim=-1)
 
+
     @classmethod
     def from_dict(cls, items: cabc.Mapping[str, torch.Tensor]) -> typing.Self:
         broadcasted = _broadcast_tensor_dict(items)

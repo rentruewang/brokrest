@@ -28,31 +28,18 @@ __all__ = [
 ]
 
 
-class Topo(td.TensorClass, Displayable, abc.ABC):
+class Topo(Displayable, abc.ABC):
     """
     A set of topologies.
 
     This is backed by `td.tensorclass`.
-    If `.ndim == 0`, this is a single instance and you can call `item()` on it.
+    If `.ndim == 0`, this is a single instance and you can call `.item()` on it.
     """
 
-    if typing.TYPE_CHECKING:
-
-        def __iter__(self) -> cabc.Iterator[typing.Self]:
-            raise NotImplementedError
-
-        @typing.overload
-        def __getitem__(self, idx: str) -> torch.Tensor: ...
-
-        @typing.overload
-        def __getitem__(self, idx: typing.Any) -> typing.Self: ...
-
-        def __getitem__(self, idx):
-            raise NotImplementedError
 
     @typing.final
-    def __post_init__(self) -> None:
-        if (batch_size := self._setup_batch_size()) is not NotImplemented:
+    def __init__(self) -> None:
+        if (batch_size := self._setup_shape()) is not NotImplemented:
             self.batch_size = batch_size
 
         self._checks()
@@ -60,7 +47,7 @@ class Topo(td.TensorClass, Displayable, abc.ABC):
         # This is done last for sure, since subclasses cannot have `__post_init__` defined.
         self._call_handlers()
 
-    def _setup_batch_size(self) -> torch.Size:
+    def _setup_shape(self) -> tuple[int,...]:
         # Make all equal size.
         _ = self.auto_batch_size_()
 

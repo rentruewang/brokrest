@@ -84,7 +84,7 @@ class Line(Topo):
     "The constant term."
 
     @typing.override
-    def _setup_batch_size(self) -> torch.Size:
+    def _setup_shape(self) -> torch.Size:
         sizes = {s for s in [self.a.shape, self.b.shape, self.c.shape] if len(s)}
 
         if len(sizes) == 0:

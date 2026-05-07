@@ -24,7 +24,7 @@ class Polygon(Topo):
     right: Point
 
     @typing.override
-    def _setup_batch_size(self):
+    def _setup_shape(self):
         if self.vertices.ndim == 0:
             raise ValueError("A single vertex cannot make a polygon.")
 

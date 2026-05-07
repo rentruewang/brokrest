@@ -129,8 +129,7 @@ class Line(Topo):
 
         # Cast it to [*self.shape, *self.points] dims.
         result = dist_mat
-        result = _unflatten(result, -1, points.shape)
-        result = _unflatten(result, 0, self.shape)
+        result = result.reshape((*self.shape, *points.shape))
 
         assert isinstance(result, np.ndarray)
         assert result.shape == (*self.shape, *points.shape)
@@ -209,10 +208,15 @@ class Line(Topo):
 
 
 def _unflatten(item: np.ndarray, dim: int, sizes: tuple[int, ...]) -> np.ndarray:
+    if dim >= item.ndim or dim < -item.ndim:
+        raise ValueError(f"{dim=} not in a valid range [{-item.ndim}, {item.ndim}).")
+
+    dim %= item.ndim
+
     # Because flatten actually **adds** dimensions, so here we remove it.
     if not sizes:
         return item.squeeze(dim)
 
     else:
-        shape = *item.shape[:dim], *([1] * len(sizes)), *item.shape[dim + 1 :]
+        shape = *item.shape[:dim], *([1] * len(sizes)), *item.shape[dim:]
         return item.reshape(*shape)

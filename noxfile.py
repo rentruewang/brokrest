@@ -210,7 +210,6 @@ class _Commands:
     def mypy(self, path: str = "src"):
         "`mypy` command."
         self.pdm.run("mypy", "--non-interactive", "--install-types", path)
-        self.pdm.run("mypy", path)
 
     @property
     def pdm(self):

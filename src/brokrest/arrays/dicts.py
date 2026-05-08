@@ -2,6 +2,7 @@
 
 "The base classes for array."
 
+import abc
 import dataclasses as dcls
 import functools
 import operator
@@ -34,8 +35,19 @@ def array_dict_dataclass(cls: type[ArrayDict]):
     return dcls.dataclass(eq=False)(cls)
 
 
+class ArrayDictLike(abc.ABC):
+    @abc.abstractmethod
+    def __array__(self, copy: bool = True) -> np.ndarray:
+        raise NotImplementedError
+
+    @classmethod
+    @abc.abstractmethod
+    def from_rec_array(cls, array: rec.recarray) -> typing.Self:
+        raise NotImplementedError
+
+
 @array_dict_dataclass
-class ArrayDict:
+class ArrayDict(ArrayDictLike):
 
     def __post_init__(self):
         _ = self.shape
@@ -46,6 +58,7 @@ class ArrayDict:
                     f"Field {field} at {key} is not a numpy value or an `ArrayDict`."
                 )
 
+    @typing.override
     def __array__(self, copy: bool = True) -> np.ndarray:
         values = [np.asarray(val, dtype=val.dtype, copy=copy) for val in self.values()]
         return rec.fromarrays(values, dtype=self.dtype)
@@ -72,47 +85,47 @@ class ArrayDict:
             yield self[i]
 
     def __add__(self, other):
-        return self.__arithmetic(other, operator.add)
+        return self._arithmetic(other, operator.add)
 
     def __sub__(self, other):
-        return self.__arithmetic(other, operator.add)
+        return self._arithmetic(other, operator.add)
 
     def __mul__(self, other):
-        return self.__arithmetic(other, operator.mul)
+        return self._arithmetic(other, operator.mul)
 
     def __truediv__(self, other):
-        return self.__arithmetic(other, operator.truediv)
+        return self._arithmetic(other, operator.truediv)
 
     def __floordiv__(self, other):
-        return self.__arithmetic(other, operator.floordiv)
+        return self._arithmetic(other, operator.floordiv)
 
     def __pow__(self, other):
-        return self.__arithmetic(other, operator.pow)
+        return self._arithmetic(other, operator.pow)
 
     def __matmul__(self, other):
-        return self.__arithmetic(other, operator.matmul)
+        return self._arithmetic(other, operator.matmul)
 
     @typing.no_type_check
     def __eq__(self, other):
-        return self.__arithmetic(other, operator.eq)
+        return self._arithmetic(other, operator.eq)
 
     @typing.no_type_check
     def __ne__(self, other):
-        return self.__arithmetic(other, operator.ne)
+        return self._arithmetic(other, operator.ne)
 
     def __gt__(self, other):
-        return self.__arithmetic(other, operator.gt)
+        return self._arithmetic(other, operator.gt)
 
     def __ge__(self, other):
-        return self.__arithmetic(other, operator.ge)
+        return self._arithmetic(other, operator.ge)
 
     def __lt__(self, other):
-        return self.__arithmetic(other, operator.lt)
+        return self._arithmetic(other, operator.lt)
 
     def __le__(self, other):
-        return self.__arithmetic(other, operator.lt)
+        return self._arithmetic(other, operator.lt)
 
-    def __arithmetic(self, other, op) -> typing.Self:
+    def _arithmetic(self, other, op) -> typing.Self:
         if isinstance(self, ArrayDict) and isinstance(other, ArrayDict):
             if type(self) != type(other):
                 return NotImplemented
@@ -193,9 +206,7 @@ class ArrayDict:
 
     @functools.cached_property
     def __fields_cached(self) -> dict[str, ArrayOrDict]:
-        fields = dcls.fields(self)
-        names = [field.name for field in fields]
-        return {name: getattr(self, name) for name in names}
+        return {name: getattr(self, name) for name in self._field_names()}
 
     @property
     def dtype(self) -> np.dtype:
@@ -240,8 +251,17 @@ class ArrayDict:
             raise TypeError(f"Not all instances are subclasses of {cls}")
 
         array = np.concat([np.asarray(inst) for inst in insts], axis=axis)
-        keys = insts[0].keys()
-        return cls(**{key: array[key] for key in keys})
+        assert isinstance(array, rec.recarray), type(array)
+        return cls.from_rec_array(array)
+
+    @classmethod
+    @typing.override
+    def from_rec_array(cls, array: rec.recarray) -> typing.Self:
+        return cls(**{key: array[key] for key in cls._field_names()})
+
+    @classmethod
+    def _field_names(cls):
+        return [field.name for field in dcls.fields(cls)]
 
 
 def _shape_except_axis(shape: tuple[int, ...], axis: int):

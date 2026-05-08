@@ -9,7 +9,7 @@ import numpy as np
 import shapely
 from bokeh import plotting
 
-from brokrest.arrays import array_dict_dataclass
+from brokrest.arrays import array_dataclass
 from brokrest.plotting import ViewPort
 
 from .topos import Topo
@@ -20,7 +20,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["Rect", "Box", "Segment"]
 
 
-@array_dict_dataclass
+@array_dataclass
 class Rect(Topo, abc.ABC):
     """
     A tuple with 4 values.

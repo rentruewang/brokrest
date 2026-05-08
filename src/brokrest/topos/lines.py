@@ -7,7 +7,7 @@ import typing
 import numpy as np
 from bokeh import plotting
 
-from brokrest.arrays import array_dict_dataclass
+from brokrest.arrays import array_dataclass
 
 from .probs import Importance
 from .rects import Box, Segment
@@ -19,7 +19,7 @@ if typing.TYPE_CHECKING:
 __all__ = ["Line", "Point"]
 
 
-@array_dict_dataclass
+@array_dataclass
 class Point(Topo):
     "A collection of points."
 
@@ -72,7 +72,7 @@ def mean_squared_error(x: np.ndarray):
     return (x**2).mean()
 
 
-@array_dict_dataclass
+@array_dataclass
 class Line(Topo):
     """
     A set of lines. Represented as `ax + by + c = 0` (standard form).

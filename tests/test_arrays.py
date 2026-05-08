@@ -6,17 +6,17 @@ import numpy as np
 import pytest
 from numpy import random
 
-from brokrest.arrays import CubicArrayDict
+from brokrest.arrays import ArrayDict
 
 
 @dcls.dataclass
-class Point(CubicArrayDict):
+class Point(ArrayDict):
     x: np.ndarray
     y: np.ndarray
 
 
 @dcls.dataclass
-class PointMark(CubicArrayDict):
+class PointMark(ArrayDict):
     point: Point
     mark: np.ndarray
 

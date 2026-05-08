@@ -13,7 +13,7 @@ import shapely
 from bokeh import plotting
 from numpy.lib import recfunctions
 
-from brokrest.arrays import array_dict_dataclass
+from brokrest.arrays import array_dataclass
 
 from ._turnaround import simple_keep_turnaround_segments
 from .lines import Point
@@ -60,7 +60,7 @@ class CandleLooks:
         )
 
 
-@array_dict_dataclass
+@array_dataclass
 class Candle(Topo, abc.ABC):
     """
     A candle on the candle chart
@@ -254,7 +254,7 @@ class Candle(Topo, abc.ABC):
         return self[selected]
 
 
-@array_dict_dataclass
+@array_dataclass
 class BothCandle(Candle):
     """
     A candle that has a left side and a right side.
@@ -307,7 +307,7 @@ class BothCandle(Candle):
         return Box(x_0=self.start, x_1=self.end, y_0=self.low, y_1=self.high)
 
 
-@array_dict_dataclass
+@array_dataclass
 class LeftCandle(Candle):
     """
     The candle that only has the starting time defined (timing is implicit).

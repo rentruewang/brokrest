@@ -8,7 +8,7 @@ import numpy as np
 import shapely
 from bokeh import plotting
 
-from brokrest.arrays import array_dataclass
+from brokrest.arrays import ArrayList, array_dataclass
 
 from .lines import Line, Point
 from .rects import Segment
@@ -18,7 +18,7 @@ __all__ = ["Polygon"]
 
 
 @array_dataclass
-class Polygon(Topo):
+class Polygon(Topo, ArrayList[Point]):
     upper: Point
     lower: Point
     left: Point

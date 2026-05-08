@@ -34,14 +34,8 @@ def array_dataclass(cls: type[Array]):
 
 @array_dataclass
 class Array(abc.ABC):
-    def __post_init__(self):
-        _ = self.shape
-
-        for key, field in self.items():
-            if not isinstance(field, np.generic | np.ndarray | Array):
-                raise ValueError(
-                    f"Field {field} at {key} is not a numpy value or an `ArrayDict`."
-                )
+    def __post_init__(self) -> None:
+        return
 
     @abc.abstractmethod
     def __array__(self, copy: bool = True) -> np.ndarray:
@@ -118,19 +112,6 @@ class Array(abc.ABC):
     def apply(self, function: cabc.Callable[..., typing.Any]) -> typing.Self:
         "Apply transformation elementwise."
 
-        raise NotImplementedError
-
-    def keys(self):
-        return self.fields().keys()
-
-    def values(self):
-        return self.fields().values()
-
-    def items(self):
-        return self.fields().items()
-
-    @abc.abstractmethod
-    def fields(self) -> dict[str, ArrayOrDict]:
         raise NotImplementedError
 
     @property

@@ -15,11 +15,28 @@ __all__ = ["ArrayDict", "ArrayList"]
 
 @array_dataclass
 class ArrayDict(Array):
+    def __post_init__(self):
+        _ = self.shape
+
+        for key, field in self.items():
+            if not isinstance(field, np.generic | np.ndarray | Array):
+                raise ValueError(
+                    f"Field {field} at {key} is not a numpy value or an `ArrayDict`."
+                )
 
     @typing.override
     def __array__(self, copy: bool = True) -> np.ndarray:
         values = [np.asarray(val, dtype=val.dtype, copy=copy) for val in self.values()]
         return rec.fromarrays(values, dtype=self.dtype)
+
+    def keys(self):
+        return self.fields().keys()
+
+    def values(self):
+        return self.fields().values()
+
+    def items(self):
+        return self.fields().items()
 
     @typing.override
     def _ufunc_2(self, other, op) -> typing.Self:
@@ -56,7 +73,6 @@ class ArrayDict(Array):
                 f"ArrayDict.apply failed for {type(self)=}, {function=}."
             ) from e
 
-    @typing.override
     def fields(self) -> dict[str, ArrayOrDict]:
         """
         The fields in the array.
@@ -98,5 +114,5 @@ class ArrayDict(Array):
         return [field.name for field in dcls.fields(cls)]
 
 
-class ArrayList[T: Array]:
+class ArrayList[T: Array = Array]:
     pass

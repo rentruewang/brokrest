@@ -13,7 +13,7 @@ import shapely
 from bokeh import plotting
 from numpy.lib import recfunctions
 
-from brokrest.arrays import array_dataclass
+from brokrest.arrays import ArrayDict, array_dataclass
 
 from ._turnaround import simple_keep_turnaround_segments
 from .lines import Point
@@ -61,7 +61,7 @@ class CandleLooks:
 
 
 @array_dataclass
-class Candle(Topo, abc.ABC):
+class Candle(Topo, ArrayDict, abc.ABC):
     """
     A candle on the candle chart
     """

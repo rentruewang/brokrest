@@ -11,7 +11,7 @@ from collections import abc as cabc
 import numpy as np
 from bokeh import plotting
 
-from brokrest.arrays import ArrayDict, array_dataclass
+from brokrest.arrays import Array, array_dataclass
 from brokrest.plotting import Displayable, ViewPort
 
 if typing.TYPE_CHECKING:
@@ -29,7 +29,7 @@ __all__ = [
 
 
 @array_dataclass
-class Topo(ArrayDict, Displayable, abc.ABC):
+class Topo(Array, Displayable, abc.ABC):
     """
     A set of topologies.
 

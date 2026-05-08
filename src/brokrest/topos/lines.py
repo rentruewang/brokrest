@@ -7,7 +7,7 @@ import typing
 import numpy as np
 from bokeh import plotting
 
-from brokrest.arrays import array_dataclass
+from brokrest.arrays import ArrayDict, array_dataclass
 
 from .probs import Importance
 from .rects import Box, Segment
@@ -20,7 +20,7 @@ __all__ = ["Line", "Point"]
 
 
 @array_dataclass
-class Point(Topo):
+class Point(Topo, ArrayDict):
     "A collection of points."
 
     x: np.ndarray
@@ -73,7 +73,7 @@ def mean_squared_error(x: np.ndarray):
 
 
 @array_dataclass
-class Line(Topo):
+class Line(Topo, ArrayDict):
     """
     A set of lines. Represented as `ax + by + c = 0` (standard form).
     """

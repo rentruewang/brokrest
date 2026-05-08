@@ -8,6 +8,8 @@ from collections import abc as cabc
 import numpy as np
 from numpy import rec
 
+from brokrest.typing import IntArray
+
 from .arrays import Array, ArrayOrDict, array_dataclass
 
 __all__ = ["ArrayDict", "ArrayList"]
@@ -114,5 +116,11 @@ class ArrayDict(Array):
         return [field.name for field in dcls.fields(cls)]
 
 
+@array_dataclass
 class ArrayList[T: Array = Array]:
-    pass
+    data: T
+    """
+    The data stored (vectorized). Each item can be of different length (jagged).
+    """
+
+    split: IntArray

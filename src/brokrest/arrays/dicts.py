@@ -13,10 +13,10 @@ from collections import abc as cabc
 import numpy as np
 from numpy import rec
 
-__all__ = ["Array", "ArrayDict", "ArrayOrDict", "array_dict_dataclass"]
+__all__ = ["Array", "CubicArrayDict", "ArrayOrDict", "array_dict_dataclass"]
 
 type Array = np.ndarray | np.generic
-type ArrayOrDict = Array | ArrayDict
+type ArrayOrDict = Array | CubicArrayDict
 
 ArrayDictRowIdx: typing.TypeAlias = (
     None
@@ -35,20 +35,8 @@ def array_dict_dataclass(cls: type[ArrayDict]):
     return dcls.dataclass(eq=False)(cls)
 
 
-class ArrayDictLike(abc.ABC):
-    @abc.abstractmethod
-    def __array__(self, copy: bool = True) -> np.ndarray:
-        raise NotImplementedError
-
-    @classmethod
-    @abc.abstractmethod
-    def from_rec_array(cls, array: rec.recarray) -> typing.Self:
-        raise NotImplementedError
-
-
 @array_dict_dataclass
-class ArrayDict(ArrayDictLike):
-
+class ArrayDict(abc.ABC):
     def __post_init__(self):
         _ = self.shape
 
@@ -58,10 +46,9 @@ class ArrayDict(ArrayDictLike):
                     f"Field {field} at {key} is not a numpy value or an `ArrayDict`."
                 )
 
-    @typing.override
+    @abc.abstractmethod
     def __array__(self, copy: bool = True) -> np.ndarray:
-        values = [np.asarray(val, dtype=val.dtype, copy=copy) for val in self.values()]
-        return rec.fromarrays(values, dtype=self.dtype)
+        raise NotImplementedError
 
     def __len__(self) -> int:
         return self.shape[0]
@@ -85,55 +72,56 @@ class ArrayDict(ArrayDictLike):
             yield self[i]
 
     def __add__(self, other):
-        return self._arithmetic(other, operator.add)
+        return self._ufunc_2(other, operator.add)
 
     def __sub__(self, other):
-        return self._arithmetic(other, operator.add)
+        return self._ufunc_2(other, operator.add)
 
     def __mul__(self, other):
-        return self._arithmetic(other, operator.mul)
+        return self._ufunc_2(other, operator.mul)
 
     def __truediv__(self, other):
-        return self._arithmetic(other, operator.truediv)
+        return self._ufunc_2(other, operator.truediv)
 
     def __floordiv__(self, other):
-        return self._arithmetic(other, operator.floordiv)
+        return self._ufunc_2(other, operator.floordiv)
 
     def __pow__(self, other):
-        return self._arithmetic(other, operator.pow)
+        return self._ufunc_2(other, operator.pow)
 
     def __matmul__(self, other):
-        return self._arithmetic(other, operator.matmul)
+        return self._ufunc_2(other, operator.matmul)
 
     @typing.no_type_check
     def __eq__(self, other):
-        return self._arithmetic(other, operator.eq)
+        return self._ufunc_2(other, operator.eq)
 
     @typing.no_type_check
     def __ne__(self, other):
-        return self._arithmetic(other, operator.ne)
+        return self._ufunc_2(other, operator.ne)
 
     def __gt__(self, other):
-        return self._arithmetic(other, operator.gt)
+        return self._ufunc_2(other, operator.gt)
 
     def __ge__(self, other):
-        return self._arithmetic(other, operator.ge)
+        return self._ufunc_2(other, operator.ge)
 
     def __lt__(self, other):
-        return self._arithmetic(other, operator.lt)
+        return self._ufunc_2(other, operator.lt)
 
     def __le__(self, other):
-        return self._arithmetic(other, operator.lt)
+        return self._ufunc_2(other, operator.lt)
 
-    def _arithmetic(self, other, op) -> typing.Self:
-        if isinstance(self, ArrayDict) and isinstance(other, ArrayDict):
-            if type(self) != type(other):
-                return NotImplemented
+    @abc.abstractmethod
+    def _ufunc_2(self, other, op) -> typing.Self:
+        "Binary ufunc."
+        raise NotImplementedError
 
-            return type(self)(**{key: op(self[key], other[key]) for key in self.keys()})
+    @abc.abstractmethod
+    def apply(self, function: cabc.Callable[..., typing.Any]) -> typing.Self:
+        "Apply transformation elementwise."
 
-        # Broadcast to every element if it's not decomposible (`ArrayDict`).
-        return self.apply(lambda arr: op(arr, other))
+        raise NotImplementedError
 
     def keys(self):
         return self.fields().keys()
@@ -144,28 +132,9 @@ class ArrayDict(ArrayDictLike):
     def items(self):
         return self.fields().items()
 
-    @property
-    def shape(self) -> tuple[int, ...]:
-        "The shape of the `ArrayDict`."
-        return self._shape
-
-    @functools.cached_property
-    def _shape(self):
-        values = list(self.values())
-        shapes = {val.shape for val in values}
-
-        if len(shapes) != 1:
-            raise ValueError(f"Multiple shapes found in {type(self)}: {shapes}.")
-
-        return list(shapes)[0]
-
-    def apply(self, function: cabc.Callable[..., typing.Any]) -> typing.Self:
-        try:
-            return type(self)(**{k: function(v) for k, v in self.items()})
-        except Exception as e:
-            raise RuntimeError(
-                f"ArrayDict.apply failed for {type(self)=}, {function=}."
-            ) from e
+    @abc.abstractmethod
+    def fields(self) -> dict[str, ArrayOrDict]:
+        raise NotImplementedError
 
     def swapaxes(self, axis0: int, axis1: int, /) -> typing.Self:
         return self.apply(lambda arr: arr.swapaxes(axis0, axis1))
@@ -186,35 +155,15 @@ class ArrayDict(ArrayDictLike):
 
         return len(self.shape)
 
-    def fields(self) -> dict[str, ArrayOrDict]:
-        """
-        The fields in the array.
-
-        Since python 3.7, the dict values are ordered,
-        so we can reliably use dict.values() and stack it.
-        """
-
-        fields = self.__fields_cached
-
-        for key, arr in fields.items():
-            if not isinstance(arr, np.ndarray | np.generic | ArrayDict):
-                raise TypeError(
-                    f"The field at {key=} has value {arr=}, which is not a numpy array."
-                )
-
-        return fields
-
-    @functools.cached_property
-    def __fields_cached(self) -> dict[str, ArrayOrDict]:
-        return {name: getattr(self, name) for name in self._field_names()}
+    @property
+    @abc.abstractmethod
+    def dtype(self) -> np.dtype:
+        raise NotImplementedError
 
     @property
-    def dtype(self) -> np.dtype:
-        return self.__dtype_cached
-
-    @functools.cached_property
-    def __dtype_cached(self) -> np.dtype:
-        return np.dtype([(key, val.dtype) for key, val in self.items()])
+    @abc.abstractmethod
+    def shape(self) -> tuple[int, ...]:
+        "The shape of the `ArrayDict`."
 
     def item(self) -> typing.Self:
         if self.size != 1:
@@ -237,13 +186,17 @@ class ArrayDict(ArrayDictLike):
         return self.apply(lambda arr: arr.flatten())
 
     @classmethod
+    @abc.abstractmethod
+    def from_array(cls, array: np.ndarray) -> typing.Self:
+        raise NotImplementedError
+
+    @classmethod
     def stack(cls, insts: cabc.Sequence[typing.Self], /, axis: int = 0) -> typing.Self:
         if not all(isinstance(inst, cls) for inst in insts):
             raise TypeError(f"Not all instances are subclasses of {cls}")
 
         array = np.stack([np.asarray(inst) for inst in insts], axis=axis)
-        keys = insts[0].keys()
-        return cls(**{key: array[key] for key in keys})
+        return cls.from_array(array)
 
     @classmethod
     def concat(cls, insts: cabc.Sequence[typing.Self], /, axis: int = 0) -> typing.Self:
@@ -251,12 +204,87 @@ class ArrayDict(ArrayDictLike):
             raise TypeError(f"Not all instances are subclasses of {cls}")
 
         array = np.concat([np.asarray(inst) for inst in insts], axis=axis)
-        assert isinstance(array, rec.recarray), type(array)
-        return cls.from_rec_array(array)
+        return cls.from_array(array)
+
+
+@array_dict_dataclass
+class CubicArrayDict(ArrayDict):
+
+    @typing.override
+    def __array__(self, copy: bool = True) -> np.ndarray:
+        values = [np.asarray(val, dtype=val.dtype, copy=copy) for val in self.values()]
+        return rec.fromarrays(values, dtype=self.dtype)
+
+    @typing.override
+    def _ufunc_2(self, other, op) -> typing.Self:
+        if isinstance(self, CubicArrayDict) and isinstance(other, CubicArrayDict):
+            if type(self) != type(other):
+                return NotImplemented
+
+            return type(self)(**{key: op(self[key], other[key]) for key in self.keys()})
+
+        # Broadcast to every element if it's not decomposible (`ArrayDict`).
+        return self.apply(lambda arr: op(arr, other))
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        "The shape of the `ArrayDict`."
+        return self._shape
+
+    @functools.cached_property
+    def _shape(self):
+        values = list(self.values())
+        shapes = {val.shape for val in values}
+
+        if len(shapes) != 1:
+            raise ValueError(f"Multiple shapes found in {type(self)}: {shapes}.")
+
+        return list(shapes)[0]
+
+    @typing.override
+    def apply(self, function: cabc.Callable[..., typing.Any]) -> typing.Self:
+        try:
+            return type(self)(**{k: function(v) for k, v in self.items()})
+        except Exception as e:
+            raise RuntimeError(
+                f"ArrayDict.apply failed for {type(self)=}, {function=}."
+            ) from e
+
+    @typing.override
+    def fields(self) -> dict[str, ArrayOrDict]:
+        """
+        The fields in the array.
+
+        Since python 3.7, the dict values are ordered,
+        so we can reliably use dict.values() and stack it.
+        """
+
+        fields = self.__fields_cached
+
+        for key, arr in fields.items():
+            if not isinstance(arr, np.ndarray | np.generic | CubicArrayDict):
+                raise TypeError(
+                    f"The field at {key=} has value {arr=}, which is not a numpy array."
+                )
+
+        return fields
+
+    @functools.cached_property
+    def __fields_cached(self) -> dict[str, ArrayOrDict]:
+        return {name: getattr(self, name) for name in self._field_names()}
+
+    @property
+    @typing.override
+    def dtype(self) -> np.dtype:
+        return self.__dtype_cached
+
+    @functools.cached_property
+    def __dtype_cached(self) -> np.dtype:
+        return np.dtype([(key, val.dtype) for key, val in self.items()])
 
     @classmethod
     @typing.override
-    def from_rec_array(cls, array: rec.recarray) -> typing.Self:
+    def from_array(cls, array: np.ndarray) -> typing.Self:
         return cls(**{key: array[key] for key in cls._field_names()})
 
     @classmethod
